@@ -4,6 +4,7 @@ import SwiftGodot
 class Hookshot: Area2D {
     
     @Signal var didHit: SimpleSignal
+    @Signal var didHitHook: SimpleSignal
     
     @Export var range: Double = 160
     
@@ -17,8 +18,8 @@ class Hookshot: Area2D {
     
     override func _ready() {
         
-        collisionLayer = 0b10_0000_0000
-        collisionMask |= 0b0000_0011
+        collisionLayer = 0b00_0001_0000
+        collisionMask |= 0b1000_0011
         
         monitoring = false
         
@@ -28,7 +29,10 @@ class Hookshot: Area2D {
             self?.hit()
         }
         areaEntered.connect { [weak self] area in
-            self?.hit()
+            guard let area else { return }
+            if area.collisionLayer & 0b1000_0000 != 0 {
+                self?.hitHook()
+            }
         }
     }
     
@@ -53,6 +57,14 @@ class Hookshot: Area2D {
                 deactivate()
             }
         }
+    }
+    
+    func hitHook() {
+        lock = true
+        active = false
+        self.setDeferred(property: "monitoring", value: Variant(false))
+        didHitHook.emit()
+        visible = false
     }
     
     func hit() {

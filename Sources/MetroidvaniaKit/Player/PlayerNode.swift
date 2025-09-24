@@ -91,6 +91,8 @@ class PlayerNode: CharacterBody2D {
     
     @Export var dashTimeLimit: Double = 1.0
     
+    @Export var hookLaunchSpeed: Float = 700
+    
     let states: [State: PlayerState] = [
         .idle: IdleState(),
         .run: RunningState(),
@@ -169,6 +171,9 @@ class PlayerNode: CharacterBody2D {
         hookshot?.didHit.connect { [weak self] in
             self?.hookHit()
         }
+        hookshot?.didHitHook.connect { [weak self] in
+            self?.hookHitHook()
+        }
         
         states[currentState]?.enter(self)
     }
@@ -205,8 +210,21 @@ class PlayerNode: CharacterBody2D {
         }
     }
     
+    func hookHitHook() {
+        currentState = .hook
+//        let direction = hookshot?.direction ?? .zero
+//        if direction.y.isZero {
+//            velocity.y = -300
+//        } else {
+//            velocity.y = direction.y * hookLaunchSpeed
+//        }
+//        velocity.x = direction.x * hookLaunchSpeed
+        
+        states[currentState]?.enter(self)
+    }
+    
     func hookHit() {
-        currentState = .jump
+        currentState = .hook
         let direction = hookshot?.direction ?? .zero
         velocity.x = direction.x * 500
         velocity.y = direction.y * 500
