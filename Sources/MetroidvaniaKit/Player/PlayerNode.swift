@@ -3,6 +3,7 @@ import SwiftGodot
 enum CollisionMask: UInt32 {
     case floor = 0b0001
 //    case oneWayPlatform = 0b0010 ?
+    case player = 0b1_0000_0000
 }
 
 @Godot
@@ -31,6 +32,8 @@ class PlayerNode: CharacterBody2D {
     
     @Export var wallJumpThresholdMsec: Int = 500
     
+    @Export var speedBoostThreshold: Int = 3000
+    
     var state: PlayerState = IdleState()
     
     var facingDirection: Int = 1
@@ -38,6 +41,12 @@ class PlayerNode: CharacterBody2D {
     var canDoubleJump = true
     
     var wallJumpTimestamp: UInt = 0
+    
+    var isSpeedBoosting = false {
+        didSet {
+            floorSnapLength = isSpeedBoosting ? 8 : 4
+        }
+    }
     
     func getGravity() -> Double {
         8 * parabolicHeight / (jumpDuration * jumpDuration)
@@ -70,16 +79,6 @@ class PlayerNode: CharacterBody2D {
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX
         }
-        
-        for i in 0..<getSlideCollisionCount() {
-            let collision = getSlideCollision(slideIdx: i)!
-            let layer = PhysicsServer2D.bodyGetCollisionLayer(body: collision.getColliderRid())
-            if layer & 0b1000 != 0 {
-                let body = collision.getCollider() as? Node2D
-                let block = body?.getParent() as? BreakableBlock
-                block?.destroy()
-            }
-        }
     }
     
     func raycastForWall() -> Bool {
@@ -100,7 +99,6 @@ class PlayerNode: CharacterBody2D {
             let point1 = result1["position"],
             let point2 = result2["position"]
         {
-//            GD.print("RAY DID HIT WALL")
             return true
         }
         return false

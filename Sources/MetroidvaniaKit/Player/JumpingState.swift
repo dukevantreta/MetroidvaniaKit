@@ -14,6 +14,10 @@ class JumpingState: PlayerState {
         let direction = Input.getHorizontalAxis()
         var targetSpeed = player.speed * direction
         
+        if player.isSpeedBoosting {
+            targetSpeed *= 2
+        }
+        
         if Time.getTicksMsec() - player.wallJumpTimestamp > player.wallJumpThresholdMsec {
             if !direction.isZero {
                 if (player.velocity.x >= 0 && direction > 0) || (player.velocity.x <= 0 && direction < 0) {
@@ -52,6 +56,10 @@ class JumpingState: PlayerState {
             player.velocity.y = Float(-player.getJumpspeed())
             jumpTimestamp = Time.getTicksMsec()
             player.canDoubleJump = false
+        }
+        
+        if abs(player.velocity.x) < Float(player.speed) {
+            player.isSpeedBoosting = false
         }
         
         player.moveAndSlide()

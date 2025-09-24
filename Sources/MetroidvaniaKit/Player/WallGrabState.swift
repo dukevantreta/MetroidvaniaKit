@@ -5,6 +5,7 @@ class WallGrabState: PlayerState {
     func enter(_ player: PlayerNode) {
         player.velocity.x = 0
         player.velocity.y = 0
+        player.isSpeedBoosting = false
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
