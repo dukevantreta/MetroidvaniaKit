@@ -53,7 +53,9 @@ class PlayerNode: CharacterBody2D {
     
     @Export var airTime: Double = 0
     
-    @Export var wallJumpThresholdMsec: Int = 500
+    var wallJumpThresholdMsec: Int {
+        stats.hasWallGrabUpgrade ? 100 : 500
+    }
     
     @Export var speedBoostThreshold: Int = 3000
     
@@ -117,6 +119,12 @@ class PlayerNode: CharacterBody2D {
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX
             sprite?.flipH = facingDirection < 0
+        }
+        
+        if input.isActionPressed(.rightShoulder) && !isInWater && stats.hasWaterWalking {
+            collisionMask |= 0b0100
+        } else {
+            collisionMask = 0b1011
         }
         
         if let newState = state.update(self, dt: delta) {

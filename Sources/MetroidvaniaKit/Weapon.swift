@@ -115,11 +115,11 @@ class PlasmaBeam: Node, Weapon {
             
             if let sprite = sprite?.instantiate() as? AnimatedSprite2D {
                 projectiles[i].addChild(node: sprite)
-                sprite.rotation = Double(Float.atan2(y: newDirection.y, x: newDirection.x))
+                sprite.rotation = Double(Float.atan2(y: direction.y, x: direction.x))
             }
             
             let collisionRect = RectangleShape2D()
-            collisionRect.size = Vector2(x: 16, y: 8)
+            collisionRect.size = Vector2(x: 16, y: 14)
             let collisionBox = CollisionShape2D()
             collisionBox.shape = collisionRect
             projectiles[i].addChild(node: collisionBox)

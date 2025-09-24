@@ -5,6 +5,8 @@ class PlayerHitbox: Area2D {
     
     @SceneTree(path: "..") weak var player: PlayerNode?
     
+    private var lastFrameInWater = false
+    
     override func _ready() {
         guard let player else {
             logError("PLAYER NOT FOUND")
@@ -12,81 +14,55 @@ class PlayerHitbox: Area2D {
         }
         
         collisionLayer = 0b1_0000_0000
-//        collisionMask |= 0b00000010
         collisionMask |= 0b00000100
-//        collisionMask |= 0b00001000
         
-        areaEntered.connect { [weak self] area in
-            guard let self, let area else { return }
-            if area.collisionLayer & 0b0100 != 0 {
-                GD.print("ENTER WATER")
-                player.enterWater()
-            }
-        }
-        areaExited.connect { [weak self] area in
-            guard let self, let area else { return }
-            if area.collisionLayer & 0b0100 != 0 {
-                GD.print("EXIT WATER")
-                player.exitWater()
-            }
-        }
-        
-//        areaShapeEntered.connect { areaRid, area, areaShapeIndex, localShapeIndex in
-//            GD.print("AREA SHAPE ENTERED")
-//            let layer = PhysicsServer2D.areaGetCollisionLayer(area: areaRid)
-//            if layer & 0b0000_1000 != 0 {
-////                self?.player?.enterWater()
-//                GD.print("AREA WATER FROM TILES")
+//        areaEntered.connect { [weak self] area in
+//            guard let self, let area else { return }
+//            if area.collisionLayer & 0b0100 != 0 {
+//                GD.print("ENTER WATER")
+//                player.enterWater()
 //            }
 //        }
-        
-//        bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
-//            let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
-//            if layer & 0b0000_1000 != 0 {
-////                self?.player?.enterWater()
-////                GD.print("BODY WATER FROM TILES")
-//            }
-//        }
-//        
-//        bodyShapeExited.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
-//            let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
-//            if layer & 0b0000_1000 != 0 {
-////                self?.player?.
-////                GD.print("EXITED WATER FROM TILES")
+//        areaExited.connect { [weak self] area in
+//            guard let self, let area else { return }
+//            if area.collisionLayer & 0b0100 != 0 {
+//                GD.print("EXIT WATER")
+//                player.exitWater()
 //            }
 //        }
     }
     
-//    var lastFrameInWater = false
-    
-//    override func _physicsProcess(delta: Double) {
     override func _process(delta: Double) {
-//        guard var playerPosition = player?.position else { return }
-//        playerPosition.y -= 1
-//        
-//        for body in getOverlappingBodies() {
-//            if let tilemap = body as? TileMapLayer, let tileset = tilemap.tileSet {
-//                let mapCoordinates = tilemap.localToMap(localPosition: playerPosition)
-//                if let tileData = tilemap.getCellTileData(coords: mapCoordinates) {
-//                    var tileCollisionLayer: UInt32 = 0
-//                    for physicsLayerIdx in 0..<tileset.getPhysicsLayersCount() { // ugly workaround to get tile's collision layer
-//                        if tileData.getCollisionPolygonsCount(layerId: physicsLayerIdx) > 0 {
-//                            tileCollisionLayer |= tileset.getPhysicsLayerCollisionLayer(layerIndex: physicsLayerIdx)
-//                        }
-//                    }
-//                    if tileCollisionLayer & 0b0000_0100 != 0 { // is in water
-//                        if !lastFrameInWater {
-//                            lastFrameInWater = true
-//                            player?.enterWater()
-//                        }
-//                        return
-//                    }
-//                }
-//            }
-//        }
-//        if lastFrameInWater {
-//            lastFrameInWater = false
-//            player?.exitWater()
-//        }
+        guard var playerPosition = player?.position else { return }
+        checkForWater(at: playerPosition)
+    }
+    
+    func checkForWater(at playerPosition: Vector2) {
+        for body in getOverlappingBodies() {
+            if let tilemap = body as? TileMapLayer, let tileset = tilemap.tileSet {
+                var queryPosition = Vector2(x: playerPosition.x, y: playerPosition.y - 1)
+                queryPosition -= tilemap.globalPosition
+                let mapCoordinates = tilemap.localToMap(localPosition: queryPosition)
+                if let tileData = tilemap.getCellTileData(coords: mapCoordinates) {
+                    var tileCollisionLayer: UInt32 = 0
+                    for physicsLayerIdx in 0..<tileset.getPhysicsLayersCount() { // ugly workaround to get tile's collision layer
+                        if tileData.getCollisionPolygonsCount(layerId: physicsLayerIdx) > 0 {
+                            tileCollisionLayer |= tileset.getPhysicsLayerCollisionLayer(layerIndex: physicsLayerIdx)
+                        }
+                    }
+                    if tileCollisionLayer & 0b0000_0100 != 0 { // is in water
+                        if !lastFrameInWater {
+                            lastFrameInWater = true
+                            player?.enterWater()
+                        }
+                        return
+                    }
+                }
+            }
+        }
+        if lastFrameInWater {
+            lastFrameInWater = false
+            player?.exitWater()
+        }
     }
 }

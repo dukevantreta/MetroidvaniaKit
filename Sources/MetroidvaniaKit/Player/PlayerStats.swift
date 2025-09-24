@@ -20,7 +20,11 @@ class PlayerStats: Node2D {
     
     @Export var hasWallGrab: Bool = false
     
+    @Export var hasWallGrabUpgrade: Bool = false
+    
     @Export var hasSpeedBooster: Bool = false
     
     @Export var hasWaterMovement: Bool = false
+    
+    @Export var hasWaterWalking: Bool = false
 }
