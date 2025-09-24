@@ -61,6 +61,8 @@ class Tiled {
         case tile
         case polygon
         case text
+        case animation
+        case frame
         case unknown
     }
     

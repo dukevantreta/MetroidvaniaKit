@@ -17,6 +17,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
     case .editor:
         register(type: TiledImporter.self)
         register(type: MapImportPlugin.self)
+        register(type: TileSetImporter.self)
 //        register(type: TilemapBuilder.self)
 //        register(type: DictionaryBuilder.self)
     case .scene:

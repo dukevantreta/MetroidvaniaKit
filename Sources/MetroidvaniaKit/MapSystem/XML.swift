@@ -3,7 +3,9 @@ import SwiftGodot
 class XML {
     
     enum ParseError: Error {
-        
+        case fileOpenError(Error)
+        case dataCorruped
+        case noData
     }
     
     struct Tree {
@@ -33,10 +35,10 @@ class XML {
     private init() {}
     
     // this sh!t is a piece of art
-    static func parse(_ sourceFile: String, with xmlParser: XMLParser) -> XML.Tree? {
+    static func parse(_ sourceFile: String, with xmlParser: XMLParser) throws -> XML.Tree {
         let openError = xmlParser.open(file: sourceFile)
         if openError != .ok {
-            return nil// error
+            throw XML.ParseError.fileOpenError(openError)
         }
         
         var root: XML.Element?
@@ -68,13 +70,13 @@ class XML {
             } else if type == .elementEnd {
                 let name = xmlParser.getNodeName()
                 if name != parseStack.last?.name {
-                    GD.print("SOMETHING BAD HAPPENED")
+                    throw XML.ParseError.dataCorruped
                 }
                 parseStack.popLast()
             }
         }
         guard let root else {
-            return nil // explode()
+            throw XML.ParseError.noData
         }
         return Tree(root: root)
     }

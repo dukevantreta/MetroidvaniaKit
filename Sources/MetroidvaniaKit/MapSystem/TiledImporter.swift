@@ -156,26 +156,26 @@ class MapImportPlugin: EditorImportPlugin {
             GD.pushError("[] Import file \(sourceFile) not found!")
             return .errFileNotFound
         }
-        let xmlTree = XML.parse(sourceFile, with: XMLParser())
+        let xmlTree = try? XML.parse(sourceFile, with: XMLParser())
         guard let xmlTree else { return .errBug }
             
 //        printTree(xmlTree.root, level: 0)
         
         // for some reason, this runs from a background thread during autoimport check
         DispatchQueue.main.async {
-            self.importMap(sourceFile: sourceFile, xml: xmlTree.root)
+            self.importMap(sourceFile: sourceFile, xml: xmlTree.root, savePath: savePath)
         }
         return .ok
     }
     
-    func importMap(sourceFile: String, xml: XML.Element) {
+    func importMap(sourceFile: String, xml: XML.Element, savePath: String) {
         guard let map = try? Tiled.TileMap(from: xml) else {
             return //.errBug
         }
         guard map.orientation == .orthogonal else { // support only orthogonal
             return //.errBug
         }
-        guard let tileset = TileSetImporter.parseTileSets(map: map, sourceFile: sourceFile) else { return }
+        guard let tileset = TileSetParser.parseTileSets(map: map, sourceFile: sourceFile) else { return }
         guard let tilemapNode = try? createTileMap(map: map, using: tileset) else { return }
         
         let scene = PackedScene()
@@ -184,7 +184,8 @@ class MapImportPlugin: EditorImportPlugin {
         guard let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first else {
             return // err
         }
-        let outputFile = "res://output/\(filename).tscn"
+//        let outputFile = "res://output/\(filename).tscn"
+        let outputFile = "\(savePath).tscn"
         let err = ResourceSaver.save(resource: scene, path: outputFile)
         
         if err != .ok {
@@ -195,21 +196,20 @@ class MapImportPlugin: EditorImportPlugin {
     }
     
     var currentTileset: TileSet? // find a better solution
+    var localTilesetRefs: [Int32: String] = [:]
     
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
         currentTileset = tileset
         
-        var sourceIDs: [Int32] = []
-        for i in 0..<tileset.getSourceCount() {
-            sourceIDs.append(tileset.getSourceId(index: i))
+        for tileset in map.tilesets {
+            if let gid = Int32(tileset.firstGID ?? "") {
+                let name = tileset.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+                localTilesetRefs[gid] = name
+            }
         }
-        GD.print("SOURCE IDs: \(sourceIDs)")
+        GD.print("TILESET DICT: \(localTilesetRefs)")
         
-        var columns: [Int32: Int32] = [:]
-        for id in sourceIDs {
-            let source = tileset.getSource(sourceId: id) as? TileSetAtlasSource
-            columns[id] = source?.getAtlasGridSize().x ?? 0
-        }
+        let gids = map.tilesets.compactMap { Int32($0.firstGID ?? "") }
         
         let root = Node2D()
         
@@ -229,9 +229,12 @@ class MapImportPlugin: EditorImportPlugin {
                     continue
                 }
                 
-                let tilesetGID = sourceIDs.filter { $0 <= cellValue }.max() ?? 0
-                let tilesetColumns = columns[tilesetGID] ?? 1
+                let tilesetGID = gids.filter { $0 <= cellValue }.max() ?? 0
                 let tileIndex = cellValue - tilesetGID
+                
+                let resourceName = localTilesetRefs[tilesetGID] ?? ""
+                let sourceID = tileset.getSourceId(named: resourceName)
+                let tilesetColumns = tileset.getColumnCount(sourceId: sourceID)
                 
                 let mapCoords = Vector2i(
                     x: Int32(idx % layer.width),
@@ -240,7 +243,8 @@ class MapImportPlugin: EditorImportPlugin {
                     x: tileIndex % tilesetColumns,
                     y: tileIndex / tilesetColumns
                 )
-                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetGID, atlasCoords: tileCoords, alternativeTile: 0)
+//                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetGID, atlasCoords: tileCoords, alternativeTile: 0)
+                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
             root.addChild(node: tilemap)
         }
@@ -332,12 +336,20 @@ class MapImportPlugin: EditorImportPlugin {
             
             guard let currentTileset else { fatalError() }
             
-            let tilesetGID = currentTileset.getAtlasGID(tileGID: Int32(gid))
-            let atlas = currentTileset.getSource(sourceId: tilesetGID) as! TileSetAtlasSource
+            let gids: [Int32] = Array(localTilesetRefs.keys)
+            let tilesetGID = gids.filter { $0 <= gid }.max() ?? 0
+            
+            let atlasName = localTilesetRefs[Int32(tilesetGID)] ?? ""
+            guard let atlas = currentTileset.getSource(named: atlasName) as? TileSetAtlasSource else {
+                GD.print("ERROR GETTING ATLAS SOURCE")
+                return node
+            }
             
             let tileIndex = Int32(gid) - tilesetGID
             
-            let tilesetColumns = currentTileset.getColumnCount(gid: tilesetGID)
+//            let tilesetColumns = currentTileset.getColumnCount(gid: tilesetGID)
+            let sourceID = currentTileset.getSourceId(named: atlasName)
+            let tilesetColumns = currentTileset.getColumnCount(sourceId: sourceID)
             let tileCoords = Vector2i(
                 x: tileIndex % tilesetColumns,
                 y: tileIndex / tilesetColumns)

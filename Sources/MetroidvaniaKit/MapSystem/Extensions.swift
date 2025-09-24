@@ -22,18 +22,48 @@ extension Node2D {
 
 extension TileSet {
     
-    func getGIDs() -> [Int32] {
-        (0..<getSourceCount()).map { getSourceId(index: $0) }
-    }
+    // remove this, GIDs not consistent
+//    func getGIDs() -> [Int32] {
+//        (0..<getSourceCount()).map { getSourceId(index: $0) }
+//    }
+//    
+//    func getColumnCount(gid: Int32) -> Int32 {
+//        guard let source = getSource(sourceId: gid) as? TileSetAtlasSource else {
+//            return -1
+//        }
+//        return source.getAtlasGridSize().x
+//    }
+//    
+//    func getAtlasGID(tileGID: Int32) -> Int32 {
+//        getGIDs().filter { $0 <= tileGID }.max() ?? -1
+//    }
     
-    func getColumnCount(gid: Int32) -> Int32 {
-        guard let source = getSource(sourceId: gid) as? TileSetAtlasSource else {
+    func getColumnCount(sourceId: Int32) -> Int32 {
+        guard let source = getSource(sourceId: sourceId) as? TileSetAtlasSource else {
             return -1
         }
         return source.getAtlasGridSize().x
     }
     
-    func getAtlasGID(tileGID: Int32) -> Int32 {
-        getGIDs().filter { $0 <= tileGID }.max() ?? -1
+    func getSourceId(named name: String) -> Int32 {
+        for i in 0..<getSourceCount() {
+            let sourceId = getSourceId(index: i)
+            let source = getSource(sourceId: sourceId) as? TileSetAtlasSource
+            if source?.resourceName == name {
+                return sourceId
+            }
+        }
+        return -1
+    }
+    
+    func getSource(named name: String) -> TileSetAtlasSource? {
+        for i in 0..<getSourceCount() {
+            let sourceId = getSourceId(index: i)
+            let source = getSource(sourceId: sourceId) as? TileSetAtlasSource
+            if source?.resourceName == name {
+                return source
+            }
+        }
+        return nil
     }
 }
