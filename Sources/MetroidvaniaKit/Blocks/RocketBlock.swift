@@ -30,7 +30,7 @@ class RocketBlock: RigidBody2D {
             guard let self, let otherArea else { return }
             if otherArea.collisionLayer & 0b0001_0000 != 0 {
                 self.reveal()
-                if let projectile = otherArea as? Projectile, projectile.type == .rocket {
+                if let projectile = otherArea as? Hitbox, projectile.damageType == .rocket {
                     self.collisionLayer = 0
                     self.realSprite?.visible = false
                     self.destroyAnimation?.play()

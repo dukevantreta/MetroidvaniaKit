@@ -4,6 +4,7 @@ import SwiftGodot
 class PlayerHitbox: Area2D {
     
     @Node("..") weak var player: PlayerNode?
+    @Node("../Hitbox") weak var hitbox: Hitbox?
     
     private let hitTimer = Timer()
     private let invFramesTimer = Timer()
@@ -18,9 +19,10 @@ class PlayerHitbox: Area2D {
             return
         }
         
-        collisionLayer = 0b1_0000_0000
+        self.collisionLayer = 0
         collisionMask |= 0b00000100
-        
+        hitbox?.collisionLayer = 0b1_0000_0000
+      
         // Hit cooldown timer
         hitTimer.autostart = false
         hitTimer.oneShot = true
@@ -37,6 +39,10 @@ class PlayerHitbox: Area2D {
             sprite.visible = !sprite.visible
         }
         addChild(node: invFramesTimer)
+        
+        hitbox?.onHit = { [weak self] damage in
+            self?.takeHit(damage)
+        }
     }
     
     override func _process(delta: Double) {
@@ -71,6 +77,18 @@ class PlayerHitbox: Area2D {
             lastFrameInWater = false
             player?.exitWater()
         }
+    }
+    
+    func takeHit(_ damage: Damage) {
+        guard !isInvincible else { return }
+        isInvincible = true
+        
+        let xDirection: Float = (self.globalPosition - damage.origin).x < 0.0 ? -1.0 : 1.0
+        
+        player?.takeDamage(damage.amount, xDirection: xDirection)
+        
+        invFramesTimer.start(timeSec: 0.05)
+        hitTimer.start(timeSec: 1.0)
     }
     
     func takeHit(_ damage: Int, xDirection: Float) {

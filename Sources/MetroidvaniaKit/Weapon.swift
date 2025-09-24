@@ -60,12 +60,18 @@ class PowerBeam: Node, Weapon {
         collisionRect.size = Vector2(x: 16, y: 8)
         let collisionBox = CollisionShape2D()
         collisionBox.shape = collisionRect
-        projectile.addChild(node: collisionBox)
+        
+        let hitbox = Hitbox()
+        hitbox.addChild(node: collisionBox)
+        
+        projectile.addChild(node: hitbox)
+        projectile.hitbox = hitbox
         
         projectile.behavior = LinearShotBehavior()
         projectile.direction = direction
-        projectile.collisionLayer = 0b1_0000
-        projectile.collisionMask = 0b0010_0011
+        projectile.hitbox?.collisionLayer = 0b1_0000
+        projectile.hitbox?.collisionMask = 0b0010_0011
+        projectile.destroyMask.insert(.enemy)
         projectile.type = .normal
         
         projectile.onDestroy = { [weak self] in
@@ -100,7 +106,12 @@ class WaveBeam: Node, Weapon {
             collisionRect.size = Vector2(x: 14, y: 14)
             let collisionBox = CollisionShape2D()
             collisionBox.shape = collisionRect
-            projectiles[i].addChild(node: collisionBox)
+            
+            let hitbox = Hitbox()
+            hitbox.addChild(node: collisionBox)
+            
+            projectiles[i].addChild(node: hitbox)
+            projectiles[i].hitbox = hitbox
             
             let behavior = WaveShotBehavior()//amplitude: waveAmplitude, frequency: waveFrequency)
             behavior.waveAmplitude = waveAmplitude
@@ -110,8 +121,10 @@ class WaveBeam: Node, Weapon {
             }
             projectiles[i].behavior = behavior
             projectiles[i].direction = direction
-            projectiles[i].collisionLayer = 0b1_0000
-            projectiles[i].collisionMask = 0b0010_0000
+            projectiles[i].hitbox?.collisionLayer = 0b1_0000
+            projectiles[i].hitbox?.collisionMask = 0b0010_0000
+            projectiles[i].destroyMask.remove(.floor)
+            projectiles[i].destroyMask.insert(.enemy)
             projectiles[i].type = .wave
         }
         return projectiles
@@ -141,12 +154,17 @@ class PlasmaBeam: Node, Weapon {
             collisionRect.size = Vector2(x: 16, y: 14)
             let collisionBox = CollisionShape2D()
             collisionBox.shape = collisionRect
-            projectiles[i].addChild(node: collisionBox)
+            
+            let hitbox = Hitbox()
+            hitbox.addChild(node: collisionBox)
+            
+            projectiles[i].addChild(node: hitbox)
+            projectiles[i].hitbox = hitbox
             
             projectiles[i].behavior = LinearShotBehavior()
             projectiles[i].direction = newDirection
-            projectiles[i].collisionLayer = 0b1_0000
-            projectiles[i].collisionMask = 0b0000_0000
+            projectiles[i].hitbox?.collisionLayer = 0b1_0000
+            projectiles[i].hitbox?.collisionMask = 0b0010_0011
             projectiles[i].type = .plasma
         }
         projectiles[1].zIndex += 1
@@ -168,16 +186,24 @@ class RocketLauncher: Node, Weapon {
             sprite.rotation = Double(Float.atan2(y: direction.y, x: direction.x))
         }
         
+        let hitbox = Hitbox()
+        
         let collisionRect = RectangleShape2D()
         collisionRect.size = Vector2(x: 14, y: 10)
         let collisionBox = CollisionShape2D()
         collisionBox.shape = collisionRect
-        projectile.addChild(node: collisionBox)
+        
+        hitbox.addChild(node: collisionBox)
+        
+        projectile.addChild(node: hitbox)
+        projectile.hitbox = hitbox
+        hitbox.damageType = .rocket
         
         projectile.behavior = LinearShotBehavior()
         projectile.direction = direction
-        projectile.collisionLayer = 0b0_0000
-        projectile.collisionMask = 0b0010_0011
+        projectile.hitbox?.collisionLayer = 0b1_0000
+        projectile.hitbox?.collisionMask = 0b0010_0011
+        projectile.destroyMask.insert(.enemy)
         projectile.type = .rocket
         projectile.damage = 50
         

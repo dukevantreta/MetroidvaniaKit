@@ -8,12 +8,9 @@ class EnemyAI: Node2D {
 @Godot
 class Enemy: Node2D {
     
-//    @Node var enemyAI: EnemyAI?
-//    @Node var sprite: Sprite2D?
-//    @Node var hurtbox: EnemyHurtbox?
     @Node("AI") var enemyAI: EnemyAI?
     @Node("Sprite2D") var sprite: Sprite2D?
-    @Node("Hurtbox") var hurtbox: EnemyHurtbox?
+    @Node("Hitbox") var hitbox: Hitbox?
     
     @Export var hp: Int = 10
     
@@ -28,8 +25,16 @@ class Enemy: Node2D {
         }
         addChild(node: hitTimer)
         
-        hurtbox?.onDamage = { [weak self] damage in
-            self?.takeDamage(damage)
+        hitbox?.damage = 10
+        hitbox?.damageType = .enemy
+        hitbox?.isContinuous = true
+        hitbox?.monitoring = true
+        hitbox?.monitorable = true
+        hitbox?.setCollisionLayer(.enemy)
+        hitbox?.addCollisionMask(.player)
+        
+        hitbox?.onHit = { [weak self] damage in
+            self?.takeDamage(damage.amount)
         }
     }
     

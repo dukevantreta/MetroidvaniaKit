@@ -169,7 +169,8 @@ class GameController: Node {
     func onRoomTransition(to map: World.Map, moveDelta: Vector2i) {
         if currentRoom == nil { // is the first room, just set the limits
             let newRoom = instantiateRoom(map)
-            getParent()?.addChild(node: newRoom)
+//            getParent()?.addChild(node: newRoom)
+            addChild(node: newRoom)
             camera?.limitLeft = map.x
             camera?.limitRight = map.x + map.width
             camera?.limitTop = map.y

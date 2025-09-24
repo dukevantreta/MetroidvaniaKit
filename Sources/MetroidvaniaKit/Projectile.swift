@@ -8,7 +8,7 @@ enum ProjectileType {
 }
 
 @Godot
-class Projectile: Area2D {
+class Projectile: Node2D {
     
     var type: ProjectileType = .normal
     
@@ -24,14 +24,25 @@ class Projectile: Area2D {
     
     var onDestroy: (() -> Void)?
     
+    var destroyMask: LayerMask = .floor
+    var hitbox: Hitbox?
+    
     override func _ready() {
-        bodyEntered.connect { [weak self] otherBody in
+        hitbox?.damage = damage
+        hitbox?.bodyEntered.connect { [weak self] otherBody in
             guard let self else { return }
-            self.destroy()
+            if let tilemap = otherBody as? TileMapLayer {
+                // TODO: Check tile map coords to get physics layer (like water check)
+//                if !LayerMask(rawValue: otherBody.collisionLayer).isDisjoint(with: destroyMask) {
+                    self.destroy()
+//                }
+            }
         }
-        areaEntered.connect { [weak self] otherArea in
-            guard let self, let otherArea else { return }
-            self.destroy()
+        hitbox?.areaEntered.connect { [weak self] otherArea in
+            guard let self, let otherArea = otherArea as? Area2D else { return }
+            if !LayerMask(rawValue: otherArea.collisionLayer).isDisjoint(with: destroyMask) {
+                self.destroy()
+            }
         }
     }
     
