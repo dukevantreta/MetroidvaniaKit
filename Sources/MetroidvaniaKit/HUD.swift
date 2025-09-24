@@ -5,6 +5,7 @@ class HUD: Control {
     
     @SceneTree(path: "HealthLabel") weak var healthLabel: Label?
     @SceneTree(path: "AmmoLabel") weak var ammoLabel: Label?
+    @SceneTree(path: "MiniMapHUD") var minimap: MiniMapHUD?
     
     private(set) weak var playerStats: PlayerStats?
     

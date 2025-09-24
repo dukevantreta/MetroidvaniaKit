@@ -13,7 +13,6 @@ class GameController: Node {
     @SceneTree(path: "../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
     
     @SceneTree(path: "../CanvasLayer/HUD") var hud: HUD?
-    @SceneTree(path: "../CanvasLayer/HUD/MiniMapHUD") var minimapHUD: MiniMapHUD?
     @SceneTree(path: "../CanvasLayer/PauseMenu") var pauseMenu: Control?
     @SceneTree(path: "../CanvasLayer/PauseMenu/Overlay") var canvasOverlay: ColorRect?
     
@@ -33,7 +32,6 @@ class GameController: Node {
         self.processMode = .always
         
         log("Player: \(player)")
-        log("MinimapHUD: \(minimapHUD)")
         
         let worldFile = "res://tiled/world-test.world"
         do {
@@ -85,7 +83,6 @@ class GameController: Node {
         pauseMenu?.visible = true
         getTree()?.paused = true
         
-        log("\(canvasOverlay)")
         let tween = getTree()?.createTween()
         tween?.setPauseMode(.process)
         tween?.tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)
@@ -133,7 +130,7 @@ class GameController: Node {
         
         let moveDelta = nextCell - lastCellPosition
         lastCellPosition = nextCell
-        minimapHUD?.onCellChanged(newOffset: nextCell)
+        hud?.minimap?.onCellChanged(newOffset: nextCell)
         
         for map in world.maps {
             if // find which room the player is in
