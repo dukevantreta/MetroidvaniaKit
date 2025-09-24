@@ -1,7 +1,12 @@
 import SwiftGodot
+import Dispatch
+import Foundation
 
 @Godot(.tool)
 class TileMapImporter: Node {
+    
+//    static let importQueue = DispatchQueue(label: "queue.tilemap.import", qos: .userInteractive)
+//    static let importQueue = DispatchQueue(label: "queue.tilemap.import", qos: .userInteractive, target: .main)
     
     @Callable
     func importResource(
@@ -11,10 +16,28 @@ class TileMapImporter: Node {
         platformVariants: VariantCollection<String>,
         genFiles: VariantCollection<String>
     ) -> Int {
-        let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
-        return Int(error.rawValue)
+        DispatchQueue.main.async {
+            self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
+        }
+        return 0
+//        if Thread.isMainThread {
+//            TileMapImporter.importQueue.sync {
+//                //        DispatchQueue.main.sync {
+//                let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
+//                return Int(error.rawValue)
+//            }
+//        } else {
+//            let error = DispatchQueue.main.sync {
+//                let error = self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
+////                return Int(error.rawValue)
+//                return error
+//            }
+//            return Int(error.rawValue)
+//        }
+//        return 0
     }
     
+    @discardableResult
     private func `import`(
         sourceFile: String,
         savePath: String,
@@ -33,13 +56,14 @@ class TileMapImporter: Node {
             let godotTileset = try TileSetImporter.loadTileSet()
             let tilemap = try createTileMap(map: map, using: godotTileset)
             
-            let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+//            let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+            let filename = try getFileName(from: sourceFile)
             tilemap.name = StringName(filename)
             
             let scene = PackedScene()
             scene.pack(path: tilemap)
             try saveResource(scene, path: "\(savePath).tscn")
-            
+            log("Successfully imported '\(sourceFile)'.")
             return .ok
         } catch let error as XML.ParseError {
             logError("Failed to parse .tmx file: \(error)")
@@ -64,9 +88,9 @@ class TileMapImporter: Node {
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
         currentTileset = tileset
         
-        for tileset in map.tilesets {
-            if let gid = Int32(tileset.firstGID ?? "") {
-                let name = tileset.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+        for tilesetRef in map.tilesets {
+            if let gid = Int32(tilesetRef.firstGID ?? "") {
+                let name = tilesetRef.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
                 localTilesetRefs[gid] = name
             }
         }
@@ -106,7 +130,6 @@ class TileMapImporter: Node {
                     x: tileIndex % tilesetColumns,
                     y: tileIndex / tilesetColumns
                 )
-//                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetGID, atlasCoords: tileCoords, alternativeTile: 0)
                 tilemap.setCell(layer: 0, coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
             root.addChild(node: tilemap)

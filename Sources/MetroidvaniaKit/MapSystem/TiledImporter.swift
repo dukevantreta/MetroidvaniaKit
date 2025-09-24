@@ -26,6 +26,7 @@ enum ImportError: Error {
     case failedToSaveFile(_ path: String, GodotError)
     case tileSetNotFound
     case godotError(GodotError)
+    case malformedPath(String)
     
     enum LayerDataErrorReason {
         case notFound

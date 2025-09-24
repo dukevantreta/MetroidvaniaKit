@@ -84,6 +84,7 @@ extension TileSet {
             let source = getSource(sourceId: sourceId) as? TileSetAtlasSource
             if source?.resourceName == name {
                 removeSource(sourceId: sourceId)
+                return
             }
         }
     }
