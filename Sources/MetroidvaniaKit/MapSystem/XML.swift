@@ -2,6 +2,10 @@ import SwiftGodot
 
 class XML {
     
+    enum ParseError: Error {
+        
+    }
+    
     struct Tree {
         let root: Element
     }
