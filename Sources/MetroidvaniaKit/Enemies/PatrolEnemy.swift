@@ -58,7 +58,7 @@ class PatrolEnemy: Node2D {
             x: position.x,
             y: position.y - 1)
         let dest = origin + Vector2(x: (getCollisionRectSize().x * 0.5 + deltaMove.x) * direction, y: 0)
-        let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b0001)
+        let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b1)
         let result = space.intersectRay(parameters: ray)
         if let point = result["position"] {
             return true
@@ -72,7 +72,7 @@ class PatrolEnemy: Node2D {
             x: position.x + (getCollisionRectSize().x * 0.5 * direction),
             y: position.y - 1)
         let dest = origin + Vector2(x: 0, y: 5)
-        let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b0001)
+        let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b1)
         let result = space.intersectRay(parameters: ray)
         if let point = result["position"] {
             return true
