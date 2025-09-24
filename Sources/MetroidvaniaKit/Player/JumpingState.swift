@@ -64,7 +64,7 @@ class JumpingState: PlayerState {
         }
         
         // Mid-air jump
-        if player.input.isActionJustPressed(.action0) && player.canDoubleJump && player.upgrades.hasDoubleJump {
+        if player.input.isActionJustPressed(.action0) && player.canDoubleJump && player.stats.hasDoubleJump {
             player.velocity.y = Float(-player.getJumpspeed())
             jumpTimestamp = Time.getTicksMsec()
             player.canDoubleJump = false
@@ -87,7 +87,7 @@ class JumpingState: PlayerState {
             hasShotDuringJump = true
         }
         
-        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(xDirection) && player.upgrades.hasWallGrab {
+        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(xDirection) && player.stats.hasWallGrab {
             return WallGrabState()
         }
         

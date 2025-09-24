@@ -32,7 +32,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             GameController.self,
             PauseMenu.self,
             SidescrollerCamera.self,
-            PlayerUpgrades.self,
+            PlayerStats.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
             InputController.self,

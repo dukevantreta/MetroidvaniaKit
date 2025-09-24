@@ -15,10 +15,10 @@ class PlayerNode: CharacterBody2D {
     
     @SceneTree(path: "CollisionShape2D") weak var collisionShape: CollisionShape2D?
     @SceneTree(path: "PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
-    @SceneTree(path: "PlayerUpgrades") weak var upgrades: PlayerUpgrades!
     @SceneTree(path: "AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
-    @SceneTree(path: "Input") weak var input: InputController!// = InputController()
+    @SceneTree(path: "Stats") weak var stats: PlayerStats!
+    @SceneTree(path: "Input") weak var input: InputController! // = InputController()
     
     @Export
     var speed: Double = 180.0
@@ -61,7 +61,7 @@ class PlayerNode: CharacterBody2D {
     var isInWater = false
     
     var isAffectedByWater: Bool {
-        isInWater && !upgrades.hasWaterMovement
+        isInWater && !stats.hasWaterMovement
     }
     
     var isSpeedBoosting = false {

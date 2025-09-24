@@ -29,7 +29,7 @@ class RunningState: PlayerState {
         }
         
         // Speed booster turn on
-        if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.upgrades.hasSpeedBooster {
+        if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.stats.hasSpeedBooster {
             player.isSpeedBoosting = true
         }
         if player.isSpeedBoosting {

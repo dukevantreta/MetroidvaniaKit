@@ -6,7 +6,13 @@ enum Upgrade {
 }
 
 @Godot
-class PlayerUpgrades: Node2D {
+class PlayerStats: Node2D {
+    
+    @Export var hp: Int = 100
+    
+    @Export var energy: Int = 100
+    
+    @Export var hasSuperJump: Bool = false
     
     @Export var hasDoubleJump: Bool = false
     
