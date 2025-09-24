@@ -14,7 +14,9 @@ let package = Package(
             targets: ["MetroidvaniaKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/migueldeicaza/SwiftGodot", branch: "main")
+        .package(url: "https://github.com/migueldeicaza/SwiftGodot", branch: "main"),
+//        .package(path: "../../SwiftGodot"),
+        .package(url: "https://github.com/apple/swift-numerics", from: "1.0.0"),
     ],
     targets: [
 //        .binaryTarget(
@@ -29,7 +31,8 @@ let package = Package(
         .target(
             name: "MetroidvaniaKit",
             dependencies: [
-                "SwiftGodot"
+                "SwiftGodot",
+                .product(name: "Numerics", package: "swift-numerics"),
             ],
             swiftSettings: [.unsafeFlags(["-suppress-warnings"])]
         ),

@@ -24,7 +24,6 @@ class CharacterController2D: CharacterBody2D {
     @Export var terminalVelocityFactor: Float = 1.3
     
 //    var gravity: Double = Double(ProjectSettings.getSetting(name: "physics/2d/default_gravity", defaultValue: Variant(0.0))) ?? 0.0
-    
 //    var animation: StringName = ""
     
     @Export var airTime: Double = 0
@@ -43,15 +42,13 @@ class CharacterController2D: CharacterBody2D {
     
     let playerHeight: Float = 28.0
     
-//    override func _input(event: InputEvent) {
-//        if let event = event as InputEventKey {
-//            if event
-//        }
-//    }
-    
     var facingDirection: Int = 1
     
     var hook: HookHitbox?
+    
+    var shotOrigin: Vector2 {
+        Vector2(x: Float((7 + 3) * facingDirection), y: -playerHeight * 0.75)
+    }
     
     override func _ready() {
         motionMode = .grounded
@@ -97,22 +94,7 @@ class CharacterController2D: CharacterBody2D {
         }
         
         if Input.isActionJustPressed(action: "action_2") {
-            guard let space = getWorld2d()?.directSpaceState else { return }
-            let origin = position + Vector2(x: 0, y: -20)
-            let dest = position + Vector2(x: Float(facingDirection * 200), y: -20)
-            let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b0011)
-            let result = space.intersectRay(parameters: ray)
-            
-            if let fPoint = result["position"] {
-                let p = Vector2(fPoint)!
-                var array = PackedVector2Array()
-                array.append(value: Vector2(x: origin.x, y: origin.y))
-                array.append(value: Vector2(x: p.x, y: p.y))
-                let line = Line2D()
-                line.width = 1
-                line.points = array
-                getParent()?.addChild(node: line)
-            }
+            normalShot()
         }
         
         let gravity = 8 * parabolicHeight / (jumpDuration * jumpDuration)
@@ -231,6 +213,42 @@ class CharacterController2D: CharacterBody2D {
 //        removeChild(node: hook)
 //        getParent()?.addChild(node: hook)
         hook?.reparent(newParent: getParent())
+    }
+    
+    func normalShot() {
+        let shot = NormalShot()
+        shot.direction = facingDirection
+        shot.position = shotOrigin
+        addChild(node: shot)
+    }
+    
+    func waveShot() {
+        let shot = WaveShot()
+        shot.direction = facingDirection
+        shot.position = shotOrigin
+        addChild(node: shot)
+//        shot.position.y = position.y - playerHeight * 0.75
+//        shot.position.x = position.x + Float((7 + 3) * facingDirection)
+//        getParent()?.addChild(node: shot)
+    }
+    
+    func testShotRaycast() {
+        guard let space = getWorld2d()?.directSpaceState else { return }
+        let origin = position + Vector2(x: 0, y: -20)
+        let dest = position + Vector2(x: Float(facingDirection * 200), y: -20)
+        let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b0011)
+        let result = space.intersectRay(parameters: ray)
+        
+        if let fPoint = result["position"] {
+            let p = Vector2(fPoint)!
+            var array = PackedVector2Array()
+            array.append(value: Vector2(x: origin.x, y: origin.y))
+            array.append(value: Vector2(x: p.x, y: p.y))
+            let line = Line2D()
+            line.width = 1
+            line.points = array
+            getParent()?.addChild(node: line)
+        }
     }
     
     // DEBUG

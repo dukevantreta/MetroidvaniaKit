@@ -5,4 +5,6 @@ import SwiftGodot
     TriggerArea2D.self,
     PlayerHitbox.self,
     HookHitbox.self,
+    WaveShot.self,
+    NormalShot.self,
 ])
