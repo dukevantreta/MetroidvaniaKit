@@ -34,3 +34,4 @@ extension GodotLogger {
 }
 
 extension Node: GodotLogger {}
+extension Resource: GodotLogger {}

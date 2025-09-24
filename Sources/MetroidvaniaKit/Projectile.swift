@@ -18,8 +18,6 @@ class Projectile: Node2D {
     
     var speed: Float = 800
     
-    var direction: Vector2 = .zero
-    
     var ai: NodeAI?
     
     var onDestroy: (() -> Void)?
@@ -28,7 +26,7 @@ class Projectile: Node2D {
     // @Node("Hitbox") 
     var hitbox: Hitbox?
 
-    var hitEffect: PackedScene?
+    var effectSpawner: Spawner?
 
     deinit {
         GD.print("Projectile DEINIT")
@@ -58,14 +56,17 @@ class Projectile: Node2D {
         
         lifetime -= delta
         if lifetime <= 0 {
-            // getParent()?.removeChild(node: self)
             queueFree()
         }
     }
     
     func destroy() {
         onDestroy?()
-        // getParent()?.removeChild(node: self)
+        if let parent = getParent() {
+            if let effect = effectSpawner?.spawn(on: parent) {
+                effect.position = self.position
+            }
+        }
         queueFree()
     }
 }

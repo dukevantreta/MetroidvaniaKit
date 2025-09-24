@@ -46,7 +46,7 @@ class GameController: Node {
         guard let player, let world else { return }
         
         camera?.target = player
-        hud?.setPlayerStats(player.stats)
+        hud?.setPlayerNode(player)
         
         if roomToLoad != "" {
             for map in world.maps {

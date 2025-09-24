@@ -15,6 +15,28 @@ extension Vector2 {
     }
 }
 
+enum GameError: Error {
+    case failedToLoadScene
+    case typeMismatch
+}
+
+// Using this prevents node memory leak in case of errors
+extension PackedScene {
+    func instantiate<T>(file: String = #file, line: Int = #line) throws(GameError) -> T where T: Node {
+        guard let instance = self.instantiate() else {
+            logError("Instantiation failed for scene: \(self.resourcePath)")
+            throw .failedToLoadScene
+        }
+        guard let typedInstance = instance as? T else {
+            let filename = file.split(separator: "/").last ?? ""
+            logError("\(filename):\(line) > Scene \(self.resourcePath) cannot be cast to expected type \(T.typeDescription). Freeing node memory...")
+            instance.queueFree()
+            throw .typeMismatch
+        }
+        return typedInstance
+    }
+}
+
 extension Vector2 {
     init(x: Int, y: Int) {
         self.init(x: Float(x), y: Float(y))

@@ -1,21 +1,87 @@
 import SwiftGodot
 import Numerics
 
-protocol Weapon {
-    var ammoCost: Int { get }
-    func fire(origin: Vector2, direction: Vector2) -> [Node2D]
+protocol Spawner {
+    var object: PackedScene? { get set }
+    func spawn(on node: Node) -> Node2D?
+}
+
+struct HitEffectSpawner: Spawner {
+
+    var object: PackedScene?
+
+    func spawn(on node: Node) -> Node2D? {
+        guard let instance: Node2D = try? object?.instantiate() else { return nil }
+        node.callDeferred(method: "add_child", Variant(instance))
+        return instance
+    }
+}
+
+struct GranadeHitSpawner: Spawner {
+
+    var object: PackedScene?
+
+    func spawn(on node: Node) -> Node2D? {
+        guard let instance: Node2D = try? object?.instantiate() else { return nil }
+        if let hitbox = instance.findChild(pattern: "Hitbox") as? Hitbox {
+            hitbox.monitorable = false
+            hitbox.damage = 10
+            hitbox.damageType = .rocket
+            hitbox.collisionMask = 0b0010_0011
+        }
+        node.callDeferred(method: "add_child", Variant(instance))
+        return instance
+    }
 }
 
 @Godot
-class PowerBeam: Node, Weapon {
+class WeaponNode: Node {
+
+    var ammo: Ammo?
+
+    @Export var ammoCost: Int = 0
+    
+    @Export var cooldown: Double = 0.0
+
+    @Export var autofire: Bool = false
+    
+    private(set) var cooldownCounter: Double = 0.0
+
+    override func _process(delta: Double) {
+        cooldownCounter -= delta
+    }
+    
+    func fire(from node: Node, origin: Vector2, direction: Vector2) {
+        guard cooldownCounter <= 0 else {
+            log("Weapon in cooldown")
+            return 
+        }
+        guard ammo?.consume(ammoCost) == true else {
+            log("No ammo")
+            return // play fail sfx
+        }
+        cooldownCounter = cooldown
+        let projectiles = makeProjectiles(origin: origin, direction: direction) 
+        projectiles.forEach {
+            $0.position = origin
+            node.addChild(node: $0)
+        }
+    }
+
+    func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+        logError("Method not implemented")
+        return []
+    }
+}
+
+@Godot
+class PowerBeam: WeaponNode {
     
     @Export var sprite: PackedScene?
     
     @Export var hitEffect: PackedScene?
     
-    var ammoCost: Int = 0
-    
-    func fire(origin: Vector2, direction: Vector2) -> [Node2D] {
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         let projectile = Projectile()
         
         if let sprite = sprite?.instantiate() as? AnimatedSprite2D {
@@ -45,35 +111,28 @@ class PowerBeam: Node, Weapon {
         ai.speed = projectile.speed
         projectile.lifetime = 1.0
         
-        // projectile.behavior = LinearShotBehavior()
-        projectile.direction = direction
         projectile.hitbox?.collisionLayer = 0b1_0000
         projectile.hitbox?.collisionMask = 0b0010_0011
         projectile.destroyMask.insert(.enemy)
         projectile.type = .normal
-        
-        projectile.onDestroy = { [weak self, weak projectile] in
-            if let hit = self?.hitEffect?.instantiate() as? AnimatedSprite2D {
-                hit.position = projectile?.position ?? .zero
-                projectile?.getParent()?.addChild(node: hit)
-            }
-        }
+
+        var effectSpawner = HitEffectSpawner()
+        effectSpawner.object = hitEffect
+        projectile.effectSpawner = effectSpawner
         
         return [projectile]
     }
 }
 
 @Godot
-class WaveBeam: Node, Weapon {
+class WaveBeam: WeaponNode {
     
     @Export var waveAmplitude: Float = 3.5
     @Export var waveFrequency: Float = 15.0
     
     @Export var sprite: PackedScene?
     
-    var ammoCost: Int = 0
-    
-    func fire(origin: Vector2, direction: Vector2) -> [Node2D] {
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         let projectiles = [Projectile(), Projectile()]
         for i in 0..<2 {
             if let sprite = sprite?.instantiate() as? AnimatedSprite2D {
@@ -101,15 +160,11 @@ class WaveBeam: Node, Weapon {
             ai.amplitude = waveAmplitude
             ai.frequency = waveFrequency
             
-            // let behavior = WaveShotBehavior()//amplitude: waveAmplitude, frequency: waveFrequency)
-            // behavior.waveAmplitude = waveAmplitude
-            // behavior.waveFrequency = waveFrequency
             if i == 1 {
-                // behavior.multiplyFactor = -1
                 ai.multiplyFactor = -1
             }
-            // projectiles[i].behavior = behavior
-            projectiles[i].direction = direction
+            projectiles[i].position = origin
+
             projectiles[i].hitbox?.collisionLayer = 0b1_0000
             projectiles[i].hitbox?.collisionMask = 0b0010_0000
             projectiles[i].destroyMask.remove(.floor)
@@ -121,13 +176,11 @@ class WaveBeam: Node, Weapon {
 }
 
 @Godot
-class PlasmaBeam: Node, Weapon {
+class PlasmaBeam: WeaponNode {
     
     @Export var sprite: PackedScene?
     
-    var ammoCost: Int = 0
-    
-    func fire(origin: Vector2, direction: Vector2) -> [Node2D] {
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         let projectiles = [Projectile(), Projectile(), Projectile()]
         
         for i in 0..<3 {
@@ -157,9 +210,9 @@ class PlasmaBeam: Node, Weapon {
             
             projectiles[i].addChild(node: hitbox)
             projectiles[i].hitbox = hitbox
+
+            projectiles[i].position = origin
             
-            // projectiles[i].behavior = LinearShotBehavior()
-            projectiles[i].direction = newDirection
             projectiles[i].hitbox?.collisionLayer = 0b1_0000
             projectiles[i].hitbox?.collisionMask = 0b0010_0011
             projectiles[i].type = .plasma
@@ -170,13 +223,11 @@ class PlasmaBeam: Node, Weapon {
 }
 
 @Godot
-class RocketLauncher: Node, Weapon {
+class RocketLauncher: WeaponNode {
     
     @Export var sprite: PackedScene?
 
-    @Export var ammoCost: Int = 1
-    
-    func fire(origin: Vector2, direction: Vector2) -> [Node2D] {
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         let projectile = Projectile()
         if let sprite = sprite?.instantiate() as? Sprite2D {
             projectile.addChild(node: sprite)
@@ -203,73 +254,36 @@ class RocketLauncher: Node, Weapon {
         ai.direction = direction
         ai.speed = projectile.speed
         
-        // projectile.behavior = LinearShotBehavior()
-        projectile.direction = direction
         projectile.hitbox?.collisionLayer = 0b1_0000
         projectile.hitbox?.collisionMask = 0b0010_0011
         projectile.destroyMask.insert(.enemy)
         projectile.type = .rocket
         projectile.damage = 50
-        
         return [projectile]
     }
 }
 
-// extension Node {
-
-// }
-
-// Using this prevents node memory leak in case of errors
-extension PackedScene {
-    // func instantiate<T>(on node: Node) -> T? where T: Node {
-    func instantiate<T>() -> T? where T: Node {
-        if let instance = self.instantiate() {
-            if let typed = instance as? T {
-                // node.addChild(node: typed)
-                return typed
-            } else {
-                GD.printErr("ERROR CASTING INSTANCE")
-                instance.queueFree()
-            }
-        }
-        return nil
-    }
-}
-
 @Godot
-class GranadeLauncher: Node, Weapon {
+class GranadeLauncher: WeaponNode {
 
     @Export var projectile: PackedScene?
 
     @Export var hitEffect: PackedScene?
 
-    @Export var ammoCost: Int = 1
-
     @Export var speed: Float = 200
 
-    @Export var cooldown: Double = 1.0
-
-    func fire(origin: Vector2, direction: Vector2) -> [Node2D] {
-        guard let parent = getParent()?.getParent()?.getParent() else { return [] }
-        // getParent()?.getParent()?.addChild(node: Node?)
-        guard cooldown <= 0 else { return [] }
-        cooldown = 1.0
-
-        // use ammo
-        
-        
-        guard let p: Projectile = projectile?.instantiate() else { return [] }
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+        guard let p: Projectile = try? projectile?.instantiate() else { 
+            return []
+        }
         p.position = origin
 
         p.hitbox = p.findChild(pattern: "Hitbox") as? Hitbox
         let ai = FallAI()
-        p.addChild(node: ai)
-
-
-        p.speed = speed
-        p.direction = direction
-        ai.speed = p.speed
+        
+        ai.speed = speed
         ai.direction = direction
+        
         p.ai = ai
         
         p.hitbox?.damage = 10
@@ -278,26 +292,11 @@ class GranadeLauncher: Node, Weapon {
         p.hitbox?.collisionMask = 0b0010_0011
         p.destroyMask.insert(.enemy)
         
-        p.onDestroy = { [weak self, weak p] in
-            if let hit = self?.hitEffect?.instantiate() as? Node2D {
-                hit.position = p?.position ?? .zero
-                if let hitbox = hit.findChild(pattern: "Hitbox") as? Hitbox {
-                    hitbox.monitorable = false
-                    hitbox.damage = p?.hitbox?.damage ?? 0
-                    hitbox.damageType = p?.hitbox?.damageType ?? .none
-                    hitbox.collisionLayer = p?.hitbox?.collisionLayer ?? 0
-                    hitbox.collisionMask = p?.hitbox?.collisionMask ?? 0
-               }
-               p?.getParent()?.callDeferred(method: "add_child", Variant(hit))
-            }
+        var spawner = GranadeHitSpawner()
+        spawner.object = hitEffect
+        p.effectSpawner = spawner
 
-        }
-        parent.addChild(node: p)
-        // log("SHOT \(parent.name)")
+        p.addChild(node: ai)
         return [p]
-    }
-
-    override func _process(delta: Double) {
-        cooldown -= delta
     }
 }

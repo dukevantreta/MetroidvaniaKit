@@ -38,6 +38,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PlayerHitbox.self,
             HookHitbox.self,
             Projectile.self,
+            WeaponNode.self,
             PowerBeam.self,
             WaveBeam.self,
             PlasmaBeam.self,
@@ -54,6 +55,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             MapConfiguration.self,
             Hookshot.self,
             SelfDestruct.self,
+            Ammo.self,
         ].forEach { register(type: $0) }
     default:
         break

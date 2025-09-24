@@ -56,13 +56,14 @@ class PlayerNode: CharacterBody2D {
     @Node("PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
     @Node("AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
-    @Node("Weapons/PowerBeam") var powerBeam: Weapon?
-    @Node("Weapons/WaveBeam") var waveBeam: Weapon?
-    @Node("Weapons/PlasmaBeam") var plasmaBeam: Weapon?
-    @Node("Weapons/RocketLauncher") var rocketLauncher: Weapon?
-    @Node("Weapons/GranadeLauncher") var granadeLauncher: Weapon?
+    @Node("Weapons/PowerBeam") var powerBeam: WeaponNode?
+    @Node("Weapons/WaveBeam") var waveBeam: WeaponNode?
+    @Node("Weapons/PlasmaBeam") var plasmaBeam: WeaponNode?
+    @Node("Weapons/RocketLauncher") var rocketLauncher: WeaponNode?
+    @Node("Weapons/GranadeLauncher") var granadeLauncher: WeaponNode?
     
     @Node("Hookshot") var hookshot: Hookshot?
+    @Node("Ammo") var ammo: Ammo?
     
     @BindNode var stats: PlayerStats
     @BindNode var input: InputController
@@ -134,9 +135,9 @@ class PlayerNode: CharacterBody2D {
     var xDirection: Double = 0.0
     var yDirection: Double = 0.0
     
-    var weapon: Weapon?
+    var weapon: WeaponNode?
     
-    var subweapon: Weapon?
+    var subweapon: WeaponNode?
     
     var facingDirection: Int = 1
     
@@ -192,6 +193,14 @@ class PlayerNode: CharacterBody2D {
         floorSnapLength = 6.0
         collisionLayer = 0
         collisionMask = 0b1011
+        [
+            powerBeam,
+            waveBeam,
+            plasmaBeam,
+            rocketLauncher,
+            granadeLauncher
+        ].compactMap {$0}.forEach { $0.ammo = ammo } 
+
         switchWeapons(weaponLevel)
         switchSubweapon(.granade) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
@@ -342,35 +351,37 @@ class PlayerNode: CharacterBody2D {
     
     @discardableResult
     func fire() -> Bool {
-        guard let weapon else { return false }
-        if input.isActionJustPressed(.actionLeft) {
-            let shots = weapon.fire(origin: self.position + shotOrigin, direction: shotDirection)
-            for shot in shots {
-                // shot.position = self.position + shotOrigin
-                getParent()?.addChild(node: shot)
-                log("ADDING SHOT")
+        guard let weapon, let parent = getParent() else { return false }
+        if weapon.autofire {
+            if input.isActionPressed(.actionLeft) {
+                weapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
+                lastShotTimestamp = Time.getTicksMsec()
+                return true
             }
-            lastShotTimestamp = Time.getTicksMsec()
-            return true
+        } else {
+            if input.isActionJustPressed(.actionLeft) {
+                weapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
+                lastShotTimestamp = Time.getTicksMsec()
+                return true
+            }
         }
         return false
     }
     
     @discardableResult
     func fireSubweapon() -> Bool {
-        guard let subweapon else { return false }
-        if input.isActionJustPressed(.actionUp) {
-            if stats.ammo >= subweapon.ammoCost {
-                stats.ammo -= subweapon.ammoCost
-                let shots = subweapon.fire(origin: self.position + shotOrigin, direction: shotDirection)
-                for shot in shots {
-                    // shot.position = self.position + shotOrigin
-                    // getParent()?.addChild(node: shot)
-                }
+        guard let subweapon, let parent = getParent() else { return false }
+        if subweapon.autofire {
+            if input.isActionPressed(.actionUp) {
+                subweapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
                 lastShotTimestamp = Time.getTicksMsec()
                 return true
-            } else {
-                // play fail sfx feedback
+            }
+        } else {
+            if input.isActionJustPressed(.actionUp) {
+                subweapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
+                lastShotTimestamp = Time.getTicksMsec()
+                return true
             }
         }
         return false
