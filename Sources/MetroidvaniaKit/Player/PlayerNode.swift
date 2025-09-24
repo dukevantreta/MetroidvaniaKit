@@ -14,6 +14,7 @@ enum CollisionMask: UInt32 {
 class PlayerNode: CharacterBody2D {
     
     @SceneTree(path: "CollisionShape2D") var collisionShape: CollisionShape2D?
+    @SceneTree(path: "PlayerHitbox/CollisionShape2D") var hitbox: CollisionShape2D?
     @SceneTree(path: "PlayerUpgrades") var upgrades: PlayerUpgrades!
     @SceneTree(path: "AnimatedSprite2D") var sprite: AnimatedSprite2D?
     
@@ -132,6 +133,25 @@ class PlayerNode: CharacterBody2D {
             let point1 = result1["position"],
             let point2 = result2["position"]
         {
+            return true
+        }
+        return false
+    }
+    
+    func raycastForUnmorph() -> Bool {
+        guard let space = getWorld2d()?.directSpaceState else { return false }
+        
+        let origin1 = position + Vector2(x: -7, y: -14)
+        let dest1 = origin1 + Vector2(x: 0, y: -16)
+        let ray1 = PhysicsRayQueryParameters2D.create(from: origin1, to: dest1, collisionMask: 0b0001)
+        
+        let origin2 = position + Vector2(x: 6, y: -14)
+        let dest2 = origin2 + Vector2(x: 0, y: -16)
+        let ray2 = PhysicsRayQueryParameters2D.create(from: origin2, to: dest2, collisionMask: 0b0001)
+        
+        let result1 = space.intersectRay(parameters: ray1)
+        let result2 = space.intersectRay(parameters: ray2)
+        if result1["position"] != nil || result2["position"] != nil {
             return true
         }
         return false

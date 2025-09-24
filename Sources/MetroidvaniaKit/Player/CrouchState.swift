@@ -6,7 +6,11 @@ class CrouchState: PlayerState {
         player.velocity.x = 0
         player.velocity.y = 0
         player.isSpeedBoosting = false
-        player.sprite?.play(name: "stand-to-crouch")
+        
+        if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
+            hitboxRect.size = Vector2(x: 14, y: 24)
+            player.hitbox?.position = Vector2(x: 0, y: -12)
+        }
     }
     
     func update(_ player: PlayerNode, dt: Double) -> (any PlayerState)? {
@@ -22,14 +26,28 @@ class CrouchState: PlayerState {
         // Jump
         if Input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
+            exit(player)
             return JumpingState()
         }
         
         // Stand
-        if yDirection > 0 || !xDirection.isZero {
+        if Input.isActionJustPressed(action: "ui_up") || !xDirection.isZero {
+            exit(player)
             return RunningState()
         }
         
+        // Morph
+        if Input.isActionJustPressed(action: "ui_down") {
+            return MorphState()
+        }
+        
+        // Sanity trigger
+        if !player.isOnFloor() {
+            exit(player)
+            return JumpingState()
+        }
+        
+        // Handle animations
         if Input.isActionPressed(.leftShoulder) {
             player.sprite?.play(name: "crouch-aim-up")
             player.aimCrouchUp()
@@ -41,5 +59,13 @@ class CrouchState: PlayerState {
         }
         
         return nil
+    }
+    
+    // This is not good for hurt event
+    func exit(_ player: PlayerNode) {
+        if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
+            hitboxRect.size = Vector2(x: 14, y: 36)
+            player.hitbox?.position = Vector2(x: 0, y: -18)
+        }
     }
 }

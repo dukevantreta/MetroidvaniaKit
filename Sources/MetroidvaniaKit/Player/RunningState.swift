@@ -46,7 +46,9 @@ class RunningState: PlayerState {
         } else {
             player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration))
             
-            if yDirection < 0 {
+            if yDirection < 0 && !Input.isActionPressed(.leftShoulder) {
+                player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
+                player.sprite?.play(name: "stand-to-crouch")
                 return CrouchState()
             }
         }
