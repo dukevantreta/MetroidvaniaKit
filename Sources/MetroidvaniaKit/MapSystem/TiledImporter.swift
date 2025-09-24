@@ -252,13 +252,12 @@ class MapImportPlugin: EditorImportPlugin {
                 tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
             root.addChild(node: tilemap)
-            tilemap.owner = root
         }
         for group in map.groups {
-            // hardest to handle
+            transformGroup(group)
         }
         for group in map.objectGroups {
-            root.addChild(node: try transformObjectGroup(group))
+            root.addChild(node: transformObjectGroup(group))
         }
         for child in root.getChildren() {
             setOwner(root, to: child)
@@ -273,7 +272,20 @@ class MapImportPlugin: EditorImportPlugin {
         }
     }
     
-    func transformObjectGroup(_ objectGroup: Tiled.ObjectGroup) throws -> Node2D {
+    func transformGroup(_ group: Tiled.Group) -> Node2D {
+        let node = Node2D()
+        // TODO: layers
+        for objectGroup in group.objectGroups {
+            node.addChild(node: transformObjectGroup(objectGroup))
+        }
+        // TODO: image layers
+        for subgroup in group.groups {
+            node.addChild(node: transformGroup(subgroup))
+        }
+        return node
+    }
+    
+    func transformObjectGroup(_ objectGroup: Tiled.ObjectGroup) -> Node2D {
         let node = Node2D()
         node.name = StringName(objectGroup.name)
         node.position.x = Float(objectGroup.offsetX)
