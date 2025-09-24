@@ -131,8 +131,6 @@ class MapImportPlugin: EditorImportPlugin {
         true
     }
     
-    var outputPath = "res://output_test/"
-    
     override func _import(
         sourceFile: String,
         savePath: String,
@@ -158,46 +156,50 @@ class MapImportPlugin: EditorImportPlugin {
         printTree(xmlTree.root, level: 0)
         
         do {
-            let map = try Tiled.TileMap(from: xmlTree.root)
-            guard map.orientation == .orthogonal else { // support only orthogonal
-                return .errBug
-            }
-//            GD.print("MAP MODEL -----------------------------"); GD.print(map)
-            
-            var tileset: TileSet?
-//            var tilesetGID: Int?
-            var tilesetColumns: Int = 0
-            var sourceID: Int32 = 0
-            
-            for tilesetRef in map.tilesets {
-                guard let firstGID = tilesetRef.firstGID,
-                      let source = tilesetRef.source else { break }
-                
-                let tilesetFile = [filePath, source].joined(separator: "/")
-                GD.print("TILESET SOURCE: \(tilesetFile)")
-                
-                guard FileAccess.fileExists(path: tilesetFile) else {
-                    GD.pushError("[] Import file \(tilesetFile) not found!")
-                    return .errFileNotFound
-                }
-                guard let tilesetXml = XML.parse(tilesetFile, with: XMLParser()) else {
-                    return .errBug
-                }
-//                        GD.print("TILESET XML -----------------------------")
-//                        printTree(tilesetXml.root, level: 0)
-                let tiledTileset = try Tiled.TileSet(from: tilesetXml.root)
-//                GD.print("TILESET MODEL -----------------------------")
-//                GD.print(tileset)
-                
-                let tup = createTileSet(tiledTileset, sourceFile: tilesetFile)
-                tileset = tup?.0
-                sourceID = tup?.1 ?? -1
-//                tilesetGID = Int(tiledTileset.firstGID ?? "")
-                tilesetColumns = tiledTileset.columns ?? 0
-            }
             
             // for some reason, this runs from a background thread during autoimport check
             DispatchQueue.main.async {
+                
+                guard let map = try? Tiled.TileMap(from: xmlTree.root) else {
+                    return //.errBug
+                }
+                guard map.orientation == .orthogonal else { // support only orthogonal
+                    return //.errBug
+                }
+    //            GD.print("MAP MODEL -----------------------------"); GD.print(map)
+                
+                var tileset: TileSet?
+    //            var tilesetGID: Int?
+                var tilesetColumns: Int = 0
+                var sourceID: Int32 = 0
+                
+                for tilesetRef in map.tilesets {
+                    guard let firstGID = tilesetRef.firstGID,
+                          let source = tilesetRef.source else { break }
+                    
+                    let tilesetFile = [filePath, source].joined(separator: "/")
+                    GD.print("TILESET SOURCE: \(tilesetFile)")
+                    
+                    guard FileAccess.fileExists(path: tilesetFile) else {
+                        GD.pushError("[] Import file \(tilesetFile) not found!")
+                        return //.errFileNotFound
+                    }
+                    guard let tilesetXml = XML.parse(tilesetFile, with: XMLParser()) else {
+                        return //.errBug
+                    }
+    //                        GD.print("TILESET XML -----------------------------")
+    //                        printTree(tilesetXml.root, level: 0)
+                    if let tiledTileset = try? Tiled.TileSet(from: tilesetXml.root) {
+                        //                GD.print("TILESET MODEL -----------------------------")
+                        //                GD.print(tileset)
+                        
+                        let tup = self.createTileSet(tiledTileset, sourceFile: tilesetFile)
+                        tileset = tup?.0
+                        sourceID = tup?.1 ?? -1
+                        //                tilesetGID = Int(tiledTileset.firstGID ?? "")
+                        tilesetColumns = tiledTileset.columns ?? 0
+                    }
+                }
             
                 let tilemap = TileMap()
                 tilemap.name = "<name>"
@@ -254,13 +256,14 @@ class MapImportPlugin: EditorImportPlugin {
 //            let tilemap2 = TileMap()
 //            tilemap2.name = "tilemap 2"
 //
-//                let node = Node2D()
-//                node.name = "root"
-//                node.addChild(node: tilemap)
+                let node = Node2D()
+                node.name = "root"
+                node.addChild(node: tilemap)
+                tilemap.owner = node
     //            node.addChild(node: tilemap2)
                 let scene = PackedScene()
-//                scene.pack(path: node)
-                scene.pack(path: tilemap)
+                scene.pack(path: node)
+//                scene.pack(path: tilemap)
                 let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
                 
                 if err != .ok {
@@ -300,6 +303,8 @@ class MapImportPlugin: EditorImportPlugin {
         let gTileset = TileSet()
         gTileset.resourceName = tileset.name ?? ""
         
+        gTileset.setupLocalToScene()
+        
         let tileSize = Vector2i(
             x: Int32(tileset.tileWidth ?? 0),
             y: Int32(tileset.tileHeight ?? 0)
@@ -332,6 +337,10 @@ class MapImportPlugin: EditorImportPlugin {
         atlasSource.separation = Vector2i(x: spacing, y: spacing)
         atlasSource.texture = imageTexture
         atlasSource.resourceName = imageFile.components(separatedBy: "/").last ?? ""
+        let sourceId = gTileset.addSource(atlasSource)
+        
+        gTileset.addPhysicsLayer(toPosition: 0)
+        gTileset.setPhysicsLayerCollisionLayer(layerIndex: 0, layer: 0b0001)
         
         // create tiles
         let columns = tileset.columns ?? 0
@@ -340,9 +349,40 @@ class MapImportPlugin: EditorImportPlugin {
                 x: Int32(tile.id % columns),
                 y: Int32(tile.id / columns))
             atlasSource.createTile(atlasCoords: atlasCoords)
+            
+            guard let tileData = atlasSource.getTileData(atlasCoords: atlasCoords, alternativeTile: 0) else {
+                GD.print("ERROR GETTING TILE DATA"); break
+            }
+            let halfTile = tileSize / 2
+            
+            if let objectGroup = tile.objectGroup {
+                for object in objectGroup.objects {
+                    if let polygon = object.polygon {
+                        let origin = Vector2i(x: object.x, y: object.y)
+                        let array = PackedVector2Array()
+                        for point in polygon.points {
+                            array.append(value: Vector2(
+                                x: origin.x + Int32(point.x) - halfTile.x,
+                                y: origin.y + Int32(point.y) - halfTile.y
+                            ))
+                        }
+                        tileData.addCollisionPolygon(layerId: 0)
+                        tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
+                    } else { // rectangle
+                        let origin = Vector2i(x: object.x - tileSize.x >> 1, y: object.y - tileSize.y >> 1)
+                        let array = PackedVector2Array()
+                        array.append(value: Vector2(x: origin.x, y: origin.y))
+                        array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
+                        array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
+                        array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
+                        tileData.addCollisionPolygon(layerId: 0)
+                        tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
+                    }
+                }
+            }
         }
         
-        let sourceId = gTileset.addSource(atlasSource)
+        
         GD.print("ADDED SOURCE WITH ID: \(sourceId)")
         
 //        let outputDir = "res://output"
@@ -357,8 +397,4 @@ class MapImportPlugin: EditorImportPlugin {
 //        }
         return (gTileset, sourceId)
     }
-    
-//    func createTileMap(xml: XML.Element) throws {
-//        let map = try Tiled.TileMap(from: xmlTree.root)
-//    }
 }

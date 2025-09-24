@@ -1,18 +1,23 @@
 extension Tiled {
+    
     struct Object {
         let id: Int
         let name: String
         let type: String
-        let x: Int
-        let y: Int
-        let width: Int
-        let height: Int
+        let x: Int32
+        let y: Int32
+        let width: Int32
+        let height: Int32
         let rotation: Double // degrees
         let gid: Int?
         let isVisible: Bool
 //        let template: ?
         var properties: [Property]
-        // Can contain at most one: <properties>, <ellipse> (since 0.9), <point> (since 1.1), <polygon>, <polyline>, <text> (since 1.0)
+        var isEllipse = false
+        var isPoint = false
+        var polygon: Polygon?
+//        var polyline: ?
+//        var text: ?
     }
 }
 
@@ -24,20 +29,44 @@ extension Tiled.Object: XMLDecodable {
             id: attributes?["id"]?.asInt() ?? 0,
             name: attributes?["name"] ?? "",
             type: attributes?["type"] ?? "",
-            x: attributes?["x"]?.asInt() ?? 0,
-            y: attributes?["y"]?.asInt() ?? 0,
-            width: attributes?["width"]?.asInt() ?? 0,
-            height: attributes?["height"]?.asInt() ?? 0,
+            x: attributes?["x"]?.asInt32() ?? 0,
+            y: attributes?["y"]?.asInt32() ?? 0,
+            width: attributes?["width"]?.asInt32() ?? 0,
+            height: attributes?["height"]?.asInt32() ?? 0,
             rotation: attributes?["rotation"]?.asDouble() ?? 0.0,
             gid: attributes?["gid"]?.asInt(),
             isVisible: attributes?["visible"]?.asBool() ?? true,
             properties: []
         )
         for child in xml.children {
-            if child.name == "properties" {
+            if child.name == "ellipse" {
+                isEllipse = true
+            } else if child.name == "point" {
+                isPoint = true
+            } else if child.name == "polygon" {
+                polygon = try Tiled.Polygon(from: child)
+//            } else if child.name == "polyline" {
+//            } else if child.name == "text" {
+            } else if child.name == "properties" {
                 for subchild in child.children {
                     properties.append(try Tiled.Property(from: subchild))
                 }
+            }
+        }
+    }
+}
+
+extension Tiled {
+    struct Polygon: XMLDecodable {
+        
+        let points: [(x: Double, y: Double)]
+        
+        init(from xml: XML.Element) throws {
+            try xml.assertType(.polygon)
+            let pointString = xml.attributes?["points"] ?? ""
+            points = pointString.components(separatedBy: " ").map {
+                let xy = $0.components(separatedBy: ",")
+                return (Double(xy[0]) ?? 0.0, Double(xy[1]) ?? 0.0)
             }
         }
     }

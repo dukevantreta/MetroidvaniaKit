@@ -1,5 +1,10 @@
 extension Tiled {
     
+    // https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
+//    The tilesets used by the map should always be listed before the layers.
+//    Can contain at most one: <properties>, <editorsettings> (since 1.3)
+//    Can contain any number: <tileset>, <layer>, <objectgroup>, <imagelayer>, <group> (since 1.0)
+    
     // TODO: hex map properties
     struct TileMap {
         

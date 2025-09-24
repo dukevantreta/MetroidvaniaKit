@@ -11,7 +11,6 @@ extension Tiled {
         let parallaxX: Double
         let parallaxY: Double
         let drawOrder: String? // index, topdown
-        
         var properties: [Property]
         var objects: [Object]
     }
