@@ -50,9 +50,9 @@ class JumpingState: PlayerState {
             player.velocity.y += Float(player.getGravity() * dt)
             
             var terminalVelocity = Float(player.getJumpspeed()) * player.terminalVelocityFactor
-//            if isInWater {
-//                terminalVelocity *= 0.2
-//            }
+            if player.isAffectedByWater {
+                terminalVelocity *= 0.2
+            }
             if player.velocity.y > terminalVelocity {
                 player.velocity.y = terminalVelocity
             }
@@ -68,6 +68,10 @@ class JumpingState: PlayerState {
         
         if abs(player.velocity.x) < Float(player.speed) {
             player.isSpeedBoosting = false
+        }
+        
+        if player.isAffectedByWater {
+            player.velocity *= 0.9
         }
         
         player.moveAndSlide()

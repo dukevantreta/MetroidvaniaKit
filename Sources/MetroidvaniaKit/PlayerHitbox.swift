@@ -10,6 +10,8 @@ class PlayerHitbox: Area2D {
             logError("PLAYER NOT FOUND")
             return
         }
+        
+        collisionLayer = 0b1_0000_0000
 //        collisionMask |= 0b00000010
         collisionMask |= 0b00000100
 //        collisionMask |= 0b00001000
@@ -18,12 +20,14 @@ class PlayerHitbox: Area2D {
             guard let self, let area else { return }
             if area.collisionLayer & 0b0100 != 0 {
                 GD.print("ENTER WATER")
+                player.enterWater()
             }
         }
         areaExited.connect { [weak self] area in
             guard let self, let area else { return }
             if area.collisionLayer & 0b0100 != 0 {
                 GD.print("EXIT WATER")
+                player.exitWater()
             }
         }
         

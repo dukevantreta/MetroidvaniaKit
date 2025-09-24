@@ -13,4 +13,6 @@ class PlayerUpgrades: Node2D {
     @Export var hasWallGrab: Bool = false
     
     @Export var hasSpeedBooster: Bool = false
+    
+    @Export var hasWaterMovement: Bool = false
 }

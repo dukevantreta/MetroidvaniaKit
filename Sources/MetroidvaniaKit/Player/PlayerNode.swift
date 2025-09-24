@@ -55,6 +55,12 @@ class PlayerNode: CharacterBody2D {
     
     var isAimingDown = false
     
+    var isInWater = false
+    
+    var isAffectedByWater: Bool {
+        isInWater && !upgrades.hasWaterMovement
+    }
+    
     var isSpeedBoosting = false {
         didSet {
             floorSnapLength = isSpeedBoosting ? 12 : 6
@@ -133,6 +139,14 @@ class PlayerNode: CharacterBody2D {
         shot.direction = shotDirection //Vector2(x: facingDirection, y: 0).normalized()
         shot.position = self.position + shotOrigin
         getParent()?.addChild(node: shot)
+    }
+    
+    func enterWater() {
+        isInWater = true
+    }
+    
+    func exitWater() {
+        isInWater = false
     }
     
     // MARK: AIMING FUNCTIONS

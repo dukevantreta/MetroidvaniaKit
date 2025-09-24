@@ -60,6 +60,10 @@ class RunningState: PlayerState {
             player.velocity.y = Float(-player.getJumpspeed())
         }
         
+        if player.isAffectedByWater {
+            player.velocity *= 0.9
+        }
+        
         player.moveAndSlide()
         
         if Input.isActionJustPressed(.action1) {
