@@ -10,6 +10,9 @@ class PlayerStats: Node2D {
     
     #signal("hp_changed")
     #signal("ammo_changed")
+
+    @Export var maxHp: Int = 100
+    @Export var maxAmmo: Int = 10
     
     @Export var hp: Int = 100 {
         didSet {
@@ -38,4 +41,12 @@ class PlayerStats: Node2D {
     @Export var hasWaterMovement: Bool = false
     
     @Export var hasWaterWalking: Bool = false
+
+    func restoreHealth(_ amount: Int) {
+        hp = min(hp + amount, maxHp)
+    }
+
+    func restoreAmmo(_ amount: Int) {
+        ammo = min(ammo + amount, maxAmmo)
+    }
 }

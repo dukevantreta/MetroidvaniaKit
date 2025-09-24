@@ -54,6 +54,14 @@ class Enemy: Node2D {
     }
     
     func destroy() {
+        if let dropType = DropTable.default.rollDrop() {
+            log("ENEMY DROP: \(dropType.sceneName)")
+            let object = ResourceLoader.load(path: "res://objects/\(dropType.sceneName).tscn") as? PackedScene
+            if let drop = object?.instantiate() as? Node2D {
+                drop.position = position
+                getParent()?.addChild(node: drop)
+            }
+        }
         queueFree()
     }
 }

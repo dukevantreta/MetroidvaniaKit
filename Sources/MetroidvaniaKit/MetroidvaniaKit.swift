@@ -43,6 +43,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PatrolEnemyAI.self,
             CrawlerEnemyAI.self,
             LinearEnemyAI.self,
+            DropCollectible.self,
             HUD.self,
             PauseMenu.self,
             MiniMapHUD.self,

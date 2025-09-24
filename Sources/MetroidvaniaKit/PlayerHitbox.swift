@@ -88,4 +88,12 @@ class PlayerHitbox: Area2D {
         player?.sprite?.visible = true
         isInvincible = false
     }
+
+    func restoreHealth(_ amount: Int) {
+        player?.stats.restoreHealth(amount)
+    }
+
+    func restoreAmmo(_ amount: Int) {
+        player?.stats.restoreAmmo(amount)
+    }
 }

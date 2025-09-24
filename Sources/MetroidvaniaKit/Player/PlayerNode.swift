@@ -145,7 +145,7 @@ class PlayerNode: CharacterBody2D {
     }
     
     func takeDamage(_ amount: Int, xDirection: Float) {
-        velocity.x += xDirection * damageSpeed * (isOnFloor() ? 1.0 : 0.8)
+        velocity.x = xDirection * damageSpeed * (isOnFloor() ? 1.0 : 0.7)
         stats.hp -= amount
         if stats.hp <= 0 {
             log("GAME OVER") // try to use hp change signal to trigger game over
