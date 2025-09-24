@@ -37,9 +37,7 @@ class TileSetImporter {
         gTileset.tileShape = .square
         gTileset.tileSize = tileSize
         
-        // continue from here
-//        for tilesetRef in map.tilesets {
-        if let tilesetRef = map.tilesets.first {
+        for tilesetRef in map.tilesets {
             guard let firstGID = tilesetRef.firstGID,
                   let source = tilesetRef.source else { return nil }
             let tilesetFile = [filePath, source].joined(separator: "/")
@@ -101,6 +99,16 @@ class TileSetImporter {
                 
                 if let objectGroup = tile.objectGroup {
                     for object in objectGroup.objects {
+                        
+                        var physicsLayerIdx: Int32 = 0
+                        for property in object.properties {
+                            if property.name == "physics_layer" {
+                                if let index = Int32(property.value ?? "") {
+                                    physicsLayerIdx = index
+                                }
+                            }
+                        }
+                        
                         if let polygon = object.polygon {
                             let origin = Vector2i(x: object.x, y: object.y)
                             let array = PackedVector2Array()
@@ -110,8 +118,8 @@ class TileSetImporter {
                                     y: origin.y + Int32(point.y) - halfTile.y
                                 ))
                             }
-                            tileData.addCollisionPolygon(layerId: 0)
-                            tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
+                            tileData.addCollisionPolygon(layerId: physicsLayerIdx)
+                            tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         } else { // rectangle
                             let origin = Vector2i(x: object.x - tileSize.x >> 1, y: object.y - tileSize.y >> 1)
                             let array = PackedVector2Array()
@@ -119,8 +127,8 @@ class TileSetImporter {
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
                             array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
-                            tileData.addCollisionPolygon(layerId: 0)
-                            tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
+                            tileData.addCollisionPolygon(layerId: physicsLayerIdx)
+                            tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         }
                     }
                 }
