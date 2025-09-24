@@ -59,7 +59,7 @@ class Enemy: Node2D {
             let object = ResourceLoader.load(path: "res://objects/\(dropType.sceneName).tscn") as? PackedScene
             if let drop = object?.instantiate() as? Node2D {
                 drop.position = position
-                getParent()?.addChild(node: drop)
+                getParent()?.callDeferred(method: "add_child", Variant(drop))
             }
         }
         queueFree()

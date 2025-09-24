@@ -27,6 +27,7 @@ class DropCollectible: Area2D {
     private var accumulator: Double = 0.0
 
     override func _ready() {
+        collisionLayer = 0b0100_0000
         collisionMask = 0b1_0000_0000
         
         blinkTimer.autostart = false
