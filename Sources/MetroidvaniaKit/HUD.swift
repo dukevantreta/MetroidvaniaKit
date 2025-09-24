@@ -7,23 +7,22 @@ class HUD: Control {
     @SceneTree(path: "AmmoLabel") weak var ammoLabel: Label?
     @SceneTree(path: "MiniMapHUD") var minimap: MiniMapHUD?
     
-    private(set) weak var playerStats: PlayerStats?
-    
     func setPlayerStats(_ playerStats: PlayerStats) {
-        self.playerStats = playerStats
-        playerStats.connect(signal: PlayerStats.hpChanged, to: self, method: "healthChanged")
-        playerStats.connect(signal: PlayerStats.ammoChanged, to: self, method: "ammoChanged")
-        healthChanged()
-        ammoChanged()
+        updateHealth(playerStats.hp)
+        updateAmmo(playerStats.ammo)
+        playerStats.hpChanged.connect { [weak self] hp in
+            self?.updateHealth(hp)
+        }
+        playerStats.ammoChanged.connect { [weak self] ammo in
+            self?.updateAmmo(ammo)
+        }
     }
     
-    @Callable func healthChanged() {
-        guard let playerStats else { return }
-        healthLabel?.text = "\(playerStats.hp)"
+    func updateHealth(_ hp: Int) {
+        healthLabel?.text = "\(hp)"
     }
     
-    @Callable func ammoChanged() {
-        guard let playerStats else { return }
-        ammoLabel?.text = "\(playerStats.ammo)"
+    func updateAmmo(_ ammo: Int) {
+        ammoLabel?.text = "\(ammo)"
     }
 }

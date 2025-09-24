@@ -8,21 +8,21 @@ enum Upgrade {
 @Godot
 class PlayerStats: Node2D {
     
-    #signal("hp_changed")
-    #signal("ammo_changed")
+    @Signal var hpChanged: SignalWithArguments<Int>
+    @Signal var ammoChanged: SignalWithArguments<Int>
 
     @Export var maxHp: Int = 100
     @Export var maxAmmo: Int = 10
     
     @Export var hp: Int = 100 {
         didSet {
-            emit(signal: PlayerStats.hpChanged)
+            hpChanged.emit(hp)
         }
     }
     
     @Export var ammo: Int = 10 {
         didSet {
-            emit(signal: PlayerStats.ammoChanged)
+            ammoChanged.emit(ammo)
         }
     }
     
