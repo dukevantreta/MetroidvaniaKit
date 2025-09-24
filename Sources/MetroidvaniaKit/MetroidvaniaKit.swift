@@ -21,6 +21,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
     case .scene:
         [
             CharacterController2D.self,
+            PlayerNode.self,
             TriggerArea2D.self,
             PlayerHitbox.self,
             HookHitbox.self,

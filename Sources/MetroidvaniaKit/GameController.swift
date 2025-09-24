@@ -6,7 +6,8 @@ class GameController: Node {
     
 //    @SceneTree(path: "../CharacterController2D/Camera2D") var camera: Camera2D?
     @SceneTree(path: "../SidescrollerCamera") var camera: SidescrollerCamera?
-    @SceneTree(path: "../CharacterController2D") var player: CharacterController2D?
+//    @SceneTree(path: "../CharacterController2D") var player: CharacterController2D?
+    @SceneTree(path: "../PlayerNode") var player: CharacterBody2D?
     @SceneTree(path: "../CanvasLayer/MiniMapHUD") var minimapHUD: MiniMapHUD?
     
     @SceneTree(path: "../CanvasLayer/PauseMenu") var pauseMenu: Control?
@@ -37,6 +38,8 @@ class GameController: Node {
         } catch {
             logError("Failed to decode world data from '\(worldFile)'.")
         }
+        
+        camera?.target = player
     }
     
     override func _process(delta: Double) {
