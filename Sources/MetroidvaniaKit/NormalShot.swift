@@ -30,6 +30,12 @@ class NormalShot: Area2D {
                 self?.destroy()
             }
         }
+        areaEntered.connect { [weak self] otherArea in
+            guard let self, let otherArea else { return }
+            if otherArea.collisionLayer & 0b0011 != 0 {
+                self.destroy()
+            }
+        }
     }
     
     override func _physicsProcess(delta: Double) {

@@ -14,7 +14,7 @@ class SpeedBoosterBlock: RigidBody2D {
     
     override func _ready() {
         guard let area, let detectionArea else {
-            log("COLLISION NOT FOUND")
+            logError("Collision area not found")
             return
         }
         

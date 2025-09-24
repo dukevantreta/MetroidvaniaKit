@@ -1,5 +1,7 @@
 import SwiftGodot
 
+// TODO: Use another error type
+
 func loadResource<T>(ofType type: T.Type, at path: String) throws -> T where T: Resource {
     guard FileAccess.fileExists(path: path) else {
         throw ImportError.godotError(.errFileNotFound)
