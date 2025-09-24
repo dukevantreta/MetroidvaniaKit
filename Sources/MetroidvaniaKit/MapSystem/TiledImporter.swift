@@ -1,4 +1,5 @@
 import SwiftGodot
+import Dispatch
 
 extension XML.Element: CustomStringConvertible {
     var description: String {
@@ -51,7 +52,7 @@ class TiledImporter: EditorPlugin {
     func _enable() {
         GD.print("PLUGIN ENABLED")
         importPlugin = MapImportPlugin()
-        addImportPlugin(importer: importPlugin, firstPriority: true)
+        addImportPlugin(importer: importPlugin, firstPriority: false)
     }
     
     @Callable
@@ -74,7 +75,7 @@ class MapImportPlugin: EditorImportPlugin {
     }
     
     override func _getRecognizedExtensions() -> PackedStringArray {
-        PackedStringArray(["tmx", "tsx"])
+        PackedStringArray(["tmx"])
     }
     
     override func _getResourceType() -> String {
@@ -86,15 +87,15 @@ class MapImportPlugin: EditorImportPlugin {
     }
     
     override func _getImportOrder() -> Int32 {
-        0
+        99
     }
     
     override func _getPriority() -> Double {
-        1.0
+        0.2
     }
     
     override func _getPresetCount() -> Int32 {
-        1
+        0
     }
     
     override func _getPresetName(presetIndex: Int32) -> String {
@@ -106,25 +107,23 @@ class MapImportPlugin: EditorImportPlugin {
         path: String,
         presetIndex: Int32
     ) -> VariantCollection<GDictionary> {
-        let d1 = GDictionary()
-        d1["name"] = Variant("use_layers")
-//        d1["default_value"] = Variant(false)
-        let d2 = GDictionary()
-        d2["name"] = Variant("use_tilemap_layers")
-        d2["default_value"] = Variant(false)
-        let d3 = GDictionary()
-        d3["name"] = Variant("output file")
-        d3["default_value"] = Variant("output")
-        d3["property_hint"] = Variant(PropertyHint.saveFile.rawValue)
-        d3["hint_string"] = Variant("*.tres;Resource File")
+        let opt1 = GDictionary()
+        opt1["name"] = Variant("use_this_option")
+        opt1["default_value"] = Variant(false)
+        let opt2 = GDictionary()
+        opt2["name"] = Variant("another_options")
+        opt2["default_value"] = Variant(true)
+//        let d3 = GDictionary()
+//        d3["name"] = Variant("output file")
+//        d3["default_value"] = Variant("output")
+//        d3["property_hint"] = Variant(PropertyHint.saveFile.rawValue)
+//        d3["hint_string"] = Variant("*.tres;Resource File")
         
-        let c = VariantCollection(arrayLiteral: d3)
+        let c = VariantCollection(arrayLiteral: opt1)
         GD.print("GET import options PATH = \(path): \(c)")
         return [
-            d1,
-            d3,
-            d2
-//            { "name": "use_tilemap_layers", "default_value": false },
+            opt1,
+            opt2
         ]
     }
     
@@ -157,11 +156,18 @@ class MapImportPlugin: EditorImportPlugin {
         guard let xmlTree else { return .errBug }
             
         printTree(xmlTree.root, level: 0)
+        
         do {
             let map = try Tiled.TileMap(from: xmlTree.root)
             guard map.orientation == .orthogonal else { // support only orthogonal
                 return .errBug
             }
+//            GD.print("MAP MODEL -----------------------------"); GD.print(map)
+            
+            var tileset: TileSet?
+//            var tilesetGID: Int?
+            var tilesetColumns: Int = 0
+            var sourceID: Int32 = 0
             
             for tilesetRef in map.tilesets {
                 guard let firstGID = tilesetRef.firstGID,
@@ -179,26 +185,118 @@ class MapImportPlugin: EditorImportPlugin {
                 }
 //                        GD.print("TILESET XML -----------------------------")
 //                        printTree(tilesetXml.root, level: 0)
-                let tileset = try Tiled.TileSet(from: tilesetXml.root)
+                let tiledTileset = try Tiled.TileSet(from: tilesetXml.root)
 //                GD.print("TILESET MODEL -----------------------------")
 //                GD.print(tileset)
                 
-                createTileSet(tileset, sourceFile: tilesetFile)
+                let tup = createTileSet(tiledTileset, sourceFile: tilesetFile)
+                tileset = tup?.0
+                sourceID = tup?.1 ?? -1
+//                tilesetGID = Int(tiledTileset.firstGID ?? "")
+                tilesetColumns = tiledTileset.columns ?? 0
             }
+            
+            // for some reason, this runs from a background thread during autoimport check
+            DispatchQueue.main.async {
+            
+                let tilemap = TileMap()
+                tilemap.name = "<name>"
+                
+                tileset?.setupLocalToScene() // save .res from separate importer and load as resource?
+                tilemap.tileSet = tileset
+    //            tilemap.tileSet = resTileset
+                GD.print("Is layer 0 enabled: \(tilemap.isLayerEnabled(layer: 0))")
+                
+                    let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
+                    
+                    let sid = sourceID
+                    GD.print("TileSet source ID: \(sid)")
+                    
+                // TODO: Flipped tiles bit shifting
+                for layer in map.layers {
+                    if let data = layer.data {
+                        guard data.encoding == "csv" else {
+                            return  // err
+                        }
+                        guard let text = data.text else {
+                            return  // err
+                        }
+                        let cellArray = text
+                            .components(separatedBy: .whitespacesAndNewlines)
+                            .joined()
+                            .components(separatedBy: ",")
+                            .compactMap { Int($0) }
+                        
+                        GD.print("Cell count: \(cellArray.count)")
+                        
+                        for idx in 0..<cellArray.count {
+                            
+                            let cellValue = cellArray[idx]
+                            let tileIndex = cellValue - (tilesetGID ?? 0)
+                            if tileIndex < 0 {
+                                continue
+                            }
+                            
+                            let mapCoords = Vector2i(
+                                x: Int32(idx % layer.width),
+                                y: Int32(idx / layer.width))
+                            
+                            let tileCoords = Vector2i(
+                                x: Int32(tileIndex % tilesetColumns),
+                                y: Int32(tileIndex / tilesetColumns)
+                            )
+                            tilemap.setCell(layer: 0, coords: mapCoords, sourceId: sid, atlasCoords: tileCoords, alternativeTile: 0)
+                        }
+                    }
+                }
+            
+            
+//            let tilemap2 = TileMap()
+//            tilemap2.name = "tilemap 2"
+//
+//                let node = Node2D()
+//                node.name = "root"
+//                node.addChild(node: tilemap)
+    //            node.addChild(node: tilemap2)
+                let scene = PackedScene()
+//                scene.pack(path: node)
+                scene.pack(path: tilemap)
+                let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
+                
+                if err != .ok {
+                    GD.print("ERROR SAVING OUTPUT: \(err)")
+                } else {
+                    GD.print("SAVE SUCCESSFUL")
+                }
+            }
+            
+            
+            
+            return .ok // bp
             
         } catch {
             GD.print("ERROR PARSING MAP \(error)")
         }
+        
 //            if let map = Tiled.parseMap(from: xmlTree.root) {
-//                GD.print("MAP MODEL -----------------------------")
-//                GD.print(map)
+//                GD.print("MAP MODEL -----------------------------"); GD.print(map)
 //            }
+//        }
+//        let node = Node2D()
+//        node.name = "root"
+//        
+//        let scene = PackedScene()
+//        scene.pack(path: node)
+//        let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
+//        
+//        if err != .ok {
+//            GD.print("ERROR SAVING OUTPUT: \(err)")
 //        }
         
         return .ok
     }
     
-    func createTileSet(_ tileset: Tiled.TileSet, sourceFile: String) {
+    func createTileSet(_ tileset: Tiled.TileSet, sourceFile: String) -> (TileSet, Int32)? {
         let gTileset = TileSet()
         gTileset.resourceName = tileset.name ?? ""
         
@@ -215,15 +313,15 @@ class MapImportPlugin: EditorImportPlugin {
         let tilesetDir = pathComponents.joined(separator: "/")
         
         guard let imageSource = tileset.image?.source else {
-            GD.print("ERROR IMG SOURCE"); return
+            GD.print("ERROR IMG SOURCE"); return nil
         }
         
         let imageFile = [tilesetDir, imageSource].joined(separator: "/")
         guard let image = Image.loadFromFile(path: imageFile) else {
-            GD.print("ERROR LOADING IMAGE"); return
+            GD.print("ERROR LOADING IMAGE"); return nil
         }
         guard let imageTexture = ImageTexture.createFromImage(image) else {
-            GD.print("ERROR MAKING IMAGE TEXTURE"); return
+            GD.print("ERROR MAKING IMAGE TEXTURE"); return nil
         }
         
         let margin = Int32(tileset.margin ?? 0)
@@ -244,18 +342,20 @@ class MapImportPlugin: EditorImportPlugin {
             atlasSource.createTile(atlasCoords: atlasCoords)
         }
         
-        gTileset.addSource(atlasSource)
+        let sourceId = gTileset.addSource(atlasSource)
+        GD.print("ADDED SOURCE WITH ID: \(sourceId)")
         
-        let outputDir = "res://output"
-        if !DirAccess.dirExistsAbsolute(path: outputDir) {
-            DirAccess.makeDirRecursiveAbsolute(path: outputDir)
-        }
-        let saveFile = "tileset_test.tres"
-        let outputFile = [outputDir, saveFile].joined(separator: "/")
-        let err = ResourceSaver.save(resource: gTileset, path: outputFile)
-        if err != .ok {
-            GD.print("ERROR SAVING RESOURCE: \(err)")
-        }
+//        let outputDir = "res://output"
+//        if !DirAccess.dirExistsAbsolute(path: outputDir) {
+//            DirAccess.makeDirRecursiveAbsolute(path: outputDir)
+//        }
+//        let saveFile = "tileset_test.tres"
+//        let outputFile = [outputDir, saveFile].joined(separator: "/")
+//        let err = ResourceSaver.save(resource: gTileset, path: outputFile)
+//        if err != .ok {
+//            GD.print("ERROR SAVING RESOURCE: \(err)")
+//        }
+        return (gTileset, sourceId)
     }
     
 //    func createTileMap(xml: XML.Element) throws {
