@@ -22,17 +22,33 @@ class RunningState: PlayerState {
         if !player.isOnFloor() {
             return .jump
         }
+        // Jump
+        if player.input.isActionJustPressed(.action0) {
+            lastActionTimestamp = Time.getTicksMsec()
+            player.velocity.y = Float(-player.getJumpspeed())
+        }
         if player.xDirection.isZero {
+            if player.yDirection < 0 && player.isSpeedBoosting {
+                player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
+                player.sprite?.play(name: "stand-to-crouch")
+                player.isSpeedBoosting = false
+                player.hasShinesparkCharge = true
+                return .crouch
+            }
             if player.yDirection < 0 && !player.input.isActionPressed(.leftShoulder) {
                 player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
                 player.sprite?.play(name: "stand-to-crouch")
                 return .crouch
             }
         }
+        
         if Time.getTicksMsec() - lastActionTimestamp > player.idleAnimationThreshold {
             return .idle
         }
         if player.input.isActionJustPressed(.rightShoulder) {
+            if player.hasShinesparkCharge && (!player.xDirection.isZero || !player.yDirection.isZero) {
+                return .charge
+            }
             return .dash
         }
         
@@ -78,11 +94,7 @@ class RunningState: PlayerState {
             player.isSpeedBoosting = false
         }
         
-        // Jump
-        if player.input.isActionJustPressed(.action0) {
-            lastActionTimestamp = Time.getTicksMsec()
-            player.velocity.y = Float(-player.getJumpspeed())
-        }
+        
         
         if player.isAffectedByWater {
             player.velocity *= 0.9

@@ -26,6 +26,7 @@ class PlayerNode: CharacterBody2D {
         case crouch
         case morph
         case dash
+        case charge
     }
     
     @SceneTree(path: "CollisionShape2D") weak var collisionShape: CollisionShape2D?
@@ -94,7 +95,8 @@ class PlayerNode: CharacterBody2D {
         .wallGrab: WallGrabState(),
         .crouch: CrouchState(),
         .morph: MorphState(),
-        .dash: DashState()
+        .dash: DashState(),
+        .charge: ShinesparkState()
     ]
     var currentState: State = .idle
     
@@ -124,6 +126,16 @@ class PlayerNode: CharacterBody2D {
     var isSpeedBoosting = false {
         didSet {
             floorSnapLength = isSpeedBoosting ? 12 : 6
+            self.modulate = isSpeedBoosting ? Color.red : Color.white
+        }
+    }
+    
+    var hasShinesparkCharge = false {
+        didSet {
+            if hasShinesparkCharge {
+                log("STORED SHINESPARK")
+            }
+            self.modulate = hasShinesparkCharge ? Color.blue : Color.white
         }
     }
     
@@ -150,7 +162,6 @@ class PlayerNode: CharacterBody2D {
         collisionMask = 0b1011
         switchWeapons(weaponLevel)
         switchSubweapon(.rocket) // check for weapon flags
-//        state.enter(self)
         states[currentState]?.enter(self)
     }
     
@@ -176,13 +187,7 @@ class PlayerNode: CharacterBody2D {
                 states[currentState]?.enter(self)
             }
         }
-//        state.processPhysics(self, dt: delta)
         states[currentState]?.processPhysics(self, dt: delta)
-        
-//        if let newState = state.processPhysics(self, dt: delta) {
-//            newState.enter(self)
-//            state = newState
-//        }
     }
     
     func takeDamage(_ amount: Int, xDirection: Float) {

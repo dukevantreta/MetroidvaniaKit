@@ -25,13 +25,17 @@ class JumpingState: PlayerState {
             player.sprite?.play(name: "fall-land")
             return .run
         }
+        if player.input.isActionJustPressed(.rightShoulder) {
+            if player.hasShinesparkCharge && (!player.xDirection.isZero || !player.yDirection.isZero) {
+                return .charge
+            }
+            return .dash
+        }
         return nil
     }
     
     func processPhysics(_ player: PlayerNode, dt: Double) {
         
-//        let yDirection = player.input.getVerticalAxis()
-//        let xDirection = player.input.getHorizontalAxis()
         var targetSpeed = player.speed * player.xDirection
         
         if player.input.isActionJustPressed(.leftShoulder) {

@@ -8,6 +8,7 @@ class DashState: PlayerState {
     func enter(_ player: PlayerNode) {
         dashTime = 0.0
         xZero = player.position.x
+        player.velocity.y = 0.0
         player.sprite?.play(name: "dash")
     }
     
