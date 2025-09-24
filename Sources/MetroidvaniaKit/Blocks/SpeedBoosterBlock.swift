@@ -8,9 +8,8 @@ class SpeedBoosterBlock: RigidBody2D {
     @SceneTree(path: "Area2D") weak var area: Area2D?
     @SceneTree(path: "DetectionArea") weak var detectionArea: Area2D?
     @SceneTree(path: "Sprite2D") weak var coverSprite: Sprite2D?
-    
-    private var shouldDestroy = false
-    private var destroyCountdown = 0.1
+    @SceneTree(path: "RealSprite") weak var realSprite: Sprite2D?
+    @SceneTree(path: "AnimatedSprite2D") weak var destroyAnimation: AnimatedSprite2D?
     
     override func _ready() {
         guard let area, let detectionArea else {
@@ -18,13 +17,18 @@ class SpeedBoosterBlock: RigidBody2D {
             return
         }
         
-        collisionLayer |= 0b0010
-        
         freeze = true
         freezeMode = .kinematic
         
+        collisionLayer |= 0b0010
         area.collisionMask = 0b1_0000
         area.collisionLayer = 0b0011
+        
+        // Destroy
+        destroyAnimation?.spriteFrames?.setAnimationLoop(anim: "default", loop: false)
+        destroyAnimation?.animationFinished.connect { [weak self] in
+            self?.queueFree()
+        }
         
         // Projectile detection
         area.areaEntered.connect { [weak self] otherArea in
@@ -43,18 +47,10 @@ class SpeedBoosterBlock: RigidBody2D {
                     if player.globalPosition.y - 1 > self.globalPosition.y {
                         self.collisionLayer = 0 // Remove collision only if player is not above the block
                     }
-                    self.shouldDestroy = true
+                    self.reveal()
+                    self.realSprite?.visible = false
+                    self.destroyAnimation?.play()
                 }
-            }
-        }
-    }
-    
-    override func _process(delta: Double) {
-        
-        if shouldDestroy {
-            destroyCountdown -= delta
-            if destroyCountdown <= 0 {
-                self.queueFree()
             }
         }
     }

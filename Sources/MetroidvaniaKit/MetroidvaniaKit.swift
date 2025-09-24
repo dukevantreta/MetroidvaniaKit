@@ -39,6 +39,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PauseMenu.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
+            RocketBlock.self,
         ].forEach { register(type: $0) }
     default:
         break
