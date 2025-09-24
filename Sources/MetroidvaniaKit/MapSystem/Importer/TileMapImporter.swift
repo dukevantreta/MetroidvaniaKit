@@ -19,9 +19,9 @@ class TileMapImporter: Node {
         platformVariants: VariantCollection<String>,
         genFiles: VariantCollection<String>
     ) -> Int {
-//        DispatchQueue.main.async {
+        DispatchQueue.main.async {
             self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
-//        }
+        }
         return 0
     }
     
@@ -126,6 +126,9 @@ class TileMapImporter: Node {
                 )
                 tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
+            if layer.name == "collision-mask" {
+                tilemap.visible = false
+            }
             root.addChild(node: tilemap)
         }
         for group in map.groups {
@@ -210,18 +213,20 @@ class TileMapImporter: Node {
     }
     
     func transformObject(_ object: Tiled.Object) -> Node2D {
-        let node: Node2D
-        
-        if !object.type.isEmpty, let overrideObject = instantiate(object) {
-            node = overrideObject
-        } else if let gid = object.gid { // is tile
+        let node: Node2D = if !object.type.isEmpty, let overrideObject = instantiate(object) {
+            overrideObject
+        } else {
+            Node2D()
+        }
+        if let gid = object.gid { // is tile
             let trueGID: UInt32 = UInt32(gid) & 0x0FFF_FFFF
             let flipBits: UInt32 = UInt32(gid) & 0xF000_0000
             let flipHorizontally = flipBits & 1 << 31 != 0
             let flipVertically = flipBits & 1 << 30 != 0
             
             let sprite = Sprite2D()
-            node = sprite
+            sprite.name = StringName("Sprite2D")
+            node.addChild(node: sprite)
             
             guard let currentTileset else { fatalError() }
             
@@ -253,6 +258,7 @@ class TileMapImporter: Node {
             
             sprite.flipH = flipHorizontally
             sprite.flipV = flipVertically
+            
         } else if let polygon = object.polygon {
             let type = object.type.lowercased()
             let body = if type == "area" || type == "area2d" {
@@ -260,7 +266,7 @@ class TileMapImporter: Node {
             } else {
                 StaticBody2D()
             }
-            node = body
+            node.addChild(node: body)
             
             let collision = CollisionPolygon2D()
             let array = PackedVector2Array()
@@ -272,7 +278,7 @@ class TileMapImporter: Node {
 //        } else if let text = object.text { // is text obj
 //        } else if let template = object.template { // TODO
         } else if object.isPoint {
-            node = Node2D()
+//            node = Node2D()
 //        } else if object.isEllipse {
         } else { // treat as a rectangle
             let type = object.type.lowercased()
@@ -281,7 +287,7 @@ class TileMapImporter: Node {
             } else {
                 StaticBody2D()
             }
-            node = body
+            node.addChild(node: body)
             
             let shape = RectangleShape2D()
             shape.size = Vector2(x: object.width, y: object.height)

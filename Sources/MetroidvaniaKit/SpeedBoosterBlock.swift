@@ -7,7 +7,7 @@ class SpeedBoosterBlock: RigidBody2D {
     
     @SceneTree(path: "Area2D") weak var area: Area2D?
     @SceneTree(path: "DetectionArea") weak var detectionArea: Area2D?
-    @SceneTree(path: "CoverSprite") weak var coverSprite: Sprite2D?
+    @SceneTree(path: "Sprite2D") weak var coverSprite: Sprite2D?
     
     private var shouldDestroy = false
     private var destroyCountdown = 0.1
