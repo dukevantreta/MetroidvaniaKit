@@ -48,6 +48,10 @@ class PlayerNode: CharacterBody2D {
         }
     }
     
+    var shotOrigin: Vector2 {
+        Vector2(x: Float((7 + 3) * facingDirection), y: -20)
+    }
+    
     func getGravity() -> Double {
         8 * parabolicHeight / (jumpDuration * jumpDuration)
     }
@@ -69,6 +73,10 @@ class PlayerNode: CharacterBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
+        
+        if Input.isActionJustPressed(action: "action_2") {
+            normalShot()
+        }
         
         if let newState = state.update(self, dt: delta) {
             newState.enter(self)
@@ -102,6 +110,13 @@ class PlayerNode: CharacterBody2D {
             return true
         }
         return false
+    }
+    
+    func normalShot() {
+        let shot = NormalShot()
+        shot.direction = facingDirection
+        shot.position = shotOrigin
+        addChild(node: shot)
     }
     
     // DEBUG

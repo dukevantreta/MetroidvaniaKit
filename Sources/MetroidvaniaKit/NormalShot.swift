@@ -1,13 +1,19 @@
 import SwiftGodot
 
 @Godot
-class NormalShot: Area2D {
+class NormalShot: RigidBody2D {
     
     var speed: Double = 400
     var direction: Int = 1
     
     override func _ready() {
-        collisionMask = 0b0001
+        collisionMask = 0b0011
+        collisionLayer = 0b1_0000
+        
+        self.freeze = true
+        self.freezeMode = .kinematic
+        contactMonitor = true
+        maxContactsReported = 1
         
         let size = Vector2(x: 6, y: 6)
         let texture = PlaceholderTexture2D()
@@ -24,7 +30,7 @@ class NormalShot: Area2D {
         
         bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
             let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
-            if layer & 0b0001 != 0 {
+            if layer & 0b0011 != 0 {
                 self?.destroy()
             }
         }

@@ -5,6 +5,8 @@ import Foundation
 @Godot(.tool)
 class TileMapImporter: Node {
     
+    let objectsPath = "res://objects/"
+    
     enum Error: Swift.Error {
         case missingTileSetSource(gid: String?)
     }
@@ -208,19 +210,18 @@ class TileMapImporter: Node {
     }
     
     func transformObject(_ object: Tiled.Object) -> Node2D {
-        let node: Node2D = instantiate(object)
-        node.setName(object.name)
-        node.position = Vector2(x: object.x, y: object.y)
-        node.visible = object.isVisible
+        let node: Node2D
         
-        if let gid = object.gid { // is tile
+        if !object.type.isEmpty, let overrideObject = instantiate(object) {
+            node = overrideObject
+        } else if let gid = object.gid { // is tile
             let trueGID: UInt32 = UInt32(gid) & 0x0FFF_FFFF
             let flipBits: UInt32 = UInt32(gid) & 0xF000_0000
             let flipHorizontally = flipBits & 1 << 31 != 0
             let flipVertically = flipBits & 1 << 30 != 0
             
             let sprite = Sprite2D()
-            node.addChild(node: sprite)
+            node = sprite
             
             guard let currentTileset else { fatalError() }
             
@@ -235,7 +236,6 @@ class TileMapImporter: Node {
             
             let tileIndex = Int32(trueGID) - tilesetGID
             
-//            let tilesetColumns = currentTileset.getColumnCount(gid: tilesetGID)
             let sourceID = currentTileset.getSourceId(named: atlasName)
             let tilesetColumns = currentTileset.getColumnCount(sourceId: sourceID)
             let tileCoords = Vector2i(
@@ -260,7 +260,7 @@ class TileMapImporter: Node {
             } else {
                 StaticBody2D()
             }
-            node.addChild(node: body)
+            node = body
             
             let collision = CollisionPolygon2D()
             let array = PackedVector2Array()
@@ -272,7 +272,7 @@ class TileMapImporter: Node {
 //        } else if let text = object.text { // is text obj
 //        } else if let template = object.template { // TODO
         } else if object.isPoint {
-//            node = Node2D()
+            node = Node2D()
 //        } else if object.isEllipse {
         } else { // treat as a rectangle
             let type = object.type.lowercased()
@@ -281,7 +281,7 @@ class TileMapImporter: Node {
             } else {
                 StaticBody2D()
             }
-            node.addChild(node: body)
+            node = body
             
             let shape = RectangleShape2D()
             shape.size = Vector2(x: object.width, y: object.height)
@@ -290,30 +290,21 @@ class TileMapImporter: Node {
             collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
             body.addChild(node: collision)
         }
-        
+        node.setName(object.name)
+        node.position = Vector2(x: object.x, y: object.y)
+        node.visible = object.isVisible
         return node
     }
     
-    func instantiate(_ object: Tiled.Object) -> Node2D {
-        if !object.type.isEmpty {
-            let path = "res://objects/\(object.type).tscn"
-            if
-                let scene = ResourceLoader.load(path: path) as? PackedScene,
-                let node = scene.instantiate() as? Node2D
-            {
-                return node
-            } else {
-                logError("Object class not found: \(object.type)")
-            }
+    func instantiate(_ object: Tiled.Object) -> Node2D? {
+        let path = "\(objectsPath)\(object.type).tscn"
+        if
+            let scene = ResourceLoader.load(path: path) as? PackedScene,
+            let node = scene.instantiate() as? Node2D
+        {
+            return node
         }
-        return Node2D()
-         
-//        switch object.type {
-//        case "speed_booster_block": //"SpeedBoosterBlock":
-//            return SpeedBoosterBlock()
-//        default:
-//            return Node2D()
-//        }
+        return nil
     }
 }
 
