@@ -180,7 +180,12 @@ class MapImportPlugin: EditorImportPlugin {
         
         let scene = PackedScene()
         scene.pack(path: tilemapNode)
-        let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
+        
+        guard let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first else {
+            return // err
+        }
+        let outputFile = "res://output/\(filename).tscn"
+        let err = ResourceSaver.save(resource: scene, path: outputFile)
         
         if err != .ok {
             GD.print("ERROR SAVING OUTPUT: \(err)")
@@ -190,17 +195,21 @@ class MapImportPlugin: EditorImportPlugin {
     }
     
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
-        guard let source = tileset.getSource(sourceId: tileset.getSourceId(index: 0)) as? TileSetAtlasSource else {
-            throw ImportError.unknown // no source
+        
+        var sourceIDs: [Int32] = []
+        for i in 0..<tileset.getSourceCount() {
+            sourceIDs.append(tileset.getSourceId(index: i))
         }
-        let textureWidth = source.texture?.getWidth() ?? -1
-        let tilesetColumns = Int(textureWidth / tileset.tileSize.x)
-        let tilesetSourceID = tileset.getSourceId(index: 0)
-
+        GD.print("SOURCE IDs: \(sourceIDs)")
+        
+        var columns: [Int32: Int32] = [:]
+        for id in sourceIDs {
+            let source = tileset.getSource(sourceId: id) as? TileSetAtlasSource
+            columns[id] = source?.getAtlasGridSize().x ?? 0
+        }
+        
         let root = Node2D()
         
-        let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
-
         // TODO: Flipped tiles bit shifting
         for layer in map.layers {
             let tilemap = TileMap()
@@ -210,21 +219,25 @@ class MapImportPlugin: EditorImportPlugin {
                 .components(separatedBy: .whitespacesAndNewlines)
                 .joined()
                 .components(separatedBy: ",")
-                .compactMap { Int($0) }
+                .compactMap { Int32($0) }
             for idx in 0..<cellArray.count {
                 let cellValue = cellArray[idx]
-                let tileIndex = cellValue - (tilesetGID ?? 0)
-                if tileIndex < 0 {
+                if cellValue == 0 {
                     continue
                 }
+                
+                let tilesetGID = sourceIDs.filter { $0 <= cellValue }.max() ?? 0
+                let tilesetColumns = columns[tilesetGID] ?? 1
+                let tileIndex = cellValue - tilesetGID
+                
                 let mapCoords = Vector2i(
                     x: Int32(idx % layer.width),
                     y: Int32(idx / layer.width))
                 let tileCoords = Vector2i(
-                    x: Int32(tileIndex % tilesetColumns),
-                    y: Int32(tileIndex / tilesetColumns)
+                    x: tileIndex % tilesetColumns,
+                    y: tileIndex / tilesetColumns
                 )
-                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
+                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetGID, atlasCoords: tileCoords, alternativeTile: 0)
             }
             root.addChild(node: tilemap)
         }

@@ -69,7 +69,8 @@ class TileSetImporter {
             atlasSource.separation = Vector2i(x: tiledTileset.spacing, y: tiledTileset.spacing)
             atlasSource.texture = ResourceLoader.load(path: imageFile) as? Texture2D
             atlasSource.resourceName = imageFile.components(separatedBy: "/").last ?? ""
-            let sourceId = gTileset.addSource(atlasSource)
+//            let sourceId = gTileset.addSource(atlasSource)
+            let sourceId = gTileset.addSource(atlasSource, atlasSourceIdOverride: Int32(firstGID) ?? 0)
             
             for property in tiledTileset.properties {
                 if property.name.hasPrefix("collision_layer_") {
@@ -84,13 +85,21 @@ class TileSetImporter {
                 }
             }
             
+            let columns = Int32(tiledTileset.columns ?? 0)
+            let rows = Int32(tiledTileset.tileCount ?? 0) / columns
+            
             // create tiles
-            let columns = tiledTileset.columns ?? 0
+            for row in 0..<rows {
+                for column in 0..<columns {
+                    let atlasCoords = Vector2i(x: column, y: row)
+                    atlasSource.createTile(atlasCoords: atlasCoords)
+                }
+            }
+            
             for tile in tiledTileset.tiles {
                 let atlasCoords = Vector2i(
-                    x: Int32(tile.id % columns),
-                    y: Int32(tile.id / columns))
-                atlasSource.createTile(atlasCoords: atlasCoords)
+                    x: Int32(tile.id) % columns,
+                    y: Int32(tile.id) / columns)
                 
                 guard let tileData = atlasSource.getTileData(atlasCoords: atlasCoords, alternativeTile: 0) else {
                     GD.print("ERROR GETTING TILE DATA"); break
