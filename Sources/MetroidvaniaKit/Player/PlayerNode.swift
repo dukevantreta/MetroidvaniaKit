@@ -166,6 +166,16 @@ class PlayerNode: CharacterBody2D {
         shotDirection = Vector2(x: facingDirection, y: 1).normalized()
     }
     
+    func aimUp() {
+        shotOrigin = Vector2(x: Float(4 * facingDirection), y: -42)
+        shotDirection = Vector2(x: 0, y: -1).normalized()
+    }
+    
+    func aimDown() {
+        shotOrigin = Vector2(x: 0, y: -12)
+        shotDirection = Vector2(x: 0, y: 1).normalized()
+    }
+    
     func aimWallUp() {
         shotOrigin = Vector2(x: Float(17 * facingDirection), y: -37)
         shotDirection = Vector2(x: facingDirection, y: -1).normalized()
@@ -176,14 +186,14 @@ class PlayerNode: CharacterBody2D {
         shotDirection = Vector2(x: facingDirection, y: 1).normalized()
     }
     
-    func aimUp() {
-        shotOrigin = Vector2(x: Float(4 * facingDirection), y: -42)
-        shotDirection = Vector2(x: 0, y: -1).normalized()
+    func aimCrouchForward() {
+        shotOrigin = Vector2(x: Float(16 * facingDirection), y: -14)
+        shotDirection = Vector2(x: facingDirection, y: 0).normalized()
     }
     
-    func aimDown() {
-        shotOrigin = Vector2(x: 0, y: -12)
-        shotDirection = Vector2(x: 0, y: 1).normalized()
+    func aimCrouchUp() {
+        shotOrigin = Vector2(x: Float(13 * facingDirection), y: -24)
+        shotDirection = Vector2(x: facingDirection, y: -1).normalized()
     }
     
     // MARK: DEBUG

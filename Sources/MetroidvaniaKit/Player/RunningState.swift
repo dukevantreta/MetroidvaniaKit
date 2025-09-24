@@ -45,6 +45,10 @@ class RunningState: PlayerState {
             }
         } else {
             player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration))
+            
+            if yDirection < 0 {
+                return CrouchState()
+            }
         }
         
         // Speed booster cancel
