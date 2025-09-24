@@ -17,7 +17,7 @@ class WallGrabState: PlayerState {
     }
     
     func processInput(_ player: PlayerNode) -> PlayerNode.State? {
-        if player.input.isActionJustPressed(.actionRight) {
+        if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = Float(-player.getJumpspeed())
             player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()

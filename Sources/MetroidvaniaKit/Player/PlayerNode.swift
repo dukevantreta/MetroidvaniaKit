@@ -202,7 +202,7 @@ class PlayerNode: CharacterBody2D {
         }
         states[currentState]?.processPhysics(self, dt: delta)
         
-        if input.isActionJustPressed(.actionLeft) {
+        if input.isActionJustPressed(.actionRight) {
             hookshot?.origin = shotOrigin
             hookshot?.position = shotOrigin
             hookshot?.direction = shotDirection
@@ -316,7 +316,7 @@ class PlayerNode: CharacterBody2D {
     @discardableResult
     func fire() -> Bool {
         guard let weapon else { return false }
-        if input.isActionJustPressed(.actionDown) {
+        if input.isActionJustPressed(.actionLeft) {
             let shots = weapon.fire(direction: shotDirection)
             for shot in shots {
                 shot.position = self.position + shotOrigin
@@ -331,7 +331,7 @@ class PlayerNode: CharacterBody2D {
     @discardableResult
     func fireSubweapon() -> Bool {
         guard let subweapon else { return false }
-        if input.isActionJustPressed(.actionLeft) {
+        if input.isActionJustPressed(.actionUp) {
             if stats.ammo >= subweapon.ammoCost {
                 stats.ammo -= subweapon.ammoCost
                 let shots = subweapon.fire(direction: shotDirection)
