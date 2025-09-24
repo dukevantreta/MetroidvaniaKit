@@ -31,6 +31,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             WaveShot.self,
             NormalShot.self,
             MiniMap.self,
+            MapConfiguration.self,
         ].forEach { register(type: $0) }
     default:
         break

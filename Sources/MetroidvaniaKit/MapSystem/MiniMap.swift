@@ -1,6 +1,6 @@
 import SwiftGodot
 
-@Godot //(.tool)
+@Godot(.tool)
 class MiniMap: Control {
     
 //    let cellSize = Vector2(x: 32, y: 32)
@@ -95,12 +95,16 @@ class TextureMaker {
         return ImageTexture.createFromImage(image)
     }
     
-    static func makePassageTexture(size: Vector2i) -> Texture2D? {
+    static func makePassageTexture(size: Vector2i, passageWidth: Int32) -> Texture2D? {
+        let lowThreshold = (size.y - passageWidth)/2
+        let highThreshold = (size.y + passageWidth)/2 - 1
         let image = Image.create(width: size.x, height: size.y, useMipmaps: false, format: .rgba8)
         for x in 0..<size.x {
             for y in 0..<size.y {
-                if abs(y - size.y/2) > size.y / 8 {
+                if y < lowThreshold || y > highThreshold {
                     image?.setPixel(x: x, y: y, color: .white)
+                } else {
+                    image?.setPixel(x: x, y: y, color: .transparent) // secondary color (inner)
                 }
             }
         }
@@ -112,23 +116,35 @@ class MapDrawer {
     
     static let shared = MapDrawer()
     private init() {
-        self.setCellSize(self.cellSize)
+//        self.setCellSize(self.cellSize)
+        let configPath = "res://maps/map_config.tres"
+        guard let mapConfig = ResourceLoader.load(path: configPath) as? MapConfiguration else {
+            GD.pushError("[MapDrawer] Map configuration not found!")
+            fatalError()
+        }
+        self.mapConfig = mapConfig
+        self.cellSize = mapConfig.cellSize
+        reloadTextureCache()
     }
     
 //    private(set) var cellSize: Vector2i = Vector2i(x: 32, y: 32)
 //    private(set) var cellSize = Vector2i(x: 16, y: 16)
-    private(set) var cellSize = Vector2i(x: 8, y: 8)
+    private(set) var cellSize: Vector2i //= Vector2i(x: 8, y: 8)
     
     func setCellSize(_ size: Vector2i) {
         self.cellSize = size
         reloadTextureCache()
     }
     
+    private var mapConfig: MapConfiguration
+    
     private var emptyTexture: Texture2D?
     private var fillTexture: Texture2D?
-    private var wallTexture: Texture2D?
     private var cornerTexture: Texture2D?
-    private var passageTexture: Texture2D?
+    private var vWallTexture: Texture2D?
+    private var vPassageTexture: Texture2D?
+//    private var hWallTexture: Texture2D?
+//    private var hPassageTexture: Texture2D?
     
     private func reloadTextureCache() {
         emptyTexture = TextureMaker.makeGridTexture(
@@ -137,12 +153,12 @@ class MapDrawer {
             bgColor: Color(r: 33/255, g: 33/255, b: 74/255),
             fgColor: Color(r: 0, g: 0, b: 148/255))
         fillTexture = TextureMaker.makeBoxTexture(size: cellSize)
-        wallTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
+        vWallTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
         cornerTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y / 8))
-        passageTexture = TextureMaker.makePassageTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
+        vPassageTexture = TextureMaker.makePassageTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y), passageWidth: Int32(mapConfig.passageWidth))
     }
     
-    private func indexToDirection(_ i: Int32) -> Vector2i {
+    func indexToDirection(_ i: Int32) -> Vector2i {
         let negation = 1 - 2 * ((i / 2) % 2)
         let x = (1 - i % 2) * negation
         let y = i % 2 * negation
@@ -206,7 +222,7 @@ class MapDrawer {
             if let cell = mapData.getCell(at: hotRoom) {
                 let _i = (i + 2) % 4
                 let _j = (j + 2) % 4
-                if cell.borders[_i] == -1 && cell.borders[_j] == -1 {
+                if cell.borders[_i].rawValue == -1 && cell.borders[_j].rawValue == -1 {
                     continue
                 }
             }
@@ -239,8 +255,8 @@ class MapDrawer {
     
     func getBorderTexture(idx: Int, direction: Int) -> Texture2D? {
         let separator: Texture2D? = nil
-        let wall: Texture2D? = wallTexture
-        let passage: Texture2D? = passageTexture
+        let wall: Texture2D? = vWallTexture
+        let passage: Texture2D? = vPassageTexture
         
         let tex: Texture2D?
         if idx >= 2 {
@@ -259,15 +275,16 @@ class MapDrawer {
 }
 
 class CellData {
-    var borders: [Int] = [-1, -1, -1, -1]
+//    var borders: [Int] = [-1, -1, -1, -1]
+    var borders: [BorderType] = [.empty, .empty, .empty, .empty]
     
-    init(borders: [Int]) {
+    init(borders: [BorderType]) {
         self.borders = borders
     }
     
     func getBorder(_ idx: Int) -> Int {
         // overrides
-        return borders[idx]
+        return borders[idx].rawValue
     }
 }
 
@@ -288,9 +305,9 @@ class MapData {
     static func mock() -> MapData {
         let mapData = MapData(cells: [:])
         mapData.cells = [
-            Vector3i(x: 0, y: 0, z: 0): CellData(borders: [1,0,-1,2]),
-            Vector3i(x: 1, y: 1, z: 0): CellData(borders: [1,0,-1,2]),
-            Vector3i(x: 1, y: 0, z: 0): CellData(borders: [0,1,1,0]),
+            Vector3i(x: 0, y: 0, z: 0): CellData(borders: [.passage, .wall, .empty, .door]),
+            Vector3i(x: 1, y: 1, z: 0): CellData(borders: [.passage, .wall, .empty, .door]),
+            Vector3i(x: 1, y: 0, z: 0): CellData(borders: [.wall, .passage, .passage, .wall]),
         ]
         return mapData
     }
@@ -303,6 +320,7 @@ class MapData {
         for cell in minimapData.cells {
             let point = Vector3i(x: Int32(cell.coordinates.x), y: Int32(cell.coordinates.y), z: Int32(cell.coordinates.z))
             cellsData[point] = CellData(borders: cell.borders)
+//            cellsData[point] = CellData(borders: cell.borders.map { $0.rawValue })
         }
         return MapData(cells: cellsData)
     }
