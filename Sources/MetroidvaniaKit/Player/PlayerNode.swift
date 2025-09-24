@@ -27,6 +27,7 @@ extension CollisionObject2D {
 enum SubweaponType {
     case none
     case rocket
+    case granade
 }
 
 @PickerNameProvider
@@ -59,6 +60,7 @@ class PlayerNode: CharacterBody2D {
     @Node("Weapons/WaveBeam") var waveBeam: Weapon?
     @Node("Weapons/PlasmaBeam") var plasmaBeam: Weapon?
     @Node("Weapons/RocketLauncher") var rocketLauncher: Weapon?
+    @Node("Weapons/GranadeLauncher") var granadeLauncher: Weapon?
     
     @Node("Hookshot") var hookshot: Hookshot?
     
@@ -191,7 +193,7 @@ class PlayerNode: CharacterBody2D {
         collisionLayer = 0
         collisionMask = 0b1011
         switchWeapons(weaponLevel)
-        switchSubweapon(.rocket) // check for weapon flags
+        switchSubweapon(.granade) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
             self?.hookHit()
         }
@@ -334,6 +336,7 @@ class PlayerNode: CharacterBody2D {
         switch type {
         case .none: subweapon = nil
         case .rocket: subweapon = rocketLauncher
+        case .granade: subweapon = granadeLauncher
         }
     }
     
@@ -341,10 +344,11 @@ class PlayerNode: CharacterBody2D {
     func fire() -> Bool {
         guard let weapon else { return false }
         if input.isActionJustPressed(.actionLeft) {
-            let shots = weapon.fire(direction: shotDirection)
+            let shots = weapon.fire(origin: self.position + shotOrigin, direction: shotDirection)
             for shot in shots {
-                shot.position = self.position + shotOrigin
+                // shot.position = self.position + shotOrigin
                 getParent()?.addChild(node: shot)
+                log("ADDING SHOT")
             }
             lastShotTimestamp = Time.getTicksMsec()
             return true
@@ -358,10 +362,10 @@ class PlayerNode: CharacterBody2D {
         if input.isActionJustPressed(.actionUp) {
             if stats.ammo >= subweapon.ammoCost {
                 stats.ammo -= subweapon.ammoCost
-                let shots = subweapon.fire(direction: shotDirection)
+                let shots = subweapon.fire(origin: self.position + shotOrigin, direction: shotDirection)
                 for shot in shots {
-                    shot.position = self.position + shotOrigin
-                    getParent()?.addChild(node: shot)
+                    // shot.position = self.position + shotOrigin
+                    // getParent()?.addChild(node: shot)
                 }
                 lastShotTimestamp = Time.getTicksMsec()
                 return true

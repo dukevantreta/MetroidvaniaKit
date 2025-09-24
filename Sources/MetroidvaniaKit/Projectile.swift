@@ -25,7 +25,14 @@ class Projectile: Node2D {
     var onDestroy: (() -> Void)?
     
     var destroyMask: LayerMask = .floor
+    // @Node("Hitbox") 
     var hitbox: Hitbox?
+
+    var hitEffect: PackedScene?
+
+    deinit {
+        GD.print("Projectile DEINIT")
+    }
     
     override func _ready() {
         hitbox?.damage = damage
@@ -45,18 +52,20 @@ class Projectile: Node2D {
             }
         }
     }
-    
+
     override func _physicsProcess(delta: Double) {
         ai?.update(self, dt: delta)
         
         lifetime -= delta
         if lifetime <= 0 {
+            // getParent()?.removeChild(node: self)
             queueFree()
         }
     }
     
     func destroy() {
         onDestroy?()
+        // getParent()?.removeChild(node: self)
         queueFree()
     }
 }

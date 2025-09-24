@@ -31,6 +31,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             SinWaveAI.self,
             PatrolAI.self,
             CrawlerAI.self,
+            FallAI.self,
             PlayerNode.self,
             PlayerStats.self,
             TriggerArea2D.self,
@@ -41,6 +42,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             WaveBeam.self,
             PlasmaBeam.self,
             RocketLauncher.self,
+            GranadeLauncher.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
             RocketBlock.self,
@@ -51,6 +53,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             MiniMapHUD.self,
             MapConfiguration.self,
             Hookshot.self,
+            SelfDestruct.self,
         ].forEach { register(type: $0) }
     default:
         break
