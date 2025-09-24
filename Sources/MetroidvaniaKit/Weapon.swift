@@ -1,4 +1,5 @@
 import SwiftGodot
+import Numerics
 
 protocol Weapon {
     func fire(direction: Vector2) -> [Node2D]
