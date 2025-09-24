@@ -123,6 +123,10 @@ class MapImportPlugin: EditorImportPlugin {
         
         if let xmlTree {
             printTree(xmlTree.root, level: 0)
+            if let map = Tiled.parseMap(from: xmlTree.root) {
+                GD.print("MAP MODEL -----------------------------")
+                GD.print(map)
+            }
         }
         
         return .ok
