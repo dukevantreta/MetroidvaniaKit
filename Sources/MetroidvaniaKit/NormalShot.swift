@@ -1,9 +1,9 @@
 import SwiftGodot
 
 @Godot
-class NormalShot: RigidBody2D {
+class NormalShot: Area2D {
     
-    var speed: Double = 1000
+    var speed: Double = 800
     var direction: Vector2 = .zero
     
     var behavior: ProjectileBehavior = NormalShotBehavior()
@@ -12,20 +12,14 @@ class NormalShot: RigidBody2D {
         collisionMask = 0b0011
         collisionLayer = 0b1_0000
         
-        self.freeze = true
-        self.freezeMode = .kinematic
-        contactMonitor = true
-        maxContactsReported = 1
-        
-        let size = Vector2(x: 6, y: 6)
         let texture = PlaceholderTexture2D()
-        texture.size = size
+        texture.size = Vector2(x: 6, y: 6)
         let sprite = Sprite2D()
         sprite.texture = texture
         addChild(node: sprite)
         
         let rect = RectangleShape2D()
-        rect.size = size
+        rect.size = Vector2(x: 14, y: 14)
         let collisionBox = CollisionShape2D()
         collisionBox.shape = rect
         addChild(node: collisionBox)
@@ -41,6 +35,7 @@ class NormalShot: RigidBody2D {
     override func _physicsProcess(delta: Double) {
 //        position.x += Float(speed * delta) * direction.x
 //        position.y += Float(speed * delta) * direction.y
+
         behavior.update(self, delta: delta)
     }
     

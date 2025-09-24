@@ -6,13 +6,14 @@ import SwiftGodot
 class SpeedBoosterBlock: RigidBody2D {
     
     @SceneTree(path: "Area2D") weak var area: Area2D?
+    @SceneTree(path: "DetectionArea") weak var detectionArea: Area2D?
     @SceneTree(path: "CoverSprite") weak var coverSprite: Sprite2D?
     
     private var shouldDestroy = false
     private var destroyCountdown = 0.1
     
     override func _ready() {
-        guard let area else {
+        guard let area, let detectionArea else {
             log("COLLISION NOT FOUND")
             return
         }
@@ -21,11 +22,20 @@ class SpeedBoosterBlock: RigidBody2D {
         
         freeze = true
         freezeMode = .kinematic
-        contactMonitor = true
-        maxContactsReported = 1
+        
+        area.collisionMask = 0b1_0000
+        area.collisionLayer = 0b0011
+        
+        // Projectile detection
+        area.areaEntered.connect { [weak self] otherArea in
+            guard let otherArea else { return }
+            if otherArea.collisionLayer & 0b0001_0000 != 0 {
+                self?.reveal()
+            }
+        }
         
         // Speed booster player detection
-        area.bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
+        detectionArea.bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
             guard let self else { return }
             let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
             if layer & 0b1_0000_0000 != 0 {
@@ -35,14 +45,6 @@ class SpeedBoosterBlock: RigidBody2D {
                     }
                     self.shouldDestroy = true
                 }
-            }
-        }
-        
-        // Projectile detection
-        self.bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
-            let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
-            if layer & 0b0001_0000 != 0 {
-                self?.reveal()
             }
         }
     }
@@ -60,8 +62,4 @@ class SpeedBoosterBlock: RigidBody2D {
     func reveal() {
         coverSprite?.visible = false
     }
-    
-//    func destroy() {
-//        self.queueFree()
-//    }
 }
