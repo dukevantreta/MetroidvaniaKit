@@ -27,16 +27,6 @@ class CharacterController2D: CharacterBody2D {
     
 //    var animation: StringName = ""
     
-    override func _ready() {
-        motionMode = .grounded
-        floorBlockOnWall = false
-        slideOnCeiling = false // doesnt work on this movement model
-        GD.print("Floor block on wall: \(floorBlockOnWall)")
-        GD.print("Slide on ceiling: \(slideOnCeiling)")
-//        floorSnapLength = 4.0
-        collisionMask = 0b0011
-    }
-    
     @Export var airTime: Double = 0
     
     @Export var wallJumpThresholdMsec: Int = 500
@@ -62,6 +52,16 @@ class CharacterController2D: CharacterBody2D {
     var facingDirection: Int = 1
     
     var hook: HookHitbox?
+    
+    override func _ready() {
+        motionMode = .grounded
+        floorBlockOnWall = false
+        slideOnCeiling = false // doesnt work on this movement model
+        GD.print("Floor block on wall: \(floorBlockOnWall)")
+        GD.print("Slide on ceiling: \(slideOnCeiling)")
+//        floorSnapLength = 4.0
+        collisionMask = 0b1011
+    }
     
     override func _physicsProcess(delta: Double) {
         //        if isInEvent { return }
@@ -94,6 +94,25 @@ class CharacterController2D: CharacterBody2D {
             addChild(node: hook)
             hook.player = self
             self.hook = hook
+        }
+        
+        if Input.isActionJustPressed(action: "action_2") {
+            guard let space = getWorld2d()?.directSpaceState else { return }
+            let origin = position + Vector2(x: 0, y: -20)
+            let dest = position + Vector2(x: Float(facingDirection * 200), y: -20)
+            let ray = PhysicsRayQueryParameters2D.create(from: origin, to: dest, collisionMask: 0b0011)
+            let result = space.intersectRay(parameters: ray)
+            
+            if let fPoint = result["position"] {
+                let p = Vector2(fPoint)!
+                var array = PackedVector2Array()
+                array.append(value: Vector2(x: origin.x, y: origin.y))
+                array.append(value: Vector2(x: p.x, y: p.y))
+                let line = Line2D()
+                line.width = 1
+                line.points = array
+                getParent()?.addChild(node: line)
+            }
         }
         
         let gravity = 8 * parabolicHeight / (jumpDuration * jumpDuration)
