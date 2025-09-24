@@ -16,10 +16,7 @@ class MorphState: PlayerState {
         player.sprite?.play(name: "cube")
     }
     
-    func update(_ player: PlayerNode, dt: Double) -> (any PlayerState)? {
-        
-        let xDirection = player.input.getHorizontalAxis()
-        
+    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         // Unmorph
         if player.input.isActionJustPressed(.up) && player.isOnFloor() {
             if !player.raycastForUnmorph() {
@@ -27,9 +24,17 @@ class MorphState: PlayerState {
                     rect.size = Vector2(x: 14, y: 30)
                     player.collisionShape?.position = Vector2(x: 0, y: -15)
                 }
-                return CrouchState()
+                return .crouch
             }
         }
+        return nil
+    }
+    
+    func processPhysics(_ player: PlayerNode, dt: Double) {
+        
+        let xDirection = player.input.getHorizontalAxis()
+        
+        
         
         // Jump
         if player.input.isActionJustPressed(.action0) && player.isOnFloor() {
@@ -76,7 +81,5 @@ class MorphState: PlayerState {
         }
         
         player.moveAndSlide()
-        
-        return nil
     }
 }

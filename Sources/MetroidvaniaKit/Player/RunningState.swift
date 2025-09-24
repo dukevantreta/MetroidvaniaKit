@@ -18,11 +18,30 @@ class RunningState: PlayerState {
         }
     }
     
-    func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
+    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+        if !player.isOnFloor() {
+            return .jump
+        }
+        if player.xDirection.isZero {
+            if player.yDirection < 0 && !player.input.isActionPressed(.leftShoulder) {
+                player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
+                player.sprite?.play(name: "stand-to-crouch")
+                return .crouch
+            }
+        }
+        if Time.getTicksMsec() - lastActionTimestamp > player.idleAnimationThreshold {
+            return .idle
+        }
+        if player.input.isActionJustPressed(.rightShoulder) {
+            return .dash
+        }
         
-        let yDirection = player.input.getVerticalAxis()
-        let xDirection = player.input.getHorizontalAxis()
-        var targetSpeed = player.speed * xDirection
+        return nil
+    }
+    
+    func processPhysics(_ player: PlayerNode, dt: Double) {
+        
+        var targetSpeed = player.speed * player.xDirection
         
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
@@ -37,25 +56,19 @@ class RunningState: PlayerState {
         }
         
         // Horizontal movement
-        if !xDirection.isZero {
+        if !player.xDirection.isZero {
             lastActionTimestamp = Time.getTicksMsec()
             if isFirstRunningFrame {
                 startRunningTimestamp = Time.getTicksMsec()
                 isFirstRunningFrame = false
             }
-            if (player.velocity.x >= 0 && xDirection > 0) || (player.velocity.x <= 0 && xDirection < 0) {
+            if (player.velocity.x >= 0 && player.xDirection > 0) || (player.velocity.x <= 0 && player.xDirection < 0) {
                 player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
             } else {
                 player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
             }
         } else {
             player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration))
-            
-            if yDirection < 0 && !player.input.isActionPressed(.leftShoulder) {
-                player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
-                player.sprite?.play(name: "stand-to-crouch")
-                return CrouchState()
-            }
         }
         
         // Speed booster cancel
@@ -80,15 +93,13 @@ class RunningState: PlayerState {
         player.fire()
         player.fireSubweapon()
         
-        if !player.isOnFloor() {
-            return JumpingState()
-        }
+        
         
         // Handle animations
         if abs(player.getRealVelocity().x) > 0 {
-            if player.input.isActionPressed(.leftShoulder) || !yDirection.isZero {
-                if !yDirection.isZero {
-                    player.isAimingDown = yDirection < 0
+            if player.input.isActionPressed(.leftShoulder) || !player.yDirection.isZero {
+                if !player.yDirection.isZero {
+                    player.isAimingDown = player.yDirection < 0
                 }
                 if player.isAimingDown {
                     player.sprite?.play(name: "run-aim-down")
@@ -107,8 +118,8 @@ class RunningState: PlayerState {
             }
         } else {
             if player.input.isActionPressed(.leftShoulder) {
-                if !yDirection.isZero {
-                    player.isAimingDown = yDirection < 0
+                if !player.yDirection.isZero {
+                    player.isAimingDown = player.yDirection < 0
                 }
                 if player.isAimingDown {
                     player.sprite?.play(name: "aim-diag-down")
@@ -118,7 +129,7 @@ class RunningState: PlayerState {
                     player.aimDiagonalUp()
                 }
             } else {
-                if yDirection > 0 {
+                if player.yDirection > 0 {
                     player.sprite?.play(name: "aim-up")
                     player.aimUp()
                 } else {
@@ -132,10 +143,6 @@ class RunningState: PlayerState {
             }
         }
         
-        if Time.getTicksMsec() - lastActionTimestamp > player.idleAnimationThreshold {
-            return IdleState()
-        }
         
-        return nil
     }
 }

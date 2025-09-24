@@ -15,11 +15,24 @@ class JumpingState: PlayerState {
         }
     }
     
-    func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
+    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         
-        let yDirection = player.input.getVerticalAxis()
-        let xDirection = player.input.getHorizontalAxis()
-        var targetSpeed = player.speed * xDirection
+        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.xDirection) && player.stats.hasWallGrab {
+            return .wallGrab
+        }
+        
+        if player.isOnFloor() {
+            player.sprite?.play(name: "fall-land")
+            return .run
+        }
+        return nil
+    }
+    
+    func processPhysics(_ player: PlayerNode, dt: Double) {
+        
+//        let yDirection = player.input.getVerticalAxis()
+//        let xDirection = player.input.getHorizontalAxis()
+        var targetSpeed = player.speed * player.xDirection
         
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
@@ -31,8 +44,8 @@ class JumpingState: PlayerState {
         }
         
         if Time.getTicksMsec() - player.wallJumpTimestamp > player.wallJumpThresholdMsec {
-            if !xDirection.isZero {
-                if (player.velocity.x >= 0 && xDirection > 0) || (player.velocity.x <= 0 && xDirection < 0) {
+            if !player.xDirection.isZero {
+                if (player.velocity.x >= 0 && player.xDirection > 0) || (player.velocity.x <= 0 && player.xDirection < 0) {
                     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
                 } else {
                     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
@@ -87,27 +100,20 @@ class JumpingState: PlayerState {
             hasShotDuringJump = true
         }
         
-        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(xDirection) && player.stats.hasWallGrab {
-            return WallGrabState()
-        }
         
-        if player.isOnFloor() {
-            player.sprite?.play(name: "fall-land")
-            return RunningState()
-        }
         
         // Handle animations
         if abs(player.getRealVelocity().x) > Float(player.speed * 0.8) && !hasShotDuringJump {
             player.sprite?.play(name: "jump-spin")
-            if yDirection < 0 {
+            if player.yDirection < 0 {
                 player.aimDown()
-            } else if yDirection > 0 {
+            } else if player.yDirection > 0 {
                 player.aimUp()
             }
         } else {
-            if player.input.isActionPressed(.leftShoulder) || (!yDirection.isZero && !xDirection.isZero) {
-                if !yDirection.isZero {
-                    player.isAimingDown = yDirection < 0
+            if player.input.isActionPressed(.leftShoulder) || (!player.yDirection.isZero && !player.xDirection.isZero) {
+                if !player.yDirection.isZero {
+                    player.isAimingDown = player.yDirection < 0
                 }
                 if player.isAimingDown {
                     player.sprite?.play(name: "jump-aim-diag-down")
@@ -117,10 +123,10 @@ class JumpingState: PlayerState {
                     player.aimDiagonalUp()
                 }
             } else {
-                if yDirection < 0 {
+                if player.yDirection < 0 {
                     player.sprite?.play(name: "jump-aim-down")
                     player.aimDown()
-                } else if yDirection > 0 {
+                } else if player.yDirection > 0 {
                     player.sprite?.play(name: "jump-aim-up")
                     player.aimUp()
                 } else {
@@ -133,6 +139,5 @@ class JumpingState: PlayerState {
                 }
             }
         }
-        return nil
     }
 }

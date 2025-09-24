@@ -2,7 +2,8 @@ import SwiftGodot
 
 protocol PlayerState {
     func enter(_ player: PlayerNode)
-    func update(_ player: PlayerNode, dt: Double) -> PlayerState?
+    func processInput(_ player: PlayerNode) -> PlayerNode.State?
+    func processPhysics(_ player: PlayerNode, dt: Double)
 }
 
 class IdleState: PlayerState {
@@ -16,31 +17,32 @@ class IdleState: PlayerState {
         }
     }
     
-    func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
+    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         
-        let yDirection = player.input.getVerticalAxis()
-        let hDirection = player.input.getHorizontalAxis()
-        
-        player.fire()
-        player.fireSubweapon()
-        
-        if !hDirection.isZero {
-            return RunningState()
+        if !player.xDirection.isZero {
+            return .run
         }
         if player.input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
-            return JumpingState()
+            return .jump
         }
         if !player.isOnFloor() {
-            return JumpingState()
+            return .jump
         }
+        return nil
+    }
+    
+    func processPhysics(_ player: PlayerNode, dt: Double) {
+        
+        player.fire()
+        player.fireSubweapon()
         
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
         if player.input.isActionPressed(.leftShoulder) {
-            if !yDirection.isZero {
-                player.isAimingDown = yDirection < 0
+            if !player.yDirection.isZero {
+                player.isAimingDown = player.yDirection < 0
             }
             if player.isAimingDown {
                 player.sprite?.play(name: "aim-diag-down")
@@ -50,7 +52,7 @@ class IdleState: PlayerState {
                 player.aimDiagonalUp()
             }
         } else {
-            if yDirection > 0 {
+            if player.yDirection > 0 {
                 player.sprite?.play(name: "aim-up")
                 player.aimUp()
             } else {
@@ -62,7 +64,5 @@ class IdleState: PlayerState {
                 player.aimForward()
             }
         }
-        
-        return nil
     }
 }

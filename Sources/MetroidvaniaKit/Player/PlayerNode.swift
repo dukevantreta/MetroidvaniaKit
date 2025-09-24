@@ -18,6 +18,16 @@ enum SubweaponType {
 @Godot
 class PlayerNode: CharacterBody2D {
     
+    enum State {
+        case idle
+        case run
+        case jump
+        case wallGrab
+        case crouch
+        case morph
+        case dash
+    }
+    
     @SceneTree(path: "CollisionShape2D") weak var collisionShape: CollisionShape2D?
     @SceneTree(path: "PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
     @SceneTree(path: "AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
@@ -71,7 +81,19 @@ class PlayerNode: CharacterBody2D {
     
     @Export var lastShotAnimationThreshold: Int = 3000
     
-    var state: PlayerState = IdleState()
+    let states: [State: PlayerState] = [
+        .idle: IdleState(),
+        .run: RunningState(),
+        .jump: JumpingState(),
+        .wallGrab: WallGrabState(),
+        .crouch: CrouchState(),
+        .morph: MorphState(),
+        .dash: DashState()
+    ]
+    var currentState: State = .idle
+    
+    var xDirection: Double = 0.0
+    var yDirection: Double = 0.0
     
     var weapon: Weapon?
     
@@ -122,10 +144,14 @@ class PlayerNode: CharacterBody2D {
         collisionMask = 0b1011
         switchWeapons(weaponLevel)
         switchSubweapon(.rocket) // check for weapon flags
-        state.enter(self)
+//        state.enter(self)
+        states[currentState]?.enter(self)
     }
     
     override func _physicsProcess(delta: Double) {
+        xDirection = input.getHorizontalAxis()
+        yDirection = input.getVerticalAxis()
+        
         let faceDirX = Int(velocity.sign().x)
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX
@@ -138,10 +164,19 @@ class PlayerNode: CharacterBody2D {
             collisionMask = 0b1011
         }
         
-        if let newState = state.update(self, dt: delta) {
-            newState.enter(self)
-            state = newState
+        if let newState = states[currentState]?.processInput(self) {
+            if newState != currentState {
+                currentState = newState
+                states[currentState]?.enter(self)
+            }
         }
+//        state.processPhysics(self, dt: delta)
+        states[currentState]?.processPhysics(self, dt: delta)
+        
+//        if let newState = state.processPhysics(self, dt: delta) {
+//            newState.enter(self)
+//            state = newState
+//        }
     }
     
     func takeDamage(_ amount: Int, xDirection: Float) {

@@ -13,34 +13,40 @@ class CrouchState: PlayerState {
         }
     }
     
-    func update(_ player: PlayerNode, dt: Double) -> (any PlayerState)? {
-        
-        let yDirection = player.input.getVerticalAxis()
-        let xDirection = player.input.getHorizontalAxis()
-        
-        player.fire()
-        player.fireSubweapon()
-        
+    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         // Jump
         if player.input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
-            return JumpingState()
+            return .jump
         }
         
         // Stand
-        if player.input.isActionJustPressed(.up) || !xDirection.isZero {
-            return RunningState()
+        if player.input.isActionJustPressed(.up) || !player.xDirection.isZero {
+            return .run
         }
         
         // Morph
         if player.input.isActionJustPressed(.down) && player.stats.hasMorph {
-            return MorphState()
+            return .morph
         }
         
-        // Sanity trigger
+        // Sanity check
         if !player.isOnFloor() {
-            return JumpingState()
+            return .jump
         }
+        
+        return nil
+    }
+    
+    func processPhysics(_ player: PlayerNode, dt: Double) {
+        
+//        let yDirection = player.input.getVerticalAxis()
+//        let xDirection = player.input.getHorizontalAxis()
+        
+        player.fire()
+        player.fireSubweapon()
+        
+        
         
         // Handle animations
         if player.input.isActionPressed(.leftShoulder) {
@@ -52,7 +58,5 @@ class CrouchState: PlayerState {
             }
             player.aimCrouchForward()
         }
-        
-        return nil
     }
 }
