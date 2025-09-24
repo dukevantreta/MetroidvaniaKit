@@ -70,6 +70,16 @@ class PlayerNode: CharacterBody2D {
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX
         }
+        
+        for i in 0..<getSlideCollisionCount() {
+            let collision = getSlideCollision(slideIdx: i)!
+            let layer = PhysicsServer2D.bodyGetCollisionLayer(body: collision.getColliderRid())
+            if layer & 0b1000 != 0 {
+                let body = collision.getCollider() as? Node2D
+                let block = body?.getParent() as? BreakableBlock
+                block?.destroy()
+            }
+        }
     }
     
     func raycastForWall() -> Bool {
