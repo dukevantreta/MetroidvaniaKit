@@ -3,6 +3,8 @@ import SwiftGodot
 @Godot //(.tool)
 class MiniMap: Control {
     
+    let mapData = MapData.load()
+    
     @Export var trackPosition: Bool = true
     
     @Export var area: Vector2i = Vector2i(x: 3, y: 3) // area
@@ -55,7 +57,7 @@ class MiniMap: Control {
             for y in 0..<area.y {
                 // draw cell
                 let coords = Vector3i(x: center.x + offset.x + x, y: center.y + offset.y + y, z: Int32(layer))
-                RoomDrawer.draw(canvasItem: self, offset: Vector2(x: x, y: y), coords: coords)
+                RoomDrawer.draw(canvasItem: self, offset: Vector2(x: x, y: y), coords: coords, mapData: mapData)
             }
         }
         
@@ -67,9 +69,10 @@ class MiniMap: Control {
 
 class RoomDrawer {
     
-    static func draw(canvasItem: CanvasItem, offset: Vector2, coords: Vector3i) {
+    static func draw(canvasItem: CanvasItem, offset: Vector2, coords: Vector3i, mapData: MapData) {
         
-        guard let cellData = MapData.getCell(at: coords) else {
+//        let mapData = MapData.mock()
+        guard let cellData = mapData.getCell(at: coords) else {
             drawEmpty(canvasItem: canvasItem, offset: offset)
             return
         }
@@ -81,7 +84,7 @@ class RoomDrawer {
             centerTexture.draw(canvasItem: ci, position: offset * 32, modulate: color)
         }
         
-        drawRegularBorders(canvasItem: canvasItem, offset: offset, coords: coords)
+        drawRegularBorders(canvasItem: canvasItem, offset: offset, coords: coords, mapData: mapData)
         
         canvasItem.drawSetTransformMatrix(xform: Transform2D())
     }
@@ -94,9 +97,10 @@ class RoomDrawer {
         texture.draw(canvasItem: ci, position: offset * 32, modulate: Color.white)
     }
     
-    static func drawRegularBorders(canvasItem: CanvasItem, offset: Vector2, coords: Vector3i) {
+    static func drawRegularBorders(canvasItem: CanvasItem, offset: Vector2, coords: Vector3i, mapData: MapData) {
         
-        guard let cellData = MapData.getCell(at: coords) else {
+//        let mapData = MapData.mock()
+        guard let cellData = mapData.getCell(at: coords) else {
             return
         }
 //        let cellData = CellData()
@@ -118,6 +122,46 @@ class RoomDrawer {
             if let tex = getBorderTexture(idx: borders[i], direction: i) {
                 drawBorder(canvasItem: canvasItem, offset: offset, i: i, texture: tex, color: .white)
             }
+        }
+        
+        for i in 0..<4 {
+            let j = (i + 1) % 4
+            if borders[i] != -1 || borders[j] != -1 {
+                continue
+            }
+            
+            // check corner room for passages ?
+            var offsets = [
+                Vector2i.right,
+                Vector2i.down,
+                Vector2i.left,
+                Vector2i.up,
+            ]
+            let hotCorner = Vector2i(x: coords.x, y: coords.y) + offsets[i] + offsets[j]
+            let hotRoom = Vector3i(x: hotCorner.x, y: hotCorner.y, z: coords.z)
+            if let cell = mapData.getCell(at: hotRoom) {
+                let _i = (i + 2) % 4
+                let _j = (j + 2) % 4
+                if cell.borders[_i] == -1 && cell.borders[_j] == -1 {
+                    continue
+                }
+            }
+            
+            guard let texture = ResourceLoader.load(path: "res://SampleProject/MF/Corner.png") as? Texture2D else {
+                GD.print("ERROR TEXTURE!!!!!!!")
+                return
+            }
+            
+            let pos = offset * 32 + Vector2(x: 16, y: 16)
+            canvasItem.drawSetTransform(position: pos, rotation: .pi * 0.5 * Double(i), scale: .one)
+            
+            let cornerOffset = -texture.getSize()
+            let ci = canvasItem.getCanvasItem()
+            
+            texture.draw(canvasItem: ci, position: Vector2(x: 16, y: 16) + cornerOffset, modulate: .white)
+//            if i == 0 || i == 2 {
+//                texture.draw(canvasItem: ci, position: Vector2(x: 16, y: 16) + cornerOffset, modulate: .white)
+//            }
         }
     }
     
@@ -200,15 +244,49 @@ class CellData {
     }
 }
 
+import Foundation
+
 class MapData {
     
-    static var cells: [Vector3i: CellData] = [
-        Vector3i(x: 0, y: 0, z: 0): CellData(borders: [1,0,-1,2]),
-        Vector3i(x: 1, y: 1, z: 0): CellData(borders: [1,0,-1,2]),
-        Vector3i(x: 1, y: 0, z: 0): CellData(borders: [0,1,1,0]),
-    ]
+    var cells: [Vector3i: CellData]
     
-    static func getCell(at coords: Vector3i) -> CellData? {
+    func getCell(at coords: Vector3i) -> CellData? {
         return cells[coords]
     }
+    
+    init(cells: [Vector3i : CellData]) {
+        self.cells = cells
+    }
+    
+    static func mock() -> MapData {
+        let mapData = MapData(cells: [:])
+        mapData.cells = [
+            Vector3i(x: 0, y: 0, z: 0): CellData(borders: [1,0,-1,2]),
+            Vector3i(x: 1, y: 1, z: 0): CellData(borders: [1,0,-1,2]),
+            Vector3i(x: 1, y: 0, z: 0): CellData(borders: [0,1,1,0]),
+        ]
+        return mapData
+    }
+    
+    static func load() -> MapData {
+        let fileData = FileAccess.getFileAsString(path: "res://maps/mapdata.json").data(using: .utf8)!
+        let minimapData = try! JSONDecoder().decode(MinimapData.self, from: fileData)
+        
+        var cellsData: [Vector3i: CellData] = [:]
+        for cell in minimapData.cells {
+            let point = Vector3i(x: Int32(cell.coordinates.x), y: Int32(cell.coordinates.y), z: Int32(cell.coordinates.z))
+            cellsData[point] = CellData(borders: cell.borders)
+        }
+        return MapData(cells: cellsData)
+    }
+    
+//    static var cells: [Vector3i: CellData] = [
+//        Vector3i(x: 0, y: 0, z: 0): CellData(borders: [1,0,-1,2]),
+//        Vector3i(x: 1, y: 1, z: 0): CellData(borders: [1,0,-1,2]),
+//        Vector3i(x: 1, y: 0, z: 0): CellData(borders: [0,1,1,0]),
+//    ]
+//    
+//    static func getCell(at coords: Vector3i) -> CellData? {
+//        return cells[coords]
+//    }
 }

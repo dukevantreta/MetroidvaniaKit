@@ -53,6 +53,8 @@ class WorldImporter: Node {
             let root = Node2D()
             root.name = StringName(worldName)
             
+            var minimapData = MinimapData(cells: [])
+            
             for map in world.maps {
                 let path = "res://tiled/\(map.fileName)"
                 if let mapScene = ResourceLoader.load(path: path) as? PackedScene, let mapNode = mapScene.instantiate() as? Node2D {
@@ -60,6 +62,8 @@ class WorldImporter: Node {
                     mapNode.position.x = Float(map.x)
                     mapNode.position.y = Float(map.y)
                     root.addChild(node: mapNode)
+                    
+                    processMinimapData(&minimapData, map: map, node: mapNode)
                 } else {
                     log("MISSING SCENE NODE!!!")
                 }
@@ -67,6 +71,15 @@ class WorldImporter: Node {
             for child in root.getChildren() {
                 child.owner = root
             }
+            
+            
+            log("Minimap data: \(minimapData)")
+            let encoded = try JSONEncoder().encode(minimapData)
+            let dataString = String(data: encoded, encoding: .utf8)!
+            let fileHandle = FileAccess.open(path: "res://maps/mapdata.json", flags: .write)
+            fileHandle?.storeString(dataString)
+            fileHandle?.close()
+            
             
             let scene = PackedScene()
             scene.pack(path: root)
@@ -91,6 +104,106 @@ class WorldImporter: Node {
             setOwner(owner, to: child)
         }
     }
+    
+    func processMinimapData(_ data: inout MinimapData, map: World.Map, node: Node2D) {
+        guard let tilemap = node.getChildren().first as? TileMap else {
+            logError("CANT GET TILEMAP FROM SCENE NODE")
+            return
+        }
+        let roomSize = Vector2i(x: 25, y: 15) // static constant for the game
+        let tileSize = Vector2i(x: 16, y: 16)
+        
+        let widthUnits = (map.width / tileSize.x) / roomSize.x
+        let heightUnits = (map.height / tileSize.y) / roomSize.y
+        
+        let roomOrigin = Vector3i(
+            x: (map.x / tileSize.x) / roomSize.x,
+            y: (map.y / tileSize.y) / roomSize.y,
+            z: 0
+        )
+        
+        var roomMatrix: [[Int]] = Array(repeating: Array(repeating: 0, count: Int(heightUnits)), count: Int(widthUnits))
+        
+        for x in 0..<widthUnits {
+            for y in 0..<heightUnits {
+                let topLeftCorner = Vector2i(x: x * roomSize.x, y: y * roomSize.y)
+                let bottomRightCorner = Vector2i(x: x * roomSize.x + (roomSize.x - 1), y: y * roomSize.y + (roomSize.y - 1))
+                
+                let topLeftTile = tilemap.getCellTileData(layer: 0, coords: topLeftCorner)
+                let bottomRightTile = tilemap.getCellTileData(layer: 0, coords: bottomRightCorner)
+                
+                if topLeftTile != nil && bottomRightTile != nil {
+//                    let cellCoordinates = Vector3i(
+//                        x: roomOrigin.x + x,
+//                        y: roomOrigin.y + y,
+//                        z: roomOrigin.z)
+                    
+                    roomMatrix[Int(x)][Int(y)] = 1
+                    
+//                    data.cells.append(MinimapData.Cell(
+//                        coordinates: MinimapData.Location(
+//                            x: Int(roomOrigin.x + x),
+//                            y: Int(roomOrigin.y + y),
+//                            z: Int(roomOrigin.z)),
+//                        borders: [-1,-1,-1,-1]
+//                    ))
+                }
+            }
+        }
+        for x in 0..<widthUnits {
+            for y in 0..<heightUnits {
+                if roomMatrix[Int(x)][Int(y)] == 1 {
+                    
+                    var borders = [-1,-1,-1,-1]
+                    
+                    if x == 0 {
+                        borders[2] = 0
+                    } else if roomMatrix[Int(x) - 1][Int(y)] == 0 {
+                        borders[2] = 0
+                    }
+                    
+                    if x == widthUnits - 1 {
+                        borders[0] = 0
+                    } else if roomMatrix[Int(x) + 1][Int(y)] == 0 {
+                        borders[0] = 0
+                    }
+                    
+                    if y == 0 {
+                        borders[3] = 0
+                    } else if roomMatrix[Int(x)][Int(y) - 1] == 0 {
+                        borders[3] = 0
+                    }
+                    
+                    if y == heightUnits - 1 {
+                        borders[1] = 0
+                    } else if roomMatrix[Int(x)][Int(y) + 1] == 0 {
+                        borders[1] = 0
+                    }
+                    
+                    data.cells.append(MinimapData.Cell(
+                        coordinates: MinimapData.Location(
+                            x: Int(roomOrigin.x + x),
+                            y: Int(roomOrigin.y + y),
+                            z: Int(roomOrigin.z)),
+                        borders: borders
+                    ))
+                }
+            }
+        }
+    }
+}
+
+struct MinimapData: Codable {
+    struct Location: Codable {
+        let x: Int
+        let y: Int
+        let z: Int
+    }
+    struct Cell: Codable {
+        let coordinates: Location
+        let borders: [Int]
+    }
+    var cells: [Cell]
 }
 
 //class WorldImporter: EditorImportPlugin {
