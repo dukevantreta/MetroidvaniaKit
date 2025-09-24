@@ -3,6 +3,9 @@ import SwiftGodot
 @Godot //(.tool)
 class MiniMap: Control {
     
+//    let cellSize = Vector2(x: 32, y: 32)
+//    let cellSize = Vector2(x: 8, y: 8)
+    
     let mapData = MapData.load()
     
     @Export var trackPosition: Bool = true
@@ -48,7 +51,7 @@ class MiniMap: Control {
     }
     
     override func _getMinimumSize() -> Vector2 {
-        Vector2(from: area) * Vector2(x: 32, y: 32) // CELL_SIZE
+        Vector2(from: area) * Vector2(from: MapDrawer.shared.cellSize)
     }
     
     override func _draw() {
@@ -57,7 +60,7 @@ class MiniMap: Control {
             for y in 0..<area.y {
                 // draw cell
                 let coords = Vector3i(x: center.x + offset.x + x, y: center.y + offset.y + y, z: Int32(layer))
-                RoomDrawer.draw(canvasItem: self, offset: Vector2(x: x, y: y), coords: coords, mapData: mapData)
+                MapDrawer.shared.draw(canvasItem: self, offset: Vector2i(x: x, y: y), coords: coords, mapData: mapData)
             }
         }
         
@@ -67,46 +70,113 @@ class MiniMap: Control {
     }
 }
 
-class RoomDrawer {
+class TextureMaker {
+    static func makeGridTexture(size: Vector2i, margin: Int32, bgColor: Color, fgColor: Color) -> Texture2D? {
+        let image = Image.create(width: size.x, height: size.y, useMipmaps: false, format: .rgba8)
+        for x in 0..<size.x {
+            for y in 0..<size.y {
+                if x <= margin || y <= margin || x >= size.x - margin || y >= size.y - margin {
+                    image?.setPixel(x: x, y: y, color: fgColor)
+                } else {
+                    image?.setPixel(x: x, y: y, color: bgColor)
+                }
+            }
+        }
+        return ImageTexture.createFromImage(image)
+    }
     
-    static func draw(canvasItem: CanvasItem, offset: Vector2, coords: Vector3i, mapData: MapData) {
+    static func makeBoxTexture(size: Vector2i) -> Texture2D? {
+        let image = Image.create(width: size.x, height: size.y, useMipmaps: false, format: .rgba8)
+        for x in 0..<size.x {
+            for y in 0..<size.y {
+                image?.setPixel(x: x, y: y, color: .white)
+            }
+        }
+        return ImageTexture.createFromImage(image)
+    }
+    
+    static func makePassageTexture(size: Vector2i) -> Texture2D? {
+        let image = Image.create(width: size.x, height: size.y, useMipmaps: false, format: .rgba8)
+        for x in 0..<size.x {
+            for y in 0..<size.y {
+                if abs(y - size.y/2) > size.y / 8 {
+                    image?.setPixel(x: x, y: y, color: .white)
+                }
+            }
+        }
+        return ImageTexture.createFromImage(image)
+    }
+}
+
+class MapDrawer {
+    
+    static let shared = MapDrawer()
+    private init() {
+        self.setCellSize(self.cellSize)
+    }
+    
+//    private(set) var cellSize: Vector2i = Vector2i(x: 32, y: 32)
+//    private(set) var cellSize = Vector2i(x: 16, y: 16)
+    private(set) var cellSize = Vector2i(x: 8, y: 8)
+    
+    func setCellSize(_ size: Vector2i) {
+        self.cellSize = size
+        reloadTextureCache()
+    }
+    
+    private var emptyTexture: Texture2D?
+    private var fillTexture: Texture2D?
+    private var wallTexture: Texture2D?
+    private var cornerTexture: Texture2D?
+    private var passageTexture: Texture2D?
+    
+    private func reloadTextureCache() {
+        emptyTexture = TextureMaker.makeGridTexture(
+            size: cellSize,
+            margin: cellSize.x/8,
+            bgColor: Color(r: 33/255, g: 33/255, b: 74/255),
+            fgColor: Color(r: 0, g: 0, b: 148/255))
+        fillTexture = TextureMaker.makeBoxTexture(size: cellSize)
+        wallTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
+        cornerTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y / 8))
+        passageTexture = TextureMaker.makePassageTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
+    }
+    
+    private func indexToDirection(_ i: Int32) -> Vector2i {
+        let negation = 1 - 2 * ((i / 2) % 2)
+        let x = (1 - i % 2) * negation
+        let y = i % 2 * negation
+        return Vector2i(x: x, y: y)
+    }
+    
+    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
         
-//        let mapData = MapData.mock()
         guard let cellData = mapData.getCell(at: coords) else {
-            drawEmpty(canvasItem: canvasItem, offset: offset)
+            drawEmpty(canvasItem: canvasItem, offset: Vector2i(from: offset))
             return
         }
-        
         let ci = canvasItem.getCanvasItem()
         
-        if let centerTexture = ResourceLoader.load(path: "res://SampleProject/MF/RoomFill.png") as? Texture2D {
+        if let centerTexture = fillTexture {
             let color = Color(r: 1.0, g: 0.0, b: 1.0)
-            centerTexture.draw(canvasItem: ci, position: offset * 32, modulate: color)
+            centerTexture.draw(canvasItem: ci, position: Vector2(from: offset * cellSize), modulate: color)
         }
-        
         drawRegularBorders(canvasItem: canvasItem, offset: offset, coords: coords, mapData: mapData)
         
         canvasItem.drawSetTransformMatrix(xform: Transform2D())
     }
     
-    static func drawEmpty(canvasItem: CanvasItem, offset: Vector2) {
-        guard let texture = ResourceLoader.load(path: "res://SampleProject/MF/Empty.png") as? Texture2D else {
-            return
-        }
+    func drawEmpty(canvasItem: CanvasItem, offset: Vector2i) {
         let ci = canvasItem.getCanvasItem()
-        texture.draw(canvasItem: ci, position: offset * 32, modulate: Color.white)
+        emptyTexture?.draw(canvasItem: ci, position: Vector2(from: offset * cellSize), modulate: .white)
     }
     
-    static func drawRegularBorders(canvasItem: CanvasItem, offset: Vector2, coords: Vector3i, mapData: MapData) {
-        
-//        let mapData = MapData.mock()
+    func drawRegularBorders(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
         guard let cellData = mapData.getCell(at: coords) else {
             return
         }
-//        let cellData = CellData()
         
-        var borders: [Int] = [1, 0, -1, 2]
-        
+        var borders: [Int] = [-1, -1, -1, -1]
         for i in 0..<4 {
             borders[i] = cellData.getBorder(i)
         }
@@ -131,13 +201,7 @@ class RoomDrawer {
             }
             
             // check corner room for passages ?
-            var offsets = [
-                Vector2i.right,
-                Vector2i.down,
-                Vector2i.left,
-                Vector2i.up,
-            ]
-            let hotCorner = Vector2i(x: coords.x, y: coords.y) + offsets[i] + offsets[j]
+            let hotCorner = Vector2i(x: coords.x, y: coords.y) + indexToDirection(Int32(i)) + indexToDirection(Int32(j))
             let hotRoom = Vector3i(x: hotCorner.x, y: hotCorner.y, z: coords.z)
             if let cell = mapData.getCell(at: hotRoom) {
                 let _i = (i + 2) % 4
@@ -147,77 +211,40 @@ class RoomDrawer {
                 }
             }
             
-            guard let texture = ResourceLoader.load(path: "res://SampleProject/MF/Corner.png") as? Texture2D else {
-                GD.print("ERROR TEXTURE!!!!!!!")
-                return
+            guard let cornerTexture else {
+                break
             }
-            
-            let pos = offset * 32 + Vector2(x: 16, y: 16)
+            let pos = Vector2(from: offset * cellSize + cellSize/2)
             canvasItem.drawSetTransform(position: pos, rotation: .pi * 0.5 * Double(i), scale: .one)
             
-            let cornerOffset = -texture.getSize()
+            let cornerOffset = -cornerTexture.getSize()
             let ci = canvasItem.getCanvasItem()
-            
-            texture.draw(canvasItem: ci, position: Vector2(x: 16, y: 16) + cornerOffset, modulate: .white)
+            cornerTexture.draw(canvasItem: ci, position: cellSize/2 + cornerOffset, modulate: .white)
 //            if i == 0 || i == 2 {
 //                texture.draw(canvasItem: ci, position: Vector2(x: 16, y: 16) + cornerOffset, modulate: .white)
 //            }
         }
     }
     
-    static func drawBorder(canvasItem: CanvasItem, offset: Vector2, i: Int, texture: Texture2D, color: Color) {
-        let rotation = .pi * 0.5 * Double(i)
-        canvasItem.drawSetTransform(position: offset * 32 + Vector2(x: 16, y: 16), rotation: rotation, scale: .one)
-        let ci = canvasItem.getCanvasItem()
-        texture.draw(canvasItem: ci, position: -(texture.getSize() / 2) + Vector2.right * Double(Int32(16) - texture.getWidth() / 2), modulate: color)
-//        if i == 0 || i == 2 {
-//            let vec = Vector2.right * Double(Int32(16) - texture.getWidth() / 2)
-//            let position = -(texture.getSize() / 2) + vec
-//            texture.draw(canvasItem: canvasItem.getCanvasItem(), position: position, modulate: color)
-//        } else if i == 1 || i == 3 {
-//            let vec = Vector2.right * Double(Int32(16) - texture.getWidth() / 2)
-//            let position = -(texture.getSize() / 2) + vec
-//            texture.draw(canvasItem: canvasItem.getCanvasItem(), position: position, modulate: color)
-//        }
+    func drawBorder(canvasItem: CanvasItem, offset: Vector2i, i: Int, texture: Texture2D, color: Color) {
+        canvasItem.drawSetTransform(
+            position: Vector2(from: offset * cellSize + cellSize/2),
+            rotation: .pi * 0.5 * Double(i),
+            scale: .one)
+        texture.draw(
+            canvasItem: canvasItem.getCanvasItem(),
+            position: Vector2.right * (Double(cellSize.x/2) - Double(texture.getWidth()) * 0.5) - Vector2(from: texture.getSize()) * 0.5,
+            modulate: color)
     }
     
-    static func getBorderTexture(idx: Int, direction: Int) -> Texture2D? {
-        let wall: Texture2D? = ResourceLoader.load(path: "res://SampleProject/MF/BorderWall.png") as! Texture2D
-        let passage: Texture2D? = ResourceLoader.load(path: "res://SampleProject/MF/BorderPassage.png") as! Texture2D
-        let separator: Texture2D? = nil // ResourceLoader.load(path: "res://SampleProject/MF/BorderPassage.png") as? Texture2D
-        let borders: [Texture2D?] = [
-            ResourceLoader.load(path: "res://SampleProject/MF/Borders/Door1.png") as! Texture2D,
-            ResourceLoader.load(path: "res://SampleProject/MF/Borders/Door2.png") as! Texture2D,
-            ResourceLoader.load(path: "res://SampleProject/MF/Borders/Door3.png") as! Texture2D,
-            ResourceLoader.load(path: "res://SampleProject/MF/Borders/Door4.png") as! Texture2D
-        ]
-        
-//        let textureName: StringName
-//        if direction == 0 || direction == 2 {
-//            textureName = switch idx {
-//                case -1: "vertical_separator"
-//                case 0: "vertical_wall"
-//                case 1: "vertical_passage"
-//                default: "vertical_borders"
-//            }
-//        } else {
-//            textureName = switch idx {
-//                case -1: "horizontal_separator"
-//                case 0: "horizontal_wall"
-//                case 1: "horizontal_passage"
-//                default: "horizontal_borders"
-//            }
-//        }
-//        textureName = switch idx {
-//            case -1: "separator"
-//            case 0: "wall"
-//            case 1: "passage"
-//            default: "borders"
-//        }
+    func getBorderTexture(idx: Int, direction: Int) -> Texture2D? {
+        let separator: Texture2D? = nil
+        let wall: Texture2D? = wallTexture
+        let passage: Texture2D? = passageTexture
         
         let tex: Texture2D?
         if idx >= 2 {
-            tex = borders[idx - 2]
+            tex = nil //borders[idx - 2]
         } else {
             tex = switch idx {
             case -1: separator
@@ -285,7 +312,7 @@ class MapData {
 //        Vector3i(x: 1, y: 1, z: 0): CellData(borders: [1,0,-1,2]),
 //        Vector3i(x: 1, y: 0, z: 0): CellData(borders: [0,1,1,0]),
 //    ]
-//    
+//
 //    static func getCell(at coords: Vector3i) -> CellData? {
 //        return cells[coords]
 //    }
