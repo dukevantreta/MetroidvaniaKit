@@ -141,6 +141,9 @@ class MapImportPlugin: EditorImportPlugin {
         printTree(xmlTree.root, level: 0)
         do {
             let map = try Tiled.TileMap(from: xmlTree.root)
+            guard map.orientation == .orthogonal else { // support only orthogonal
+                return .errBug
+            }
             
             for tilesetRef in map.tilesets {
                 guard let firstGID = tilesetRef.firstGID,
@@ -159,10 +162,10 @@ class MapImportPlugin: EditorImportPlugin {
 //                        GD.print("TILESET XML -----------------------------")
 //                        printTree(tilesetXml.root, level: 0)
                 let tileset = try Tiled.TileSet(from: tilesetXml.root)
-//                GD.print("TILESET MODEL -----------------------------")
-//                GD.print(tileset)
+                GD.print("TILESET MODEL -----------------------------")
+                GD.print(tileset)
                 
-                createTileSet(tileset)
+                createTileSet(tileset, sourceFile: tilesetFile)
             }
             
         } catch {
@@ -177,13 +180,53 @@ class MapImportPlugin: EditorImportPlugin {
         return .ok
     }
     
-    func createTileSet(_ tileset: Tiled.TileSet) {
+    func createTileSet(_ tileset: Tiled.TileSet, sourceFile: String) {
         let gTileset = TileSet()
-        gTileset.resourceName = "VERY TILE SET"
+        gTileset.resourceName = tileset.name ?? ""
         
+        let tileSize = Vector2i(
+            x: Int32(tileset.tileWidth ?? 0),
+            y: Int32(tileset.tileHeight ?? 0)
+        )
         
-        let savePath = outputPath + "imported_set.tres"
+        gTileset.tileShape = .square
+        gTileset.tileSize = tileSize
         
+        var pathComponents = sourceFile.components(separatedBy: "/")
+        pathComponents.removeLast()
+        let tilesetDir = pathComponents.joined(separator: "/")
+        
+        guard let imageSource = tileset.image?.source else {
+            GD.print("ERROR IMG SOURCE"); return
+        }
+        
+        let imageFile = [tilesetDir, imageSource].joined(separator: "/")
+        guard let image = Image.loadFromFile(path: imageFile) else {
+            GD.print("ERROR LOADING IMAGE"); return
+        }
+        guard let imageTexture = ImageTexture.createFromImage(image) else {
+            GD.print("ERROR MAKING IMAGE TEXTURE"); return
+        }
+        
+        let margin = Int32(tileset.margin ?? 0)
+        let spacing = Int32(tileset.spacing ?? 0)
+        
+        let atlasSource = TileSetAtlasSource()
+        atlasSource.margins = Vector2i(x: margin, y: margin)
+        atlasSource.separation = Vector2i(x: spacing, y: spacing)
+        atlasSource.texture = imageTexture
+        atlasSource.resourceName = imageFile.components(separatedBy: "/").last ?? ""
+        
+        // create tiles
+        let columns = tileset.columns ?? 0
+        for tile in tileset.tiles {
+            let atlasCoords = Vector2i(
+                x: Int32(tile.id % columns),
+                y: Int32(tile.id / columns))
+            atlasSource.createTile(atlasCoords: atlasCoords)
+        }
+        
+        gTileset.addSource(atlasSource)
         
         let outputDir = "res://output"
         if !DirAccess.dirExistsAbsolute(path: outputDir) {
