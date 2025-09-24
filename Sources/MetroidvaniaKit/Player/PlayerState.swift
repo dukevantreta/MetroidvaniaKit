@@ -9,6 +9,11 @@ class IdleState: PlayerState {
     
     func enter(_ player: PlayerNode) {
         player.sprite?.play(name: "idle-1")
+        
+        if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
+            hitboxRect.size = Vector2(x: 14, y: 36)
+            player.hitbox?.position = Vector2(x: 0, y: -18)
+        }
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
