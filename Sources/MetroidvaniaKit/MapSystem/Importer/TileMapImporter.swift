@@ -12,7 +12,7 @@ class TileMapImporter: Node {
     let objectsPath = "res://objects/"
     
     var currentTileset: TileSet? // find a better solution
-    var localTilesetRefs: [Int32: String] = [:]
+    var localTilesetRefs: [UInt32: String] = [:]
     
     @Callable
     func importResource(
@@ -77,24 +77,23 @@ class TileMapImporter: Node {
         }
     }
     
+    // Flipped tiles are clunky to setup, better use manual flipping
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
         currentTileset = tileset
         
         for tilesetRef in map.tilesets {
-            if let gid = Int32(tilesetRef.firstGID ?? "") {
+            if let gid = UInt32(tilesetRef.firstGID ?? "") {
                 let name = try getFileName(from: tilesetRef.source ?? "")
                 localTilesetRefs[gid] = name
             }
         }
         log("CURRENT TILESETS: \(localTilesetRefs)")
         
-        let gids = map.tilesets.compactMap { Int32($0.firstGID ?? "") }
+        let gids = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
         
         let root = Node2D()
         
-        // TODO: Flipped tiles bit shifting (already implmented in objects GIDs)
         for layer in map.layers {
-//            let tilemap = TileMap()
             let tilemap = TileMapLayer()
             tilemap.setName(layer.name)
             tilemap.tileSet = tileset
@@ -103,14 +102,18 @@ class TileMapImporter: Node {
                 .components(separatedBy: .whitespacesAndNewlines)
                 .joined()
                 .components(separatedBy: ",")
-                .compactMap { Int32($0) }
+                .compactMap { UInt32($0) }
             for idx in 0..<cellArray.count {
                 let cellValue = cellArray[idx]
                 if cellValue == 0 {
                     continue
                 }
+                let trueGID: UInt32 = UInt32(cellValue) & 0x0FFF_FFFF
+//                let flipBits: UInt32 = UInt32(cellValue) & 0xF000_0000
+//                let flipHorizontally = flipBits & 1 << 31 != 0
+//                let flipVertically = flipBits & 1 << 30 != 0
                 
-                let tilesetGID = gids.filter { $0 <= cellValue }.max() ?? 0
+                let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
                 let tileIndex = cellValue - tilesetGID
                 
                 let resourceName = localTilesetRefs[tilesetGID] ?? ""
@@ -121,8 +124,8 @@ class TileMapImporter: Node {
                     x: Int32(idx % layer.width),
                     y: Int32(idx / layer.width))
                 let tileCoords = Vector2i(
-                    x: tileIndex % tilesetColumns,
-                    y: tileIndex / tilesetColumns
+                    x: Int32(tileIndex % UInt32(tilesetColumns)),
+                    y: Int32(tileIndex / UInt32(tilesetColumns))
                 )
                 tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
@@ -234,22 +237,22 @@ class TileMapImporter: Node {
             
             guard let currentTileset else { fatalError() }
             
-            let gids: [Int32] = Array(localTilesetRefs.keys)
+            let gids: [UInt32] = Array(localTilesetRefs.keys)
             let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
             
-            let atlasName = localTilesetRefs[Int32(tilesetGID)] ?? ""
+            let atlasName = localTilesetRefs[UInt32(tilesetGID)] ?? ""
             guard let atlas = currentTileset.getSource(named: atlasName) as? TileSetAtlasSource else {
                 GD.print("ERROR GETTING ATLAS SOURCE")
                 return node
             }
             
-            let tileIndex = Int32(trueGID) - tilesetGID
+            let tileIndex = trueGID - tilesetGID
             
             let sourceID = currentTileset.getSourceId(named: atlasName)
             let tilesetColumns = currentTileset.getColumnCount(sourceId: sourceID)
             let tileCoords = Vector2i(
-                x: tileIndex % tilesetColumns,
-                y: tileIndex / tilesetColumns)
+                x: Int32(tileIndex % UInt32(tilesetColumns)),
+                y: Int32(tileIndex / UInt32(tilesetColumns)))
             
             let texRegion = atlas.getTileTextureRegion(atlasCoords: tileCoords)
             
