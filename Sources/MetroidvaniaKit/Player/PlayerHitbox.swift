@@ -5,8 +5,8 @@ class PlayerHitbox: Area2D {
     
     @SceneTree(path: "..") weak var player: PlayerNode?
     
-    private var hitTimer = Timer()
-    private var invFramesTimer = Timer()
+    private let hitTimer = Timer()
+    private let invFramesTimer = Timer()
     
     private var isInvincible = false
     

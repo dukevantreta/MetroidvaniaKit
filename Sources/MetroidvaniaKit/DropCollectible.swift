@@ -7,9 +7,9 @@ enum DropType: Int, CaseIterable {
 
     var sceneName: String {
         switch self {
-        case .health: "collectible_health"
-        case .healthBig: "collectible_health_big"
-        case .ammo: "collectible_ammo"
+        case .health: "drop_health"
+        case .healthBig: "drop_health_big"
+        case .ammo: "drop_ammo"
         }
     }
 }
@@ -18,13 +18,24 @@ enum DropType: Int, CaseIterable {
 class DropCollectible: Area2D {
 
     @Export(.enum) var type: DropType = .health
-
     @Export var amount: Int = 0
-
-    // TODO lifetime & disappear
+    @Export var lifetime: Double = 10.0
+    @Export var blinkLifetime: Double = 3.0
+    
+    private let blinkTimer = Timer()
+    
+    private var accumulator: Double = 0.0
 
     override func _ready() {
         collisionMask = 0b1_0000_0000
+        
+        blinkTimer.autostart = false
+        blinkTimer.oneShot = false
+        blinkTimer.timeout.connect { [weak self] in
+            guard let self else { return }
+            self.visible = !self.visible
+        }
+        addChild(node: blinkTimer)
 
         areaEntered.connect { [weak self] otherArea in
             guard let self, let otherArea else { return }
@@ -34,11 +45,19 @@ class DropCollectible: Area2D {
         }
     }
     
+    override func _process(delta: Double) {
+        accumulator += delta
+        if accumulator >= lifetime - blinkLifetime && blinkTimer.isStopped() {
+            blinkTimer.start(timeSec: 0.05)
+        }
+        if accumulator >= lifetime {
+            queueFree()
+        }
+    }
+    
     func collect(_ playerHitbox: PlayerHitbox) {
         switch self.type {
-        case .health:
-            playerHitbox.restoreHealth(amount)
-        case .healthBig:
+        case .health, .healthBig:
             playerHitbox.restoreHealth(amount)
         case .ammo:
             playerHitbox.restoreAmmo(amount)

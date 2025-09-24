@@ -1,4 +1,4 @@
-final class DropTable {
+final class DropTable { // TODO: use another drop table if player doesnt have ammo yet
 
     struct Entry {
         let type: DropType?
