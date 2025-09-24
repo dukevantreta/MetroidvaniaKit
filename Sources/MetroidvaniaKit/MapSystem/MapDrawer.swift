@@ -95,7 +95,8 @@ class MapDrawer {
         return Vector2i(x: x, y: y)
     }
     
-    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
+    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: Minimap) {
+//    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
         
         guard let cellData = mapData.getCell(at: coords) else {
             drawEmpty(canvasItem: canvasItem, offset: Vector2i(from: offset))
@@ -117,7 +118,8 @@ class MapDrawer {
         emptyTexture?.draw(canvasItem: ci, position: Vector2(from: offset * cellSize), modulate: .white)
     }
     
-    func drawRegularBorders(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
+//    func drawRegularBorders(canvasIwtem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
+    func drawRegularBorders(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: Minimap) {
         guard let cellData = mapData.getCell(at: coords) else {
             return
         }

@@ -73,7 +73,8 @@ class WorldImporter: Node {
             let root = Node2D()
             root.name = StringName(worldName)
             
-            var minimapData = MinimapData(cells: [])
+//            var minimapData = MinimapData(cells: [])
+            let mapData = Minimap()
             
             for map in world.maps {
                 let path = "res://tiled/\(map.fileName)"
@@ -83,7 +84,9 @@ class WorldImporter: Node {
                     mapNode.position.y = Float(map.y)
                     root.addChild(node: mapNode)
                     
-                    processMinimapData(&minimapData, map: map, node: mapNode)
+//                    processMinimapData(&minimapData, map: map, node: mapNode)
+//                    processMinimapData(mapData, map: map, node: mapNode)
+                    processMapData(mapData, map: map, node: mapNode)
                 } else {
                     log("MISSING SCENE NODE!!!")
                 }
@@ -94,8 +97,9 @@ class WorldImporter: Node {
             
             
 //            log("Minimap data: \(minimapData)")
-            let encoded = try JSONEncoder().encode(minimapData)
-            let dataString = String(data: encoded, encoding: .utf8)!
+//            let encoded = try JSONEncoder().encode(minimapData)
+//            let dataString = String(data: encoded, encoding: .utf8)!
+            let dataString = try mapData.encode()
             let fileHandle = FileAccess.open(path: "res://maps/mapdata.json", flags: .write)
             fileHandle?.storeString(dataString)
             fileHandle?.close()
@@ -125,7 +129,126 @@ class WorldImporter: Node {
         }
     }
     
+    func processMapData(_ data: Minimap, map: World.Map, node: Node2D) {
+        guard let tilemap = node.getChildren().first as? TileMap else {
+            logError("CANT GET TILEMAP FROM SCENE NODE")
+            return
+        }
+        
+        let roomSize = Vector2i(x: 25, y: 15) // static constant for the game
+        let tileSize = Vector2i(x: 16, y: 16)
+        
+        let widthUnits = (map.width / tileSize.x) / roomSize.x
+        let heightUnits = (map.height / tileSize.y) / roomSize.y
+        
+        let cellOrigin = Vector3i(
+            x: (map.x / tileSize.x) / roomSize.x,
+            y: (map.y / tileSize.y) / roomSize.y,
+            z: 0
+        )
+        
+        var indexedCells: [Vector3i: Minimap.Cell] = [:]
+        
+        for x in 0..<widthUnits {
+            for y in 0..<heightUnits {
+                var borders: [BorderType] = [.empty, .empty, .empty, .empty]
+                
+                // left & right
+                var leftCount = 0
+                var rightCount = 0
+                for i in 0..<roomSize.y {
+                    let rightTileCoords = Vector2i(
+                        x: (x + 1) * roomSize.x - 1,
+                        y: y * roomSize.y + i)
+                    if tilemap.getCellTileData(layer: 0, coords: rightTileCoords) != nil {
+                        rightCount += 1
+                    }
+                    let leftTileCoords = Vector2i(
+                        x: x * roomSize.x,
+                        y: y * roomSize.y + i)
+                    if tilemap.getCellTileData(layer: 0, coords: leftTileCoords) != nil {
+                        leftCount += 1
+                    }
+                }
+                if rightCount == roomSize.y {
+                    borders[0] = .wall
+                } else if rightCount >= roomSize.y - 5 {
+                    borders[0] = .passage
+                }
+                if leftCount == roomSize.y {
+                    borders[2] = .wall
+                } else if leftCount >= roomSize.y - 5 {
+                    borders[2] = .passage
+                }
+                
+                // up & down
+                var upCount = 0
+                var downCount = 0
+                for i in 0..<roomSize.x {
+                    let upTileCoords = Vector2i(
+                        x: x * roomSize.x + i,
+                        y: y * roomSize.y)
+                    if tilemap.getCellTileData(layer: 0, coords: upTileCoords) != nil {
+                        upCount += 1
+                    }
+                    let downTileCoords = Vector2i(
+                        x: x * roomSize.x + i,
+                        y: (y + 1) * roomSize.y - 1)
+                    if tilemap.getCellTileData(layer: 0, coords: downTileCoords) != nil {
+                        downCount += 1
+                    }
+                }
+                if upCount == roomSize.x {
+                    borders[3] = .wall
+                } else if upCount >= roomSize.x - 5 {
+                    borders[3] = .passage
+                }
+                if downCount == roomSize.x {
+                    borders[1] = .wall
+                } else if downCount >= roomSize.x - 5 {
+                    borders[1] = .passage
+                }
+                
+                if upCount == 0 && downCount == 0 && leftCount == 0 && rightCount == 0 {
+                    // need to check for room 100% empty for big rooms
+                    continue
+                }
+                
+                let cell = Minimap.Cell()
+                cell.borders = borders
+                indexedCells[Vector3i(x: cellOrigin.x + x, y: cellOrigin.y + y, z: cellOrigin.z)] = cell
+                
+                // walk room
+                // i = 2
+                if let sideCell = indexedCells[Vector3i(x: cellOrigin.x + x - 1, y: cellOrigin.y + y, z: cellOrigin.z)] {
+                    if cell.borders[2] != sideCell.borders[0] {
+                        cell.borders[2] = .empty
+                        sideCell.borders[0] = .empty
+                    } else if cell.borders[2] != .empty {
+                        cell.borders[2] = .empty
+                        sideCell.borders[0] = .empty
+                    }
+                }
+                // i = 3
+                if let sideCell = indexedCells[Vector3i(x: cellOrigin.x + x, y: cellOrigin.y + y - 1, z: cellOrigin.z)] {
+                    if cell.borders[3] != sideCell.borders[1] {
+                        cell.borders[3] = .empty
+                        sideCell.borders[1] = .empty
+                    } else if cell.borders[3] != .empty {
+                        cell.borders[3] = .empty
+                        sideCell.borders[1] = .empty
+                    }
+                }
+            }
+        }
+        for indexedCell in indexedCells {
+            let loc = indexedCell.key
+            data[loc.x, loc.y, loc.z] = indexedCell.value
+        }
+    }
+    
     func processMinimapData(_ data: inout MinimapData, map: World.Map, node: Node2D) {
+//    func processMinimapData(_ data: Map, map: World.Map, node: Node2D) {
         guard let tilemap = node.getChildren().first as? TileMap else {
             logError("CANT GET TILEMAP FROM SCENE NODE")
             return
