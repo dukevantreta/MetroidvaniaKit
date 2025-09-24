@@ -88,6 +88,7 @@ class MapDrawer {
         vPassageTexture = TextureMaker.makePassageTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y), passageWidth: Int32(mapConfig.passageWidth))
     }
     
+    /// Transforms an index into a direction, 0 = right, 1 = down, 2 = left, 3 = up
     func indexToDirection(_ i: Int32) -> Vector2i {
         let negation = 1 - 2 * ((i / 2) % 2)
         let x = (1 - i % 2) * negation

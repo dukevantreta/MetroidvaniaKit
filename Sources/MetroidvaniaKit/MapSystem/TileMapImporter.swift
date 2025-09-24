@@ -40,7 +40,7 @@ class TileMapImporter: Node {
             guard map.orientation == .orthogonal else {
                 return .errBug //
             }
-//            let godotTileset = try TileSetImporter.loadTileSet()
+            
             let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
             
             let tilesetImporter = TileSetImporter()
@@ -70,7 +70,6 @@ class TileMapImporter: Node {
             logError("Failed to import '\(sourceFile)' with error: \(error)")
             return .errScriptFailed
         }
-        return .ok
     }
     
     var currentTileset: TileSet? // find a better solution
@@ -94,7 +93,8 @@ class TileMapImporter: Node {
         
         // TODO: Flipped tiles bit shifting
         for layer in map.layers {
-            let tilemap = TileMap()
+//            let tilemap = TileMap()
+            let tilemap = TileMapLayer()
             tilemap.setName(layer.name)
             tilemap.tileSet = tileset
             let cellArray = try layer.getTileData()
@@ -122,7 +122,7 @@ class TileMapImporter: Node {
                     x: tileIndex % tilesetColumns,
                     y: tileIndex / tilesetColumns
                 )
-                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
+                tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
             root.addChild(node: tilemap)
         }
