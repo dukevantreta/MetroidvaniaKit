@@ -118,22 +118,32 @@ class MapImportPlugin: EditorImportPlugin {
         
         // var node2D = tilemapCreator.create(source_file)
         
-        let xml = XML()
-        xml.parse(sourceFile)
+        let xmlParser = XMLParser()
+        let xmlTree = XML.parse(sourceFile, with: xmlParser)
         
-        GD.print("----------------------------")
-        
-        let xmld = XMLDictionary()
-        let dict = xmld.create(sourceFile: sourceFile)
-        
-        if let dict {
-            GD.print("PARSED XML:")
-            for (key, val) in dict {
-                GD.print("- \(key): \(val)")
-            }
+        if let xmlTree {
+            printTree(xmlTree.root, level: 0)
         }
         
         return .ok
+    }
+    
+    // print on console to help debug
+    func printTree(_ xml: XML.Element, level: Int) {
+        var pad = ""
+        for _ in 0..<level {
+            pad += "    "
+        }
+        GD.print("\(pad)\(xml)")
+        for child in xml.children {
+            printTree(child, level: level + 1)
+        }
+    }
+}
+
+extension XML.Element: CustomStringConvertible {
+    var description: String {
+        "[XML] \(name) | has text: \(text?.isEmpty == false) | ATTR: \(attributes)"
     }
 }
 
