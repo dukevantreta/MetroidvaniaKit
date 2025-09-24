@@ -178,12 +178,14 @@ class MapImportPlugin: EditorImportPlugin {
         guard let tileset = TileSetParser.parseTileSets(map: map, sourceFile: sourceFile) else { return }
         guard let tilemapNode = try? createTileMap(map: map, using: tileset) else { return }
         
-        let scene = PackedScene()
-        scene.pack(path: tilemapNode)
-        
         guard let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first else {
             return // err
         }
+        
+        tilemapNode.name = StringName(filename)
+        let scene = PackedScene()
+        scene.pack(path: tilemapNode)
+        
 //        let outputFile = "res://output/\(filename).tscn"
         let outputFile = "\(savePath).tscn"
         let err = ResourceSaver.save(resource: scene, path: outputFile)
