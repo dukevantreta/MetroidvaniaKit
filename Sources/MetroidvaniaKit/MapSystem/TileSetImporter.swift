@@ -37,9 +37,6 @@ class TileSetImporter {
         gTileset.tileShape = .square
         gTileset.tileSize = tileSize
         
-        gTileset.addPhysicsLayer(toPosition: 0)
-        gTileset.setPhysicsLayerCollisionLayer(layerIndex: 0, layer: 0b0001)
-        
         // continue from here
 //        for tilesetRef in map.tilesets {
         if let tilesetRef = map.tilesets.first {
@@ -76,8 +73,18 @@ class TileSetImporter {
             atlasSource.resourceName = imageFile.components(separatedBy: "/").last ?? ""
             let sourceId = gTileset.addSource(atlasSource)
             
-            //        gTileset.addPhysicsLayer(toPosition: 0)
-            //        gTileset.setPhysicsLayerCollisionLayer(layerIndex: 0, layer: 0b0001)
+            for property in tiledTileset.properties {
+                if property.name.hasPrefix("collision_layer_") {
+                    if let layerIndex = Int32(property.name.components(separatedBy: "_").last ?? "") {
+                        gTileset.addPhysicsLayer(toPosition: layerIndex)
+                        var layerMask: UInt32 = 0
+                        for layer in property.value?.components(separatedBy: ",").compactMap { UInt32($0) } ?? [] {
+                            layerMask |= 1 << (layer - 1)
+                        }
+                        gTileset.setPhysicsLayerCollisionLayer(layerIndex: layerIndex, layer: layerMask)
+                    }
+                }
+            }
             
             // create tiles
             let columns = tiledTileset.columns ?? 0
