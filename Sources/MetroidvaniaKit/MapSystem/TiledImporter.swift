@@ -70,11 +70,11 @@ class MapImportPlugin: EditorImportPlugin {
     }
     
     override func _getVisibleName() -> String {
-        "Map Importer!"
+        "Custom Import"
     }
     
     override func _getRecognizedExtensions() -> PackedStringArray {
-        PackedStringArray(["tmx"])
+        PackedStringArray(["tmx", "tsx"])
     }
     
     override func _getResourceType() -> String {
@@ -94,25 +94,42 @@ class MapImportPlugin: EditorImportPlugin {
     }
     
     override func _getPresetCount() -> Int32 {
-        0
+        1
     }
     
+    override func _getPresetName(presetIndex: Int32) -> String {
+        "Random preset"
+    }
+    
+    // BUG: This is not working on editor, options always end up empty
     override func _getImportOptions(
         path: String,
         presetIndex: Int32
     ) -> VariantCollection<GDictionary> {
-        
-        GD.print("GET import options")
         let d1 = GDictionary()
         d1["name"] = Variant("use_layers")
-        d1["default_value"] = Variant(false)
+//        d1["default_value"] = Variant(false)
         let d2 = GDictionary()
-        d2["name"] = Variant("use_tilemaps")
-        d2["default_value"] = Variant(true)
+        d2["name"] = Variant("use_tilemap_layers")
+        d2["default_value"] = Variant(false)
+        let d3 = GDictionary()
+        d3["name"] = Variant("output file")
+        d3["default_value"] = Variant("output")
+        d3["property_hint"] = Variant(PropertyHint.saveFile.rawValue)
+        d3["hint_string"] = Variant("*.tres;Resource File")
+        
+        let c = VariantCollection(arrayLiteral: d3)
+        GD.print("GET import options PATH = \(path): \(c)")
         return [
             d1,
+            d3,
             d2
+//            { "name": "use_tilemap_layers", "default_value": false },
         ]
+    }
+    
+    override func _getOptionVisibility(path: String, optionName: StringName, options: GDictionary) -> Bool {
+        true
     }
     
     var outputPath = "res://output_test/"
@@ -124,7 +141,8 @@ class MapImportPlugin: EditorImportPlugin {
         platformVariants: VariantCollection<String>,
         genFiles: VariantCollection<String>
     ) -> GodotError {
-        GD.print("IMPORTING: \(sourceFile)")
+        GD.print("IMPORTING: \(sourceFile) | TO: \(savePath)")
+        GD.print("IMPORT OPTIONS: \(options)")
         guard FileAccess.fileExists(path: sourceFile) else {
             GD.pushError("[] Import file \(sourceFile) not found!")
             return .errFileNotFound
@@ -162,8 +180,8 @@ class MapImportPlugin: EditorImportPlugin {
 //                        GD.print("TILESET XML -----------------------------")
 //                        printTree(tilesetXml.root, level: 0)
                 let tileset = try Tiled.TileSet(from: tilesetXml.root)
-                GD.print("TILESET MODEL -----------------------------")
-                GD.print(tileset)
+//                GD.print("TILESET MODEL -----------------------------")
+//                GD.print(tileset)
                 
                 createTileSet(tileset, sourceFile: tilesetFile)
             }
@@ -244,13 +262,3 @@ class MapImportPlugin: EditorImportPlugin {
 //        let map = try Tiled.TileMap(from: xmlTree.root)
 //    }
 }
-
-
-
-/*
- godot objects to create:
- 
- - TileSetAtlasSource
- - TileSet
- - TileMap
- */
