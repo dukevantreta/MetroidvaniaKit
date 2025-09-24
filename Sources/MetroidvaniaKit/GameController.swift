@@ -8,11 +8,12 @@ let ROOM_HEIGHT: Int32 = 15
 @Godot
 class GameController: Node {
     
-    @SceneTree(path: "../PlayerNode") var player: CharacterBody2D?
+    @SceneTree(path: "../PlayerNode") var player: PlayerNode?
     @SceneTree(path: "../SidescrollerCamera") var camera: SidescrollerCamera?
     @SceneTree(path: "../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
     
-    @SceneTree(path: "../CanvasLayer/MiniMapHUD") var minimapHUD: MiniMapHUD?
+    @SceneTree(path: "../CanvasLayer/HUD") var hud: HUD?
+    @SceneTree(path: "../CanvasLayer/HUD/MiniMapHUD") var minimapHUD: MiniMapHUD?
     @SceneTree(path: "../CanvasLayer/PauseMenu") var pauseMenu: Control?
     @SceneTree(path: "../CanvasLayer/PauseMenu/Overlay") var canvasOverlay: ColorRect?
     
@@ -42,6 +43,7 @@ class GameController: Node {
         }
         
         camera?.target = player
+        hud?.playerStats = player?.stats
         
         if roomToLoad != "" {
             guard let player, let world else { return }

@@ -34,12 +34,13 @@ func setupScene (level: GDExtension.InitializationLevel) {
             WaveBeam.self,
             PlasmaBeam.self,
             RocketLauncher.self,
-            MiniMapHUD.self,
-            MapConfiguration.self,
-            PauseMenu.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
             RocketBlock.self,
+            HUD.self,
+            PauseMenu.self,
+            MiniMapHUD.self,
+            MapConfiguration.self,
         ].forEach { register(type: $0) }
     default:
         break
