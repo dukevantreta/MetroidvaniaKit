@@ -1,12 +1,14 @@
 import SwiftGodot
 import Foundation
 
+let TILE_SIZE: Int32 = 16
+let ROOM_WIDTH: Int32 = 25
+let ROOM_HEIGHT: Int32 = 15
+
 @Godot
 class GameController: Node {
     
-//    @SceneTree(path: "../CharacterController2D/Camera2D") var camera: Camera2D?
     @SceneTree(path: "../SidescrollerCamera") var camera: SidescrollerCamera?
-//    @SceneTree(path: "../CharacterController2D") var player: CharacterController2D?
     @SceneTree(path: "../PlayerNode") var player: CharacterBody2D?
     @SceneTree(path: "../CanvasLayer/MiniMapHUD") var minimapHUD: MiniMapHUD?
     
@@ -17,7 +19,8 @@ class GameController: Node {
     private(set) var world: World?
     
     var lastCellPosition: Vector2i = .zero
-    var currentRoom: String = ""
+//    var currentRoomName: String = ""
+    var currentRoom: Node2D?
     
     var isPaused = false
     
@@ -28,18 +31,19 @@ class GameController: Node {
         log("MinimapHUD: \(minimapHUD)")
         
         let worldFile = "res://tiled/world-test.world"
-        guard let worldData = FileAccess.getFileAsString(path: worldFile).data(using: .utf8) else {
-            logError("Failed to read world data from '\(worldFile)'.")
-            return
-        }
         do {
-            let world = try JSONDecoder().decode(World.self, from: worldData)
-            self.world = world
+            self.world = try World.load(from: worldFile)
         } catch {
-            logError("Failed to decode world data from '\(worldFile)'.")
+            logError("Failed to decode world data from '\(worldFile)' with error: \(error).")
         }
         
         camera?.target = player
+        
+//        guard let player else { return }
+//        let cellX = Int32(player.position.x / Float(TILE_SIZE * ROOM_WIDTH))
+//        let cellY = Int32(player.position.y / Float(TILE_SIZE * ROOM_HEIGHT))
+//        let playerCellPosition: Vector2i = .init(x: cellX, y: cellY)
+//        onCellChanged(playerCellPosition, playerPosition: player.position)
     }
     
     override func _process(delta: Double) {
@@ -55,58 +59,77 @@ class GameController: Node {
             logError("Player instance not found!")
             return
         }
+        
+        let cellX = Int32(player.position.x / Float(TILE_SIZE * ROOM_WIDTH))
+        let cellY = Int32(player.position.y / Float(TILE_SIZE * ROOM_HEIGHT))
+        let playerCellPosition: Vector2i = .init(x: cellX, y: cellY)
+        
+        if playerCellPosition != lastCellPosition {
+            onCellChanged(playerCellPosition, playerPosition: player.position)
+        }
+    }
+    
+    func onCellChanged(_ nextCell: Vector2i, playerPosition: Vector2) {
         guard let world else {
             logError("World instance not found!")
             return
         }
         
-        let cellX = Int32(player.position.x / (16 * 25)) // FIXME magic numbers
-        let cellY = Int32(player.position.y / (16 * 15))
-        let playerCellPosition: Vector2i = .init(x: cellX, y: cellY)
+        let moveDelta = nextCell - lastCellPosition
+        lastCellPosition = nextCell
+        minimapHUD?.onCellChanged(newOffset: nextCell)
         
-        if playerCellPosition != lastCellPosition {
-            let moveDelta = playerCellPosition - lastCellPosition
-            lastCellPosition = playerCellPosition
-            minimapHUD?.onCellChanged(newOffset: playerCellPosition)
-            
-            for map in world.maps {
-                if // find which room the player is in
-                    Int32(player.position.x) >= map.x && Int32(player.position.x) < map.x + map.width &&
-                    Int32(player.position.y) >= map.y && Int32(player.position.y) < map.y + map.height
-                {
-                    if let roomName = try? getFileName(from: map.fileName), roomName != currentRoom {
-                        if currentRoom == "" { // is the first room, just set the limits
-                            camera?.limitLeft = map.x
-                            camera?.limitRight = map.x + map.width
-                            camera?.limitTop = map.y
-                            camera?.limitBottom = map.y + map.height
-                        } else {
-                            guard let camera else { return }
-                            
-                            let sceneTree = getTree()
-                            sceneTree?.paused = true
-                            
-                            let tween = getTree()?.createTween()
-                            tween?.setPauseMode(.process)
-                            
-                            let offset = Vector2(x: 16 * 25 * moveDelta.x, y: 16 * 15 * moveDelta.y)
-                            tween?.tweenProperty(object: camera, property: "offset", finalVal: Variant(offset),
-                                                 duration: 0.7)
-                            
-                            tween?.finished.connect {
-                                camera.offset = .zero
-                                camera.limitLeft = map.x
-                                camera.limitRight = map.x + map.width
-                                camera.limitTop = map.y
-                                camera.limitBottom = map.y + map.height
-                                
-                                sceneTree?.paused = false
-                            }
-                        }
+        for map in world.maps {
+            if // find which room the player is in
+                Int32(playerPosition.x) >= map.x && Int32(playerPosition.x) < map.x + map.width &&
+                Int32(playerPosition.y) >= map.y && Int32(playerPosition.y) < map.y + map.height
+            {
+                if let roomName = try? getFileName(from: map.fileName), StringName(roomName) != currentRoom?.name {
+                    log("ROOM NAME: \(roomName), CURRENT ROOM: \(currentRoom?.name)")
+                    
+                    let mapPath = "res://tiled/\(map.fileName)"
+                    let roomScene = ResourceLoader.load(path: mapPath) as? PackedScene
+                    let newRoom = roomScene?.instantiate() as? Node2D
+                    newRoom?.position = Vector2(x: Float(map.x), y: Float(map.y))
+                    getParent()?.addChild(node: newRoom)
+                    
+//                if newRoom?.name != currentRoom?.name {
+//                    if currentRoomName == "" {
+                    if currentRoom == nil { // is the first room, just set the limits
+                        camera?.limitLeft = map.x
+                        camera?.limitRight = map.x + map.width
+                        camera?.limitTop = map.y
+                        camera?.limitBottom = map.y + map.height
+                        currentRoom = newRoom
+                    } else {
+                        guard let camera else { return }
                         
-                        currentRoom = roomName
-                        log("Current room: \(currentRoom)")
+                        let sceneTree = getTree()
+                        sceneTree?.paused = true
+                        
+                        let tween = getTree()?.createTween()
+                        tween?.setPauseMode(.process)
+                        
+                        let offset = Vector2(x: 16 * 25 * moveDelta.x, y: 16 * 15 * moveDelta.y)
+                        tween?.tweenProperty(object: camera, property: "offset", finalVal: Variant(offset),
+                                             duration: 0.7)
+                        
+                        tween?.finished.connect { [weak self] in
+                            camera.offset = .zero
+                            camera.limitLeft = map.x
+                            camera.limitRight = map.x + map.width
+                            camera.limitTop = map.y
+                            camera.limitBottom = map.y + map.height
+                            
+                            self?.currentRoom?.queueFree()
+                            self?.currentRoom = newRoom
+                            
+                            sceneTree?.paused = false
+                        }
                     }
+                    
+//                    currentRoomName = roomName
+                    log("Current room: \(currentRoom?.name ?? "")")
                 }
             }
         }

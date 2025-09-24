@@ -1,19 +1,6 @@
 import SwiftGodot
 import Foundation
 
-struct World: Codable {
-    struct Map: Codable {
-        let fileName: String
-        let width: Int32
-        let height: Int32
-        let x: Int32
-        let y: Int32
-    }
-    let maps: [Map]
-    let type: String
-    let onlyShowAdjacentMaps: Bool
-}
-
 @Godot(.tool)
 class WorldImporter: Node {
     

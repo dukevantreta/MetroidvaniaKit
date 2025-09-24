@@ -13,5 +13,15 @@ class SidescrollerCamera: Camera2D {
         self.position = Vector2(
             x: target.position.x,
             y: target.position.y - 30)
+        
+//        self.position.x = Float(GD.moveToward(
+//            from: Double(position.x),
+//            to: Double(target.position.x),
+//            delta: 200 * delta))
+//        
+//        self.position.y = Float(GD.moveToward(
+//            from: Double(position.y),
+//            to: Double(target.position.y - 30),
+//            delta: 200 * delta))
     }
 }
