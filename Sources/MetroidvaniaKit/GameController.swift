@@ -4,7 +4,8 @@ import Foundation
 @Godot
 class GameController: Node {
     
-    @SceneTree(path: "../CharacterController2D/Camera2D") var camera: Camera2D?
+//    @SceneTree(path: "../CharacterController2D/Camera2D") var camera: Camera2D?
+    @SceneTree(path: "../SidescrollerCamera") var camera: SidescrollerCamera?
     @SceneTree(path: "../CharacterController2D") var player: CharacterController2D?
     @SceneTree(path: "../CanvasLayer/MiniMapHUD") var minimapHUD: MiniMapHUD?
     
@@ -61,6 +62,7 @@ class GameController: Node {
         let playerCellPosition: Vector2i = .init(x: cellX, y: cellY)
         
         if playerCellPosition != lastCellPosition {
+            let moveDelta = playerCellPosition - lastCellPosition
             lastCellPosition = playerCellPosition
             minimapHUD?.onCellChanged(newOffset: playerCellPosition)
             
@@ -70,12 +72,37 @@ class GameController: Node {
                     Int32(player.position.y) >= map.y && Int32(player.position.y) < map.y + map.height
                 {
                     if let roomName = try? getFileName(from: map.fileName), roomName != currentRoom {
+                        if currentRoom == "" { // is the first room, just set the limits
+                            camera?.limitLeft = map.x
+                            camera?.limitRight = map.x + map.width
+                            camera?.limitTop = map.y
+                            camera?.limitBottom = map.y + map.height
+                        } else {
+                            guard let camera else { return }
+                            
+                            let sceneTree = getTree()
+                            sceneTree?.paused = true
+                            
+                            let tween = getTree()?.createTween()
+                            tween?.setPauseMode(.process)
+                            
+                            let offset = Vector2(x: 16 * 25 * moveDelta.x, y: 16 * 15 * moveDelta.y)
+                            tween?.tweenProperty(object: camera, property: "offset", finalVal: Variant(offset),
+                                                 duration: 0.7)
+                            
+                            tween?.finished.connect {
+                                camera.offset = .zero
+                                camera.limitLeft = map.x
+                                camera.limitRight = map.x + map.width
+                                camera.limitTop = map.y
+                                camera.limitBottom = map.y + map.height
+                                
+                                sceneTree?.paused = false
+                            }
+                        }
+                        
                         currentRoom = roomName
                         log("Current room: \(currentRoom)")
-                        camera?.limitLeft = map.x
-                        camera?.limitRight = map.x + map.width
-                        camera?.limitTop = map.y
-                        camera?.limitBottom = map.y + map.height
                     }
                 }
             }
