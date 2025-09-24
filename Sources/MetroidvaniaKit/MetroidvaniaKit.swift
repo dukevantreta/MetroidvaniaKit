@@ -30,7 +30,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             HookHitbox.self,
             WaveShot.self,
             NormalShot.self,
-            MiniMap.self,
+            MiniMapHUD.self,
             MapConfiguration.self,
         ].forEach { register(type: $0) }
     default:
