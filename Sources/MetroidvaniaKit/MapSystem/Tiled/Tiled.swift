@@ -33,6 +33,11 @@ extension String {
     }
 }
 
+/*
+ All documentation is copied from Tiled map editor reference docs.
+ 
+ TMX Map Format documentation can be found at: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
+ */
 class Tiled {
     
     enum XMLElementType: String {
@@ -44,6 +49,10 @@ class Tiled {
         case objectgroup
         case group
         case property
+        case tileoffset
+        case grid
+        case image
+        case tile
         case unknown
     }
     
@@ -60,4 +69,26 @@ class Tiled {
     struct EditorSettings {}
     
 //    struct ImageLayer {}
+}
+
+extension Tiled {
+    struct Image {
+        let source: String?
+        let width: Int?
+        let height: Int?
+        let transparentColor: String? // #FF00FF
+    }
+}
+
+extension Tiled.Image: XMLDecodable {
+    init(from xml: XML.Element) throws {
+        try xml.assertType(.image)
+        let attributes = xml.attributes
+        self.init(
+            source: attributes?["source"],
+            width: attributes?["width"]?.asInt() ?? 0,
+            height: attributes?["height"]?.asInt() ?? 0,
+            transparentColor: attributes?["trans"]
+        )
+    }
 }
