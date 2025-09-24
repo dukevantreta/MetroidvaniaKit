@@ -81,6 +81,12 @@ class PlayerNode: CharacterBody2D {
     
     @Export var lastShotAnimationThreshold: Int = 3000
     
+    @Export var dashDistance: Int = 48
+    
+    @Export var dashSpeed: Float = 240
+    
+    @Export var dashTimeLimit: Double = 1.0
+    
     let states: [State: PlayerState] = [
         .idle: IdleState(),
         .run: RunningState(),

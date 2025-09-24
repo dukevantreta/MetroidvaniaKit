@@ -2,15 +2,18 @@ import SwiftGodot
 
 class DashState: PlayerState {
     
+    private var xZero: Float = 0.0
     private var dashTime = 0.0
     
     func enter(_ player: PlayerNode) {
+        dashTime = 0.0
+        xZero = player.position.x
         player.sprite?.play(name: "dash")
     }
     
     func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         
-        if dashTime > 0.5 {
+        if abs(player.position.x - xZero) >= Float(player.dashDistance) || dashTime >= player.dashTimeLimit {
             return .run
         }
         
@@ -19,7 +22,7 @@ class DashState: PlayerState {
     
     func processPhysics(_ player: PlayerNode, dt: Double) {
         
-        player.velocity.x = Float(player.facingDirection * 200)
+        player.velocity.x = Float(player.facingDirection) * player.dashSpeed
         
         player.moveAndSlide()
         
