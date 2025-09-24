@@ -6,38 +6,6 @@ protocol Weapon {
     func fire(direction: Vector2) -> [Node2D]
 }
 
-protocol ProjectileBehavior {
-    func update(_ shot: Projectile, delta: Double)
-}
-
-class LinearShotBehavior: ProjectileBehavior {
-    func update(_ shot: Projectile, delta: Double) {
-        shot.position.x += Float(shot.speed * delta) * shot.direction.x
-        shot.position.y += Float(shot.speed * delta) * shot.direction.y
-    }
-}
-
-class WaveShotBehavior: ProjectileBehavior {
-    
-    var waveAmplitude: Float = 0.0
-    var waveFrequency: Float = 0.0
-    var multiplyFactor: Float = 1
-    private var timeElapsed: Double = 0.0
-    
-    func update(_ shot: Projectile, delta: Double) {
-        timeElapsed += delta
-        
-        shot.position.x += Float(shot.speed * delta) * shot.direction.x
-        shot.position.y += Float(shot.speed * delta) * shot.direction.y
-        
-        let perp = shot.direction.rotated(angle: .pi / 2.0)
-        
-        let waveOffset = Float.sin(Float(timeElapsed) * waveFrequency * .pi) * waveAmplitude * multiplyFactor
-        shot.position.x += waveOffset * perp.x
-        shot.position.y += waveOffset * perp.y
-    }
-}
-
 @Godot
 class PowerBeam: Node, Weapon {
     
@@ -67,7 +35,14 @@ class PowerBeam: Node, Weapon {
         projectile.addChild(node: hitbox)
         projectile.hitbox = hitbox
         
-        projectile.behavior = LinearShotBehavior()
+        let ai = LinearMoveAI()
+        projectile.ai = ai
+        projectile.addChild(node: ai)
+        
+        ai.direction = direction
+        ai.speed = projectile.speed
+        
+        // projectile.behavior = LinearShotBehavior()
         projectile.direction = direction
         projectile.hitbox?.collisionLayer = 0b1_0000
         projectile.hitbox?.collisionMask = 0b0010_0011
@@ -113,13 +88,24 @@ class WaveBeam: Node, Weapon {
             projectiles[i].addChild(node: hitbox)
             projectiles[i].hitbox = hitbox
             
-            let behavior = WaveShotBehavior()//amplitude: waveAmplitude, frequency: waveFrequency)
-            behavior.waveAmplitude = waveAmplitude
-            behavior.waveFrequency = waveFrequency
+            let ai = SinWaveAI()
+            projectiles[i].ai = ai
+            projectiles[i].addChild(node: ai)
+            
+            ai.direction = direction
+            ai.speed = projectiles[i].speed
+            
+            ai.amplitude = waveAmplitude
+            ai.frequency = waveFrequency
+            
+            // let behavior = WaveShotBehavior()//amplitude: waveAmplitude, frequency: waveFrequency)
+            // behavior.waveAmplitude = waveAmplitude
+            // behavior.waveFrequency = waveFrequency
             if i == 1 {
-                behavior.multiplyFactor = -1
+                // behavior.multiplyFactor = -1
+                ai.multiplyFactor = -1
             }
-            projectiles[i].behavior = behavior
+            // projectiles[i].behavior = behavior
             projectiles[i].direction = direction
             projectiles[i].hitbox?.collisionLayer = 0b1_0000
             projectiles[i].hitbox?.collisionMask = 0b0010_0000
@@ -155,13 +141,21 @@ class PlasmaBeam: Node, Weapon {
             let collisionBox = CollisionShape2D()
             collisionBox.shape = collisionRect
             
+            let ai = LinearMoveAI()
+            projectiles[i].ai = ai
+            projectiles[i].addChild(node: ai)
+            
+            ai.direction = direction
+            ai.speed = projectiles[i].speed
+            ai.direction = newDirection
+            
             let hitbox = Hitbox()
             hitbox.addChild(node: collisionBox)
             
             projectiles[i].addChild(node: hitbox)
             projectiles[i].hitbox = hitbox
             
-            projectiles[i].behavior = LinearShotBehavior()
+            // projectiles[i].behavior = LinearShotBehavior()
             projectiles[i].direction = newDirection
             projectiles[i].hitbox?.collisionLayer = 0b1_0000
             projectiles[i].hitbox?.collisionMask = 0b0010_0011
@@ -199,7 +193,14 @@ class RocketLauncher: Node, Weapon {
         projectile.hitbox = hitbox
         hitbox.damageType = .rocket
         
-        projectile.behavior = LinearShotBehavior()
+        let ai = LinearMoveAI()
+        projectile.ai = ai
+        projectile.addChild(node: ai)
+        
+        ai.direction = direction
+        ai.speed = projectile.speed
+        
+        // projectile.behavior = LinearShotBehavior()
         projectile.direction = direction
         projectile.hitbox?.collisionLayer = 0b1_0000
         projectile.hitbox?.collisionMask = 0b0010_0011

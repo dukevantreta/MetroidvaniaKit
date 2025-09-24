@@ -1,31 +1,35 @@
 import SwiftGodot
 
+// FIXME? Crawler is only working is placed above a platform, not under
+
 @Godot
-class CrawlerEnemyAI: EnemyAI {
+// class CrawlerEnemyAI: EnemyAI {
+class CrawlerAI: NodeAI {
     
-    @Export var speed: Double = 100
-    @Export var direction: Double = 1
+    // @Export var speed: Double = 100
+    @Export var xdirection: Double = 1
     
-    var moveDirection: Vector2 = .zero
+    // var moveDirection: Vector2 = .zero
     var floorCheckDirection: Vector2 = .zero
     
     var idleCountdown = 0.1
     var hasTurn = false
     
-    var size: Vector2 = .zero
+    // var size: Vector2 = .zero
     
     override func _ready() {
-        moveDirection = Vector2(x: direction, y: 0)
-        floorCheckDirection = Vector2(x: 0, y: 1)
+        direction = Vector2(x: xdirection, y: 0)
+        floorCheckDirection = Vector2(x: 0, y: 1) // FIXME?
         size = Vector2(x: 16, y: 16) // TODO: get size from enemy
     }
     
-    override func update(_ enemy: Enemy, delta: Double) {
+    override func update(_ node: Node2D, dt: Double) {
+        let delta = dt
         idleCountdown -= delta
         guard idleCountdown <= 0 else { return } // hackish way to skip first frames before floor is ready
         
-        let deltaMove = moveDirection * speed * delta
-        enemy.position += deltaMove
+        let deltaMove: Vector2 = direction * speed * Float(delta)
+        node.position += deltaMove
         
         if hasTurn { // allow an extra frame of movement before checking ground again
             hasTurn = false
@@ -33,16 +37,16 @@ class CrawlerEnemyAI: EnemyAI {
         }
         
         if raycastForWall() {
-            moveDirection = moveDirection.rotated(angle: -.pi * 0.5 * direction)
-            floorCheckDirection = floorCheckDirection.rotated(angle: -.pi * 0.5 * direction)
-            enemy.rotation -= .pi * 0.5 * direction
+            direction = direction.rotated(angle: -.pi * 0.5 * xdirection)
+            floorCheckDirection = floorCheckDirection.rotated(angle: -.pi * 0.5 * xdirection)
+            node.rotation -= .pi * 0.5 * xdirection
             hasTurn = true
         } else if !raycastForFloor() {
-            enemy.position.x += moveDirection.x * size.x * 0.45 + floorCheckDirection.x * size.x * 0.45
-            enemy.position.y += floorCheckDirection.y * size.y * 0.45 + moveDirection.y * size.y * 0.45
-            moveDirection = moveDirection.rotated(angle: .pi * 0.5 * direction)
-            floorCheckDirection = floorCheckDirection.rotated(angle: .pi * 0.5 * direction)
-            enemy.rotation += .pi * 0.5 * direction
+            node.position.x += direction.x * size.x * 0.45 + floorCheckDirection.x * size.x * 0.45
+            node.position.y += floorCheckDirection.y * size.y * 0.45 + direction.y * size.y * 0.45
+            direction = direction.rotated(angle: .pi * 0.5 * xdirection)
+            floorCheckDirection = floorCheckDirection.rotated(angle: .pi * 0.5 * xdirection)
+            node.rotation += .pi * 0.5 * xdirection
             hasTurn = true
         }
     }
@@ -63,8 +67,8 @@ class CrawlerEnemyAI: EnemyAI {
     func raycastForWall() -> Bool {
         guard let space = getWorld2d()?.directSpaceState else { return false }
         let dest = globalPosition + Vector2(
-            x: moveDirection.x * (size.x * 0.5),
-            y: moveDirection.y * (size.y * 0.5))
+            x: direction.x * (size.x * 0.5),
+            y: direction.y * (size.y * 0.5))
         let ray = PhysicsRayQueryParameters2D.create(from: globalPosition, to: dest, collisionMask: 0b1)
         let result = space.intersectRay(parameters: ray)
         if let point = result["position"] {

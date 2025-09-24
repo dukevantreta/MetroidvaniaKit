@@ -1,31 +1,33 @@
 import SwiftGodot
 
 @Godot
-class LinearEnemyAI: EnemyAI {
+class LinearBounceAI: NodeAI {
     
-    @Export var speed: Float = 100
-    @Export var moveDirection: Vector2 = .zero
+    // @Export var speed: Float = 100
+    // @Export var direction: Vector2 = .zero
     
-    var size: Vector2 = .zero
+    // var size: Vector2 = .zero
     
     override func _ready() {
         size = Vector2(x: 16, y: 16) // TODO: get size from enemy
     }
     
-    override func update(_ enemy: Enemy, delta: Double) {
-        let deltaMove = moveDirection * Double(speed) * delta
+    override func update(_ node: Node2D, dt: Double) {
+        let delta = dt
+        let enemy = node
+        let deltaMove = direction * Double(speed) * delta
         enemy.position += deltaMove
 
         guard let space = getWorld2d()?.directSpaceState else { return }
-        let dest = globalPosition + moveDirection * size * 0.5
+        let dest = globalPosition + direction * size * 0.5
         let ray = PhysicsRayQueryParameters2D.create(from: globalPosition, to: dest, collisionMask: 0b1)
         let result = space.intersectRay(parameters: ray)
         if let normal = Vector2(result["normal"]) {
             if !normal.x.isZero {
-                moveDirection.x = -moveDirection.x
+                direction.x = -direction.x
             }
             if !normal.y.isZero {
-                moveDirection.y = -moveDirection.y
+                direction.y = -direction.y
             }
         }
     }

@@ -10,6 +10,12 @@ public func ???<T>(optional: T?, error: @autoclosure () -> Error) throws -> T {
 }
 
 extension Vector2 {
+    public static func *(lhs: Vector2, rhs: Float) -> Vector2 {
+        return Vector2(x: lhs.x * rhs, y: lhs.y * rhs)
+    }
+}
+
+extension Vector2 {
     init(x: Int, y: Int) {
         self.init(x: Float(x), y: Float(y))
     }

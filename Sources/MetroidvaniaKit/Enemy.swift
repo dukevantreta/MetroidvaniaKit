@@ -1,14 +1,9 @@
 import SwiftGodot
 
 @Godot
-class EnemyAI: Node2D {
-    func update(_ enemy: Enemy, delta: Double) {}
-}
-
-@Godot
 class Enemy: Node2D {
     
-    @Node("AI") var enemyAI: EnemyAI?
+    @Node("AI") var enemyAI: NodeAI?
     @Node("Sprite2D") var sprite: Sprite2D?
     @Node("Hitbox") var hitbox: Hitbox?
     
@@ -40,14 +35,17 @@ class Enemy: Node2D {
     
     override func _physicsProcess(delta: Double) {
         guard !isStunlocked else { return }
-        enemyAI?.update(self, delta: delta)
+        // enemyAI?.update(self, delta: delta)
+        enemyAI?.update(self, dt: delta)
     }
     
     func takeDamage(_ amount: Int) {
-        flash()
-        hp -= amount
-        if hp <= 0 {
-            destroy()
+        if hp > 0 {
+            flash()
+            hp -= amount
+            if hp <= 0 {
+                destroy()
+            }
         }
     }
     
@@ -63,8 +61,9 @@ class Enemy: Node2D {
     }
     
     func destroy() {
+        // log("ENEMY \(self.id) DESTROYED")
         if let dropType = DropTable.default.rollDrop() {
-            log("ENEMY DROP: \(dropType.sceneName)")
+            log("ENEMY \(self.id) DROP: \(dropType.sceneName)")
             let object = ResourceLoader.load(path: "res://objects/\(dropType.sceneName).tscn") as? PackedScene
             if let drop = object?.instantiate() as? Node2D {
                 drop.position = position

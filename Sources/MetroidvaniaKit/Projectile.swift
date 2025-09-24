@@ -16,11 +16,11 @@ class Projectile: Node2D {
     
     var lifetime: Double = 1.5
     
-    var speed: Double = 800
+    var speed: Float = 800
     
     var direction: Vector2 = .zero
     
-    var behavior: ProjectileBehavior?
+    var ai: NodeAI?
     
     var onDestroy: (() -> Void)?
     
@@ -47,7 +47,7 @@ class Projectile: Node2D {
     }
     
     override func _physicsProcess(delta: Double) {
-        behavior?.update(self, delta: delta)
+        ai?.update(self, dt: delta)
         
         lifetime -= delta
         if lifetime <= 0 {
