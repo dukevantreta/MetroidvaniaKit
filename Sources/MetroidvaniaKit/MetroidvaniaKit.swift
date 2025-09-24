@@ -37,6 +37,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             BreakableBlock.self,
             SpeedBoosterBlock.self,
             RocketBlock.self,
+            PatrolEnemy.self,
             HUD.self,
             PauseMenu.self,
             MiniMapHUD.self,
