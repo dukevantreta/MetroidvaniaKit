@@ -30,10 +30,32 @@ extension GodotLogger {
 }
 
 extension Node: GodotLogger {}
+//extension GodotError
+
+func loadResource<T>(ofType type: T.Type, at path: String) throws -> T where T: Resource {
+    guard FileAccess.fileExists(path: path) else {
+        throw ImportError.godotError(.errFileNotFound)
+    }
+    guard let resource = ResourceLoader.load(path: path) else {
+        throw ImportError.godotError(.errCantAcquireResource)
+    }
+    guard let resolvedResource = resource as? T else {
+        throw ImportError.godotError(.errCantResolve)
+    }
+    return resolvedResource
+}
+
+func saveResource(_ resource: Resource, path: String) throws {
+    let errorCode = ResourceSaver.save(resource: resource, path: path)
+    if errorCode != .ok {
+        throw ImportError.failedToSaveFile(path, errorCode)
+    }
+}
 
 @Godot(.tool)
 class TileSetImporter: Node {
     
+    static let defaultImportPath = "res://maps/tileset.tres"
     let defaultOutputPath = "res://maps/"
     let defaultTileSetPath = "res://maps/tileset.tres"
     
@@ -91,6 +113,7 @@ class TileSetImporter: Node {
                 gTileset = ResourceLoader.load(path: defaultTileSetPath) as! TileSet
             }
             
+            parseProperties(from: tiledTileset, toGodot: gTileset)
             
             let atlasSource = TileSetAtlasSource()
             atlasSource.resourceName = name//imageName //imageFile.components(separatedBy: "/").last ?? ""
@@ -107,6 +130,68 @@ class TileSetImporter: Node {
                     let atlasCoords = Vector2i(x: column, y: row)
                     atlasSource.createTile(atlasCoords: atlasCoords)
                 }
+            }
+            
+            for tile in tiledTileset.tiles {
+                let atlasCoords = Vector2i(
+                    x: Int32(tile.id) % columns,
+                    y: Int32(tile.id) / columns)
+                
+                guard let tileData = atlasSource.getTileData(atlasCoords: atlasCoords, alternativeTile: 0) else {
+                    GD.print("ERROR GETTING TILE DATA"); break
+                }
+                let tileSize = Vector2i(
+                    x: Int32(tiledTileset.tileWidth ?? 0),
+                    y: Int32(tiledTileset.tileHeight ?? 0)
+                )
+                let halfTile = tileSize / 2
+                
+                if let objectGroup = tile.objectGroup {
+                    for object in objectGroup.objects {
+                        
+                        var physicsLayerIdx: Int32 = 0
+                        for property in object.properties {
+                            if property.name == "physics_layer" {
+                                if let index = Int32(property.value ?? "") {
+                                    physicsLayerIdx = index
+                                }
+                            }
+                        }
+                        
+                        if let polygon = object.polygon {
+                            let origin = Vector2i(x: Int32(object.x), y: Int32(object.y))
+                            let array = PackedVector2Array()
+                            for point in polygon.points {
+                                array.append(value: Vector2(
+                                    x: origin.x + Int32(point.x) - halfTile.x,
+                                    y: origin.y + Int32(point.y) - halfTile.y
+                                ))
+                            }
+                            tileData.addCollisionPolygon(layerId: physicsLayerIdx)
+                            tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
+                        } else { // rectangle
+                            let origin = Vector2i(x: Int32(object.x) - tileSize.x >> 1, y: Int32(object.y) - tileSize.y >> 1)
+                            let array = PackedVector2Array()
+                            array.append(value: Vector2(x: origin.x, y: origin.y))
+                            array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
+                            array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
+                            array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
+                            tileData.addCollisionPolygon(layerId: physicsLayerIdx)
+                            tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
+                        }
+                    }
+                }
+                
+                // tile animation support is too limited
+//                if let animationFrames = tile.animation?.frames {
+//                    atlasSource.setTileAnimationFramesCount(atlasCoords: atlasCoords, framesCount: Int32(animationFrames.count))
+//                    let uniqueFrames = Array(Set(animationFrames.map { $0.tileID }))
+//                    atlasSource.setTileAnimationColumns(atlasCoords: atlasCoords, frameColumns: Int32(animationFrames.count))
+//                    for i in 0..<animationFrames.count {
+//                        let frameDuration = Double(animationFrames[i].duration) / 1000
+//                        atlasSource.setTileAnimationFrameDuration(atlasCoords: atlasCoords, frameIndex: Int32(i), duration: frameDuration)
+//                    }
+//                }
             }
             
             if gTileset.hasSource(named: atlasSource.resourceName) {
@@ -132,6 +217,21 @@ class TileSetImporter: Node {
         }
     }
     
+    func parseProperties(from tiledTileset: Tiled.TileSet, toGodot tileset: TileSet) {
+        for property in tiledTileset.properties {
+            if property.name.hasPrefix("collision_layer_") {
+                if let layerIndex = Int32(property.name.components(separatedBy: "_").last ?? "") {
+                    tileset.addPhysicsLayer(toPosition: layerIndex)
+                    var layerMask: UInt32 = 0
+                    for layer in property.value?.components(separatedBy: ",").compactMap { UInt32($0) } ?? [] {
+                        layerMask |= 1 << (layer - 1)
+                    }
+                    tileset.setPhysicsLayerCollisionLayer(layerIndex: layerIndex, layer: layerMask)
+                }
+            }
+        }
+    }
+    
 //    private func touchTileSet() -> TileSet {
 //        if FileAccess.fileExists(path: defaultTileSetPath),
 //            let tileset = ResourceLoader.load(path: defaultTileSetPath) as? TileSet {
@@ -140,6 +240,19 @@ class TileSetImporter: Node {
 //            
 //        }
 //    }
+    
+    static func loadTileSet() throws -> TileSet {
+        try loadResource(ofType: TileSet.self, at: self.defaultImportPath)
+    }
+}
+
+class TileSetProxy {
+    
+    private let tileSet: TileSet
+    
+    init(tileSet: TileSet) {
+        self.tileSet = tileSet
+    }
 }
 
 class TileSetParser {

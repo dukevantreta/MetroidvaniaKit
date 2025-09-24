@@ -18,6 +18,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
         register(type: TiledImporter.self)
         register(type: MapImportPlugin.self)
         register(type: TileSetImporter.self)
+        register(type: TileMapImporter.self)
         register(type: WorldImporter.self)
 //        register(type: TilemapBuilder.self)
 //        register(type: DictionaryBuilder.self)

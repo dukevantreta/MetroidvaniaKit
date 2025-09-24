@@ -24,6 +24,8 @@ enum ImportError: Error {
     case layerData(LayerDataErrorReason)
     case unhandledObject
     case failedToSaveFile(_ path: String, GodotError)
+    case tileSetNotFound
+    case godotError(GodotError)
     
     enum LayerDataErrorReason {
         case notFound
