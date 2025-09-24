@@ -5,11 +5,14 @@ import Foundation
 @Godot(.tool)
 class TileMapImporter: Node {
     
-    let objectsPath = "res://objects/"
-    
     enum Error: Swift.Error {
         case missingTileSetSource(gid: String?)
     }
+    
+    let objectsPath = "res://objects/"
+    
+    var currentTileset: TileSet? // find a better solution
+    var localTilesetRefs: [Int32: String] = [:]
     
     @Callable
     func importResource(
@@ -74,9 +77,6 @@ class TileMapImporter: Node {
         }
     }
     
-    var currentTileset: TileSet? // find a better solution
-    var localTilesetRefs: [Int32: String] = [:]
-    
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
         currentTileset = tileset
         
@@ -99,6 +99,7 @@ class TileMapImporter: Node {
             let tilemap = TileMapLayer()
             tilemap.setName(layer.name)
             tilemap.tileSet = tileset
+            tilemap.selfModulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity ?? 0.0))
             let cellArray = try layer.getTileData()
                 .components(separatedBy: .whitespacesAndNewlines)
                 .joined()
@@ -260,46 +261,88 @@ class TileMapImporter: Node {
             sprite.flipV = flipVertically
             
         } else if let polygon = object.polygon {
-            let type = object.type.lowercased()
-            let body = if type == "area" || type == "area2d" {
-                Area2D()
-            } else {
-                StaticBody2D()
-            }
+            let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)
             
-            let collision = CollisionPolygon2D()
-            let array = PackedVector2Array()
-            for point in polygon.points {
-                array.append(value: Vector2(x: point.x, y: point.y))
-            }
-            collision.polygon = array
-            body.addChild(node: collision)
 //        } else if let text = object.text { // is text obj
 //        } else if let template = object.template { // TODO
         } else if object.isPoint {
 //            node = Node2D()
 //        } else if object.isEllipse {
         } else { // treat as a rectangle
-            let type = object.type.lowercased()
-            let body = if type == "area" || type == "area2d" {
-                Area2D()
-            } else {
-                StaticBody2D()
-            }
+            let body = parseRectangle(from: object)
             node.addChild(node: body)
-            
-            let shape = RectangleShape2D()
-            shape.size = Vector2(x: object.width, y: object.height)
-            let collision = CollisionShape2D()
-            collision.shape = shape
-            collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
-            body.addChild(node: collision)
         }
         node.setName(object.name)
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
         return node
+    }
+    
+    func parsePolygon(_ polygon: Tiled.Polygon, from object: Tiled.Object) -> Node2D {
+        let type = object.type.lowercased()
+        let body: CollisionObject2D
+        if type == "area" || type == "area2d" {
+            body = Area2D()
+            body.setName("Area2D")
+        } else {
+            body = StaticBody2D()
+            body.setName("StaticBody2D")
+        }
+        let collision = CollisionPolygon2D()
+        let array = PackedVector2Array()
+        for point in polygon.points {
+            array.append(value: Vector2(x: point.x, y: point.y))
+        }
+        collision.polygon = array
+        body.addChild(node: collision)
+        let properties = parseProperties(object.properties)
+        if let layer = properties["collision_layer"] as? Int32 {
+            body.collisionLayer = 0
+            body.setCollisionLayerValue(layerNumber: layer, value: true)
+        }
+        return body
+    }
+    
+    func parseRectangle(from object: Tiled.Object) -> Node2D {
+        let type = object.type.lowercased()
+        let body: CollisionObject2D
+        if type == "area" || type == "area2d" {
+            body = Area2D()
+            body.setName("Area2D")
+        } else {
+            body = StaticBody2D()
+            body.setName("StaticBody2D")
+        }
+        let shape = RectangleShape2D()
+        shape.size = Vector2(x: object.width, y: object.height)
+        let collision = CollisionShape2D()
+        collision.shape = shape
+        collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
+        body.addChild(node: collision)
+        let properties = parseProperties(object.properties)
+        if let layer = properties["collision_layer"] as? Int32 {
+            body.collisionLayer = 0
+            body.setCollisionLayerValue(layerNumber: layer, value: true)
+        }
+        return body
+    }
+    
+    func parseProperties(_ propertyArray: [Tiled.Property]) -> [String: Any] {
+        var properties: [String: Any] = [:]
+        for property in propertyArray {
+            let value: Any = switch property.type {
+            case "string": String(property.value ?? "")
+            case "int": Int32(property.value ?? "0")
+            case "float": Float(property.value ?? "0")
+            case "bool": Bool(property.value ?? "false")
+            case "color": String(property.value ?? "#00000000")
+            case "file": String(property.value ?? ".")
+            default: String(property.value ?? "")
+            }
+            properties[property.name] = value
+        }
+        return properties
     }
     
     func instantiate(_ object: Tiled.Object) -> Node2D? {

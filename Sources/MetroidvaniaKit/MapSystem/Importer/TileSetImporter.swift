@@ -117,7 +117,6 @@ class TileSetImporter: Node {
                                     y: origin.y + Int32(point.y) - halfTile.y
                                 ))
                             }
-                            log("ADDING COLLISION POLYGON TO: \(physicsLayerIdx)")
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         } else { // rectangle
@@ -127,7 +126,6 @@ class TileSetImporter: Node {
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
                             array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
-                            log("ADDING COLLISION RECT TO: \(physicsLayerIdx)")
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         }
