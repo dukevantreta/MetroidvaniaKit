@@ -82,12 +82,11 @@ class TileMapImporter: Node {
         
         for tilesetRef in map.tilesets {
             if let gid = Int32(tilesetRef.firstGID ?? "") {
-//                let name = tilesetRef.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
                 let name = try getFileName(from: tilesetRef.source ?? "")
                 localTilesetRefs[gid] = name
             }
         }
-        GD.print("TILESET DICT: \(localTilesetRefs)")
+        log("CURRENT TILESETS: \(localTilesetRefs)")
         
         let gids = map.tilesets.compactMap { Int32($0.firstGID ?? "") }
         
@@ -126,6 +125,10 @@ class TileMapImporter: Node {
                     y: tileIndex / tilesetColumns
                 )
                 tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
+            }
+            let properties = parseProperties(layer.properties)
+            if let zIndex = properties["z_index"] as? Int32 {
+                tilemap.zIndex = zIndex
             }
             if layer.name == "collision-mask" {
                 tilemap.visible = false
