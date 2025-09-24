@@ -1,7 +1,19 @@
 import SwiftGodot
 
+enum CollisionMask: UInt32 {
+    case floor = 0b0001
+//    case oneWayPlatform = 0b0010 ?
+}
+
+enum Upgrade {
+    case doubleJump
+    case wallGrab
+}
+
 @Godot
 class PlayerNode: CharacterBody2D {
+    
+    @SceneTree(path: "CollisionShape2D") var collisionShape: CollisionShape2D?
     
     @Export
     var speed: Double = 180.0
@@ -35,6 +47,10 @@ class PlayerNode: CharacterBody2D {
         (2 * parabolicHeight * getGravity()).squareRoot()
     }
     
+    func getCollisionRectSize() -> Vector2? {
+        (collisionShape?.shape as? RectangleShape2D)?.size
+    }
+    
     override func _ready() {
         motionMode = .grounded
         floorBlockOnWall = false
@@ -44,15 +60,63 @@ class PlayerNode: CharacterBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
-        let lastDirX = Int(getLastMotion().sign().x)
-        if lastDirX != 0 && lastDirX != facingDirection {
-            facingDirection = lastDirX
-        }
         
         if let newState = state.update(self, dt: delta) {
             newState.enter(self)
             state = newState
         }
+        
+        let faceDirX = Int(velocity.sign().x)
+        if faceDirX != 0 && faceDirX != facingDirection {
+            facingDirection = faceDirX
+        }
+    }
+    
+    func raycastForWall() -> Bool {
+        guard let size = getCollisionRectSize(), let space = getWorld2d()?.directSpaceState else { return false }
+        
+        let origin1 = position + Vector2(x: 0, y: -1)
+        let dest1 = origin1 + Vector2(x: (size.x * 0.5 + 1) * Float(facingDirection), y: 0)
+        let ray1 = PhysicsRayQueryParameters2D.create(from: origin1, to: dest1, collisionMask: 0b0001)
+        
+        let origin2 = position + Vector2(x: 0, y: -size.y)
+        let dest2 = origin2 + Vector2(x: (size.x * 0.5 + 1) * Float(facingDirection), y: 0)
+        let ray2 = PhysicsRayQueryParameters2D.create(from: origin2, to: dest2, collisionMask: 0b0001)
+        
+        let result1 = space.intersectRay(parameters: ray1)
+        let result2 = space.intersectRay(parameters: ray2)
+        
+        if
+            let point1 = result1["position"],
+            let point2 = result2["position"]
+        {
+            GD.print("RAY DID HIT WALL")
+            return true
+        }
+        return false
+    }
+    
+    // DEBUG
+    override func _process(delta: Double) {
+        queueRedraw()
+    }
+    
+    override func _draw() {
+        let origin = Vector2(x: 0, y: -14)
+        let v = velocity * 0.1
+        drawLine(from: origin, to: origin + v, color: .blue)
+        drawLine(from: origin, to: origin + Vector2(x: v.x, y: 0), color: .red)
+        drawLine(from: origin, to: origin + Vector2(x: 0, y: v.y), color: .green)
+        
+        let size = getCollisionRectSize() ?? .zero
+        
+        let rayOrigin1 = Vector2(x: 0, y: -1)
+        let rayDest1 = Vector2(x: rayOrigin1.x + (size.x * 0.5 + 1) * Float(facingDirection), y: rayOrigin1.y)
+        drawLine(from: rayOrigin1, to: rayDest1, color: .magenta)
+        
+        let rayOrigin2 = Vector2(x: 0, y: -size.y)
+        let rayDest2 = Vector2(x: rayOrigin2.x + (size.x * 0.5 + 1) * Float(facingDirection), y: rayOrigin2.y)
+        drawLine(from: rayOrigin2, to: rayDest2, color: .magenta)
     }
 }
 
@@ -79,6 +143,7 @@ class IdleState: PlayerState {
 }
 
 class RunningState: PlayerState {
+    
     func enter(_ player: PlayerNode) {
         
     }
@@ -100,6 +165,7 @@ class RunningState: PlayerState {
         
         // Jump
         if Input.isActionJustPressed(action: "ui_accept") {
+            GD.print("Jump")
             player.velocity.y = Float(-player.getJumpspeed())
         }
         
@@ -122,6 +188,9 @@ class JumpingState: PlayerState {
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
+        
+        player.raycastForWall()
+//        GD.print("IS ON WALL: \(player.raycastForWall())")
         
         // Horizontal Movement
         let direction = Input.getHorizontalAxis()
