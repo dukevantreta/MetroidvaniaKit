@@ -50,13 +50,14 @@ class SpeedBoosterBlock: Node2D {
         area.collisionMask |= 0b1_0000_0000
         
         area.bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
+            guard let self else { return }
             let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
             if layer & 0b1_0000_0000 != 0 {
                 if let player = body as? PlayerNode, player.isSpeedBoosting {
-                    if player.position.y > self?.position.y ?? 0 {
-                        self?.staticBody?.collisionLayer = 0 // Remove collision if player is not above the block
+                    if player.globalPosition.y - 1 > self.globalPosition.y {
+                        self.staticBody?.collisionLayer = 0 // Remove collision only if player is not above the block
                     }
-                    self?.shouldDestroy = true
+                    self.shouldDestroy = true
                 }
             }
         }
