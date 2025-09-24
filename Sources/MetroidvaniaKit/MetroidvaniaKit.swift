@@ -30,6 +30,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             HookHitbox.self,
             WaveShot.self,
             NormalShot.self,
+            MiniMap.self,
         ].forEach { register(type: $0) }
     default:
         break
