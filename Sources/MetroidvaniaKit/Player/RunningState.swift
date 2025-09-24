@@ -5,9 +5,12 @@ class RunningState: PlayerState {
     var isFirstRunningFrame: Bool = true
     var startRunningTimestamp: UInt = 0
     
+    var lastActionTimestamp: UInt = 0
+    
     func enter(_ player: PlayerNode) {
         player.canDoubleJump = true
         startRunningTimestamp = Time.getTicksMsec()
+        lastActionTimestamp = Time.getTicksMsec()
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
@@ -25,6 +28,7 @@ class RunningState: PlayerState {
         
         // Horizontal movement
         if !direction.isZero {
+            lastActionTimestamp = Time.getTicksMsec()
             if isFirstRunningFrame {
                 startRunningTimestamp = Time.getTicksMsec()
                 isFirstRunningFrame = false
@@ -47,7 +51,7 @@ class RunningState: PlayerState {
         
         // Jump
         if Input.isActionJustPressed(.accept) {
-            GD.print("Jump")
+            lastActionTimestamp = Time.getTicksMsec()
             player.velocity.y = Float(-player.getJumpspeed())
         }
         
@@ -55,6 +59,24 @@ class RunningState: PlayerState {
         
         if !player.isOnFloor() {
             return JumpingState()
+        }
+        
+        if abs(player.getRealVelocity().x) > 0 {
+            if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
+                player.sprite?.play(name: "run-aim")
+            } else {
+                player.sprite?.play(name: "run")
+            }
+        } else {
+            if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
+                player.sprite?.play(name: "aim-idle")
+            } else {
+                player.sprite?.play(name: "idle-3")
+            }
+        }
+        
+        if Time.getTicksMsec() - lastActionTimestamp > 10000 {
+            return IdleState()
         }
         
         return nil

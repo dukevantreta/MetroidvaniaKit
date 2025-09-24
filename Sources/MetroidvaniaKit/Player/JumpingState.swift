@@ -6,6 +6,7 @@ class JumpingState: PlayerState {
     
     func enter(_ player: PlayerNode) {
         jumpTimestamp = Time.getTicksMsec()
+        player.sprite?.play(name: "jump-begin")
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
@@ -26,7 +27,7 @@ class JumpingState: PlayerState {
                     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
                 }
             } else {
-                player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration))
+                player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration * 0.2))
             }
         }
         
@@ -69,7 +70,18 @@ class JumpingState: PlayerState {
         }
         
         if player.isOnFloor() {
+            player.sprite?.play(name: "fall-land")
             return RunningState()
+        }
+        
+        if abs(player.getRealVelocity().x) > Float(player.speed * 0.8) {
+            player.sprite?.play(name: "jump-spin")
+        } else {
+            if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
+                player.sprite?.play(name: "jump-aim")
+            } else {
+                player.sprite?.play(name: "jump-still")
+            }
         }
         
         return nil

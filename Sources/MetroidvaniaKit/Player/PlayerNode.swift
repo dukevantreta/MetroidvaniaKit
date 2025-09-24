@@ -15,6 +15,7 @@ class PlayerNode: CharacterBody2D {
     
     @SceneTree(path: "CollisionShape2D") var collisionShape: CollisionShape2D?
     @SceneTree(path: "PlayerUpgrades") var upgrades: PlayerUpgrades!
+    @SceneTree(path: "AnimatedSprite2D") var sprite: AnimatedSprite2D?
     
     @Export
     var speed: Double = 180.0
@@ -46,6 +47,8 @@ class PlayerNode: CharacterBody2D {
     
     var wallJumpTimestamp: UInt = 0
     
+    var lastShotTimestamp: UInt = 0
+    
     var isSpeedBoosting = false {
         didSet {
             floorSnapLength = isSpeedBoosting ? 12 : 6
@@ -53,7 +56,7 @@ class PlayerNode: CharacterBody2D {
     }
     
     var shotOrigin: Vector2 {
-        Vector2(x: Float((7 + 3) * facingDirection), y: -20)
+        Vector2(x: Float(16 * facingDirection), y: -27)
     }
     
     func getGravity() -> Double {
@@ -74,22 +77,25 @@ class PlayerNode: CharacterBody2D {
         slideOnCeiling = false // doesnt work on this movement model
         floorSnapLength = 6.0
         collisionMask = 0b1011
+        state.enter(self)
     }
     
     override func _physicsProcess(delta: Double) {
         
         if Input.isActionJustPressed(action: "action_2") {
             normalShot()
-        }
-        
-        if let newState = state.update(self, dt: delta) {
-            newState.enter(self)
-            state = newState
+            lastShotTimestamp = Time.getTicksMsec()
         }
         
         let faceDirX = Int(velocity.sign().x)
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX
+            sprite?.flipH = facingDirection < 0
+        }
+        
+        if let newState = state.update(self, dt: delta) {
+            newState.enter(self)
+            state = newState
         }
     }
     
@@ -145,5 +151,8 @@ class PlayerNode: CharacterBody2D {
         let rayOrigin2 = Vector2(x: 0, y: -size.y)
         let rayDest2 = Vector2(x: rayOrigin2.x + (size.x * 0.5 + 1) * Float(facingDirection), y: rayOrigin2.y)
         drawLine(from: rayOrigin2, to: rayDest2, color: .magenta)
+        
+        let shotRegion = Rect2(x: shotOrigin.x - 1, y: shotOrigin.y - 1, width: 3, height: 3)
+        drawRect(shotRegion, color: .red)
     }
 }

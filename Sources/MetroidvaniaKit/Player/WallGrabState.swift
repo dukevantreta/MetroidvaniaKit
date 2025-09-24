@@ -2,10 +2,14 @@ import SwiftGodot
 
 class WallGrabState: PlayerState {
     
+    private var lastFacingDirection: Int = 0
+    
     func enter(_ player: PlayerNode) {
         player.velocity.x = 0
         player.velocity.y = 0
         player.isSpeedBoosting = false
+        player.sprite?.play(name: "wall-aim")
+        lastFacingDirection = player.facingDirection
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
@@ -20,6 +24,9 @@ class WallGrabState: PlayerState {
         } else if Int(player.getWallNormal().sign().x) == Int(direction) {
             return JumpingState()
         }
+        
+        player.facingDirection = -lastFacingDirection
+        player.sprite?.flipH = player.facingDirection < 0
         
         return nil
     }
