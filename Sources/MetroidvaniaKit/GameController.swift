@@ -16,7 +16,7 @@ class GameController: Node {
         let cellX = Int32(player!.position.x / (16 * 25))
         let cellY = Int32(player!.position.y / (16 * 15))
         
-        minimapHUD?.center = Vector2i(x: cellX, y: cellY)
+        minimapHUD?.center = Vector2i(x: cellX, y: cellY) // call onCellChanged()
     }
 }
 

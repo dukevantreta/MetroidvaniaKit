@@ -5,7 +5,7 @@ class TextureMaker {
         let image = Image.create(width: size.x, height: size.y, useMipmaps: false, format: .rgba8)
         for x in 0..<size.x {
             for y in 0..<size.y {
-                if x <= margin || y <= margin || x >= size.x - margin || y >= size.y - margin {
+                if x < margin || y < margin || x >= size.x - margin || y >= size.y - margin {
                     image?.setPixel(x: x, y: y, color: fgColor)
                 } else {
                     image?.setPixel(x: x, y: y, color: bgColor)
@@ -97,7 +97,6 @@ class MapDrawer {
     }
     
     func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: Minimap) {
-//    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: MapData) {
         
         guard let cellData = mapData.getCell(at: coords) else {
             drawEmpty(canvasItem: canvasItem, offset: Vector2i(from: offset))

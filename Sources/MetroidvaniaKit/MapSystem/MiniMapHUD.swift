@@ -3,10 +3,6 @@ import SwiftGodot
 @Godot(.tool)
 class MiniMapHUD: Control {
     
-//    let cellSize = Vector2(x: 32, y: 32)
-//    let cellSize = Vector2(x: 8, y: 8)
-    
-//    let mapData = MapData.load()
     let mapData: Minimap = (try? Minimap.load()) ?? Minimap()
     
     @Export var trackPosition: Bool = true
