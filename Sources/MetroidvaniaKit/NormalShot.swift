@@ -3,10 +3,10 @@ import SwiftGodot
 @Godot
 class NormalShot: RigidBody2D {
     
-    var speed: Double = 400
+    var speed: Double = 1000
     var direction: Vector2 = .zero
     
-    var behavior: ProjectileBehavior = WaveShotBehavior()
+    var behavior: ProjectileBehavior = NormalShotBehavior()
     
     override func _ready() {
         collisionMask = 0b0011

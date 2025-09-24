@@ -8,25 +8,47 @@ class WallGrabState: PlayerState {
         player.velocity.x = 0
         player.velocity.y = 0
         player.isSpeedBoosting = false
-        player.sprite?.play(name: "wall-aim")
+//        player.sprite?.play(name: "wall-aim")
         lastFacingDirection = player.facingDirection
     }
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
-        let direction = Input.getHorizontalAxis()
+        let yDirection = Input.getVerticalAxis()
+        let xDirection = Input.getHorizontalAxis()
+        
+        if Input.isActionJustPressed(.action1) {
+            player.fire()
+            player.lastShotTimestamp = Time.getTicksMsec()
+        }
         
         if Input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
             player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()
             return JumpingState()
-        } else if Int(player.getWallNormal().sign().x) == Int(direction) {
+        } else if Int(player.getWallNormal().sign().x) == Int(xDirection) {
             return JumpingState()
         }
         
         player.facingDirection = -lastFacingDirection
         player.sprite?.flipH = player.facingDirection < 0
+        
+        if Input.isActionPressed(.leftShoulder) || !yDirection.isZero {
+            if !yDirection.isZero {
+                player.isAimingDown = yDirection < 0
+            }
+            if player.isAimingDown {
+                player.sprite?.play(name: "wall-aim-down")
+                player.aimWallDown()
+            } else {
+                player.sprite?.play(name: "wall-aim-up")
+                player.aimWallUp()
+            }
+        } else {
+            player.sprite?.play(name: "wall-aim")
+            player.aimForward()
+        }
         
         return nil
     }

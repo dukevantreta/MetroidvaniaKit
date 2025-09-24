@@ -39,6 +39,10 @@ class PlayerNode: CharacterBody2D {
     
     @Export var speedBoostThreshold: Int = 3000
     
+    @Export var idleAnimationThreshold: Int = 10000
+    
+    @Export var lastShotAnimationThreshold: Int = 3000
+    
     var state: PlayerState = IdleState()
     
     var facingDirection: Int = 1
@@ -49,15 +53,16 @@ class PlayerNode: CharacterBody2D {
     
     var lastShotTimestamp: UInt = 0
     
+    var isAimingDown = false
+    
     var isSpeedBoosting = false {
         didSet {
             floorSnapLength = isSpeedBoosting ? 12 : 6
         }
     }
     
-    var shotOrigin: Vector2 {
-        Vector2(x: Float(16 * facingDirection), y: -27)
-    }
+    var shotOrigin: Vector2 = .zero
+    var shotDirection: Vector2 = .zero
     
     func getGravity() -> Double {
         8 * parabolicHeight / (jumpDuration * jumpDuration)
@@ -82,10 +87,10 @@ class PlayerNode: CharacterBody2D {
     
     override func _physicsProcess(delta: Double) {
         
-        if Input.isActionJustPressed(.action1) {
-            normalShot()
-            lastShotTimestamp = Time.getTicksMsec()
-        }
+//        if Input.isActionJustPressed(.action1) {
+//            fire()
+//            lastShotTimestamp = Time.getTicksMsec()
+//        }
         
         let faceDirX = Int(velocity.sign().x)
         if faceDirX != 0 && faceDirX != facingDirection {
@@ -122,15 +127,53 @@ class PlayerNode: CharacterBody2D {
         return false
     }
     
-    func normalShot() {
+    func fire() {
         let shot = NormalShot()
 //        shot.direction = Vector2(x: facingDirection, y: facingDirection).normalized()
-        shot.direction = Vector2(x: facingDirection, y: 0).normalized()
+        shot.direction = shotDirection //Vector2(x: facingDirection, y: 0).normalized()
         shot.position = self.position + shotOrigin
         getParent()?.addChild(node: shot)
     }
     
-    // DEBUG
+    // MARK: AIMING FUNCTIONS
+    
+    func aimForward() {
+        shotOrigin = Vector2(x: Float(16 * facingDirection), y: -27)
+        shotDirection = Vector2(x: facingDirection, y: 0).normalized()
+    }
+    
+    func aimDiagonalUp() {
+        shotOrigin = Vector2(x: Float(12 * facingDirection), y: -37)
+        shotDirection = Vector2(x: facingDirection, y: -1).normalized()
+    }
+    
+    func aimDiagonalDown() {
+        shotOrigin = Vector2(x: Float(13 * facingDirection), y: -18)
+        shotDirection = Vector2(x: facingDirection, y: 1).normalized()
+    }
+    
+    func aimWallUp() {
+        shotOrigin = Vector2(x: Float(17 * facingDirection), y: -37)
+        shotDirection = Vector2(x: facingDirection, y: -1).normalized()
+    }
+    
+    func aimWallDown() {
+        shotOrigin = Vector2(x: Float(17 * facingDirection), y: -18)
+        shotDirection = Vector2(x: facingDirection, y: 1).normalized()
+    }
+    
+    func aimUp() {
+        shotOrigin = Vector2(x: Float(4 * facingDirection), y: -42)
+        shotDirection = Vector2(x: 0, y: -1).normalized()
+    }
+    
+    func aimDown() {
+        shotOrigin = Vector2(x: 0, y: -12)
+        shotDirection = Vector2(x: 0, y: 1).normalized()
+    }
+    
+    // MARK: DEBUG
+    
     override func _process(delta: Double) {
         queueRedraw()
     }

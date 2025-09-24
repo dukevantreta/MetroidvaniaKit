@@ -15,8 +15,13 @@ class RunningState: PlayerState {
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
-        let direction = Input.getHorizontalAxis()
-        var targetSpeed = player.speed * direction
+        let yDirection = Input.getVerticalAxis()
+        let xDirection = Input.getHorizontalAxis()
+        var targetSpeed = player.speed * xDirection
+        
+        if Input.isActionJustPressed(.leftShoulder) {
+            player.isAimingDown = false
+        }
         
         // Speed booster turn on
         if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.upgrades.hasSpeedBooster {
@@ -27,13 +32,13 @@ class RunningState: PlayerState {
         }
         
         // Horizontal movement
-        if !direction.isZero {
+        if !xDirection.isZero {
             lastActionTimestamp = Time.getTicksMsec()
             if isFirstRunningFrame {
                 startRunningTimestamp = Time.getTicksMsec()
                 isFirstRunningFrame = false
             }
-            if (player.velocity.x >= 0 && direction > 0) || (player.velocity.x <= 0 && direction < 0) {
+            if (player.velocity.x >= 0 && xDirection > 0) || (player.velocity.x <= 0 && xDirection < 0) {
                 player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
             } else {
                 player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
@@ -57,25 +62,64 @@ class RunningState: PlayerState {
         
         player.moveAndSlide()
         
+        if Input.isActionJustPressed(.action1) {
+            player.fire()
+            player.lastShotTimestamp = Time.getTicksMsec()
+        }
+        
         if !player.isOnFloor() {
             return JumpingState()
         }
         
+        // Handle animations
         if abs(player.getRealVelocity().x) > 0 {
-            if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
-                player.sprite?.play(name: "run-aim")
+            if Input.isActionPressed(.leftShoulder) || !yDirection.isZero {
+                if !yDirection.isZero {
+                    player.isAimingDown = yDirection < 0
+                }
+                if player.isAimingDown {
+                    player.sprite?.play(name: "run-aim-down")
+                    player.aimDiagonalDown()
+                } else {
+                    player.sprite?.play(name: "run-aim-up")
+                    player.aimDiagonalUp()
+                }
             } else {
-                player.sprite?.play(name: "run")
+                if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
+                    player.sprite?.play(name: "run-aim")
+                } else {
+                    player.sprite?.play(name: "run")
+                }
+                player.aimForward()
             }
         } else {
-            if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
-                player.sprite?.play(name: "aim-idle")
+            if Input.isActionPressed(.leftShoulder) {
+                if !yDirection.isZero {
+                    player.isAimingDown = yDirection < 0
+                }
+                if player.isAimingDown {
+                    player.sprite?.play(name: "aim-diag-down")
+                    player.aimDiagonalDown()
+                } else {
+                    player.sprite?.play(name: "aim-diag-up")
+                    player.aimDiagonalUp()
+                }
             } else {
-                player.sprite?.play(name: "idle-3")
+                if yDirection > 0 {
+                    player.sprite?.play(name: "aim-up")
+                    player.aimUp()
+                } else {
+                    if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
+                        player.sprite?.play(name: "aim-idle")
+                    } else {
+                        player.sprite?.play(name: "idle-3")
+                    }
+                    player.aimForward()
+                }
             }
         }
         
-        if Time.getTicksMsec() - lastActionTimestamp > 10000 {
+        if Time.getTicksMsec() - lastActionTimestamp > player.idleAnimationThreshold {
             return IdleState()
         }
         
