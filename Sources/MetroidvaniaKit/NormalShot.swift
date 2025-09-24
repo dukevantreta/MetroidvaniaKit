@@ -7,7 +7,7 @@ class NormalShot: Area2D {
     var speed: Double = 800
     var direction: Vector2 = .zero
     
-    var behavior: ProjectileBehavior = NormalShotBehavior()
+    var behavior: ProjectileBehavior = LinearShotBehavior()
     
     override func _ready() {
         collisionMask = 0b0010_0011
@@ -59,7 +59,7 @@ protocol ProjectileBehavior {
     func update(_ shot: Projectile, delta: Double)
 }
 
-class NormalShotBehavior: ProjectileBehavior {
+class LinearShotBehavior: ProjectileBehavior {
     func update(_ shot: Projectile, delta: Double) {
         shot.position.x += Float(shot.speed * delta) * shot.direction.x
         shot.position.y += Float(shot.speed * delta) * shot.direction.y

@@ -53,7 +53,7 @@ class PlayerNode: CharacterBody2D {
     
     var state: PlayerState = IdleState()
     
-    var weapon: Weapon = PowerBeam()
+    var weapon: Weapon = PlasmaBeam()//PowerBeam()
     
     var facingDirection: Int = 1
     
@@ -161,11 +161,11 @@ class PlayerNode: CharacterBody2D {
     }
     
     func fire() {
-//        let shot = NormalShot()
-//        shot.direction = shotDirection
-        let shot = weapon.fire(direction: shotDirection)
-        shot.position = self.position + shotOrigin
-        getParent()?.addChild(node: shot)
+        let shots = weapon.fire(direction: shotDirection)
+        for shot in shots {
+            shot.position = self.position + shotOrigin
+            getParent()?.addChild(node: shot)
+        }
     }
     
     func enterWater() {
