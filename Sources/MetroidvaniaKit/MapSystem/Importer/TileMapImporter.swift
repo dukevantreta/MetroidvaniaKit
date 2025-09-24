@@ -209,14 +209,16 @@ class TileMapImporter: Node {
     
     func transformObject(_ object: Tiled.Object) -> Node2D {
         let node: Node2D = instantiate(object)
+        node.setName(object.name)
+        node.position = Vector2(x: object.x, y: object.y)
+        node.visible = object.isVisible
         
         if let gid = object.gid { // is tile
             let trueGID: UInt32 = UInt32(gid) & 0x0FFF_FFFF
             let flipBits: UInt32 = UInt32(gid) & 0xF000_0000
             let flipHorizontally = flipBits & 1 << 31 != 0
             let flipVertically = flipBits & 1 << 30 != 0
-            GD.print("GID: \(gid)")
-            GD.print("TRUE GID: \(trueGID)")
+            
             let sprite = Sprite2D()
             node.addChild(node: sprite)
             
@@ -288,19 +290,30 @@ class TileMapImporter: Node {
             collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
             body.addChild(node: collision)
         }
-        node.setName(object.name)
-        node.position = Vector2(x: object.x, y: object.y)
-        node.visible = object.isVisible
+        
         return node
     }
     
     func instantiate(_ object: Tiled.Object) -> Node2D {
-        switch object.type {
-        case "SpeedBoosterBlock":
-            return SpeedBoosterBlock()
-        default:
-            return Node2D()
+        if !object.type.isEmpty {
+            let path = "res://objects/\(object.type).tscn"
+            if
+                let scene = ResourceLoader.load(path: path) as? PackedScene,
+                let node = scene.instantiate() as? Node2D
+            {
+                return node
+            } else {
+                logError("Object class not found: \(object.type)")
+            }
         }
+        return Node2D()
+         
+//        switch object.type {
+//        case "speed_booster_block": //"SpeedBoosterBlock":
+//            return SpeedBoosterBlock()
+//        default:
+//            return Node2D()
+//        }
     }
 }
 

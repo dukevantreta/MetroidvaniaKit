@@ -44,7 +44,7 @@ class PlayerNode: CharacterBody2D {
     
     var isSpeedBoosting = false {
         didSet {
-            floorSnapLength = isSpeedBoosting ? 8 : 4
+            floorSnapLength = isSpeedBoosting ? 12 : 6
         }
     }
     
@@ -64,7 +64,7 @@ class PlayerNode: CharacterBody2D {
         motionMode = .grounded
         floorBlockOnWall = false
         slideOnCeiling = false // doesnt work on this movement model
-        floorSnapLength = 4.0
+        floorSnapLength = 6.0
         collisionMask = 0b1011
     }
     
