@@ -80,10 +80,9 @@ class CrawlerEnemy: Node2D {
     }
     
     override func _draw() {
-        let origin1 = position
-        let dest1 = position + Vector2(
+        let dest1 = Vector2(
             x: floorCheckDirection.x * (size().x * 0.5 + 2),
             y: floorCheckDirection.y * (size().y * 0.5 + 2))
-        drawLine(from: origin1, to: dest1, color: .blue)
+        drawLine(from: .zero, to: dest1, color: .blue)
     }
 }
