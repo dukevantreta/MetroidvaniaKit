@@ -50,7 +50,7 @@ class RunningState: PlayerState {
         }
         
         // Jump
-        if Input.isActionJustPressed(.accept) {
+        if Input.isActionJustPressed(.action0) {
             lastActionTimestamp = Time.getTicksMsec()
             player.velocity.y = Float(-player.getJumpspeed())
         }

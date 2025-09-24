@@ -1,7 +1,10 @@
 import SwiftGodot
 
 enum InputAction: StringName {
-    case accept = "ui_accept"
+    case action0 = "action_0" // Jump
+    case action1 = "action_1" // Fire
+    
+    case start = "action_start"
 }
 
 extension Input {
@@ -12,5 +15,13 @@ extension Input {
     
     static func isActionJustPressed(_ action: InputAction) -> Bool {
         Input.isActionJustPressed(action: action.rawValue)
+    }
+    
+    static func isActionPressed(_ action: InputAction) -> Bool {
+        Input.isActionPressed(action: action.rawValue)
+    }
+    
+    static func isActionJustReleased(_ action: InputAction) -> Bool {
+        Input.isActionJustReleased(action: action.rawValue)
     }
 }

@@ -16,7 +16,7 @@ class WallGrabState: PlayerState {
         
         let direction = Input.getHorizontalAxis()
         
-        if Input.isActionJustPressed(action: "ui_accept") {
+        if Input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
             player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()

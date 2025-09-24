@@ -35,10 +35,10 @@ class JumpingState: PlayerState {
         let airInterval = Time.getTicksMsec() - jumpTimestamp
         let airHeight = player.getJumpspeed() * Double(airInterval) / 1000
         
-        if Input.isActionJustReleased(action: "ui_accept") && player.velocity.y < 0 { // stop jump mid-air
+        if Input.isActionJustReleased(.action0) && player.velocity.y < 0 { // stop jump mid-air
             player.velocity.y = 0
         }
-        if Input.isActionPressed(action: "ui_accept") && airHeight < player.linearHeight && player.allowJumpSensitivity {
+        if Input.isActionPressed(.action0) && airHeight < player.linearHeight && player.allowJumpSensitivity {
             // do nothing
         } else {
             player.velocity.y += Float(player.getGravity() * dt)
@@ -53,7 +53,7 @@ class JumpingState: PlayerState {
         }
         
         // Mid-air jump
-        if Input.isActionJustPressed(.accept) && player.canDoubleJump && player.upgrades.hasDoubleJump {
+        if Input.isActionJustPressed(.action0) && player.canDoubleJump && player.upgrades.hasDoubleJump {
             player.velocity.y = Float(-player.getJumpspeed())
             jumpTimestamp = Time.getTicksMsec()
             player.canDoubleJump = false

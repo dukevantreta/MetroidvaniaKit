@@ -43,7 +43,7 @@ class GameController: Node {
     }
     
     override func _process(delta: Double) {
-        if Input.isActionJustPressed(action: "ui_cancel") {
+        if Input.isActionJustPressed(.start) {
             if isPaused {
                 unpause()
             } else {

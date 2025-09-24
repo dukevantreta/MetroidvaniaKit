@@ -16,7 +16,7 @@ class IdleState: PlayerState {
         if !direction.isZero {
             return RunningState()
         }
-        if Input.isActionJustPressed(.accept) {
+        if Input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
             return JumpingState()
         }

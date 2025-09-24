@@ -82,7 +82,7 @@ class PlayerNode: CharacterBody2D {
     
     override func _physicsProcess(delta: Double) {
         
-        if Input.isActionJustPressed(action: "action_2") {
+        if Input.isActionJustPressed(.action1) {
             normalShot()
             lastShotTimestamp = Time.getTicksMsec()
         }
