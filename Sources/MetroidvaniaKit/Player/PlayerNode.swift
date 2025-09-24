@@ -27,6 +27,7 @@ class PlayerNode: CharacterBody2D {
         case morph
         case dash
         case charge
+        case hook
     }
     
     @SceneTree(path: "CollisionShape2D") weak var collisionShape: CollisionShape2D?
@@ -37,6 +38,8 @@ class PlayerNode: CharacterBody2D {
     @SceneTree(path: "Weapons/WaveBeam") var waveBeam: Weapon?
     @SceneTree(path: "Weapons/PlasmaBeam") var plasmaBeam: Weapon?
     @SceneTree(path: "Weapons/RocketLauncher") var rocketLauncher: Weapon?
+    
+    @SceneTree(path: "Hookshot") var hookshot: Hookshot?
     
     @BindNode var stats: PlayerStats
     @BindNode var input: InputController
@@ -96,7 +99,8 @@ class PlayerNode: CharacterBody2D {
         .crouch: CrouchState(),
         .morph: MorphState(),
         .dash: DashState(),
-        .charge: ShinesparkState()
+        .charge: ShinesparkState(),
+        .hook: HookState()
     ]
     var currentState: State = .idle
     
@@ -162,6 +166,10 @@ class PlayerNode: CharacterBody2D {
         collisionMask = 0b1011
         switchWeapons(weaponLevel)
         switchSubweapon(.rocket) // check for weapon flags
+        hookshot?.didHit.connect { [weak self] in
+            self?.hookHit()
+        }
+        
         states[currentState]?.enter(self)
     }
     
@@ -188,6 +196,21 @@ class PlayerNode: CharacterBody2D {
             }
         }
         states[currentState]?.processPhysics(self, dt: delta)
+        
+        if input.isActionJustPressed(.actionLeft) {
+            hookshot?.origin = shotOrigin
+            hookshot?.position = shotOrigin
+            hookshot?.direction = shotDirection
+            hookshot?.activate()
+        }
+    }
+    
+    func hookHit() {
+        currentState = .jump
+        let direction = hookshot?.direction ?? .zero
+        velocity.x = direction.x * 500
+        velocity.y = direction.y * 500
+        states[currentState]?.enter(self)
     }
     
     func takeDamage(_ amount: Int, xDirection: Float) {

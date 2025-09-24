@@ -11,6 +11,7 @@ class GameController: Node {
     @SceneTree(path: "../PlayerNode") var player: PlayerNode?
     @SceneTree(path: "../SidescrollerCamera") var camera: SidescrollerCamera?
     @SceneTree(path: "../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
+    @SceneTree(path: "../SubViewport") var subViewport: SubViewport?
     
     @SceneTree(path: "../CanvasLayer/HUD") var hud: HUD?
     @SceneTree(path: "../CanvasLayer/PauseMenu") var pauseMenu: Control?
@@ -19,6 +20,8 @@ class GameController: Node {
     @SceneTree(path: "../Parallax2D") var parallaxLayer: Parallax2D?
     
     @Export var roomToLoad: String = ""
+    
+    @Export var tileMaterial: ShaderMaterial? // move somewhere else
     
     private(set) var world: World?
     
@@ -125,6 +128,18 @@ class GameController: Node {
                 }
             }
         }
+        
+        // proof of concept for x-ray collisions
+//        if let collisionLayer = room?.findChild(pattern: "collision-mask") as? Node2D {
+//            collisionLayer.visible = true
+//            collisionLayer.zIndex = 1000
+////            collisionLayer.setVisibilityLayerBit(layer: 1, enabled: false)
+////            collisionLayer.setVisibilityLayerBit(layer: 2, enabled: true)
+//            collisionLayer.modulate = Color.white
+//            if let tileMaterial {
+//                collisionLayer.material = tileMaterial.duplicate() as? Material
+//            }
+//        }
         
         return room
     }
