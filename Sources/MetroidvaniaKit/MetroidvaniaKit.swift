@@ -25,8 +25,6 @@ func setupScene (level: GDExtension.InitializationLevel) {
             TriggerArea2D.self,
             PlayerHitbox.self,
             HookHitbox.self,
-//            WaveShot.self,
-//            NormalShot.self,
             PowerBeam.self,
             WaveBeam.self,
             PlasmaBeam.self,

@@ -216,17 +216,17 @@ class CharacterController2D: CharacterBody2D {
     }
     
     func normalShot() {
-        let shot = NormalShot()
-        shot.direction = Vector2(x: facingDirection, y: 0)
-        shot.position = shotOrigin
-        addChild(node: shot)
+//        let shot = NormalShot()
+//        shot.direction = Vector2(x: facingDirection, y: 0)
+//        shot.position = shotOrigin
+//        addChild(node: shot)
     }
     
     func waveShot() {
-        let shot = WaveShot()
-        shot.direction = facingDirection
-        shot.position = shotOrigin
-        addChild(node: shot)
+//        let shot = WaveShot()
+//        shot.direction = facingDirection
+//        shot.position = shotOrigin
+//        addChild(node: shot)
 //        shot.position.y = position.y - playerHeight * 0.75
 //        shot.position.x = position.x + Float((7 + 3) * facingDirection)
 //        getParent()?.addChild(node: shot)
