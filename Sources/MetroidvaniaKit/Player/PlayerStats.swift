@@ -12,6 +12,8 @@ class PlayerStats: Node2D {
     
     @Export var energy: Int = 100
     
+    @Export var hasMorph: Bool = false
+    
     @Export var hasSuperJump: Bool = false
     
     @Export var hasDoubleJump: Bool = false

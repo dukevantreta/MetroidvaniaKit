@@ -35,7 +35,7 @@ class CrouchState: PlayerState {
         }
         
         // Morph
-        if player.input.isActionJustPressed(.down) {
+        if player.input.isActionJustPressed(.down) && player.stats.hasMorph {
             return MorphState()
         }
         

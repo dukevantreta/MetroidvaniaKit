@@ -18,7 +18,7 @@ class PlayerNode: CharacterBody2D {
     @SceneTree(path: "AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
     @SceneTree(path: "Stats") weak var stats: PlayerStats!
-    @SceneTree(path: "Input") weak var input: InputController! // = InputController()
+    @SceneTree(path: "Input") weak var input: InputController!
     
     @Export
     var speed: Double = 180.0
@@ -31,8 +31,13 @@ class PlayerNode: CharacterBody2D {
     
     @Export var jumpDuration: Double = 0.5
     
-    @Export var linearHeight: Double = 20 // Height up to where gravity is ignored if the player holds the jump button
-    @Export var parabolicHeight: Double = 48 // Jump height affected by gravity, after ignore range. Total jump height is the sum of both.
+    /// Height up to where gravity is ignored if the player holds the jump button
+    var linearHeight: Double {
+        stats.hasSuperJump ? 52 : 20
+    }
+    
+    /// Jump height affected by gravity, after ignore range. Total jump height is the sum of both.
+    @Export var parabolicHeight: Double = 48
     
     @Export var terminalVelocityFactor: Float = 1.3
     
