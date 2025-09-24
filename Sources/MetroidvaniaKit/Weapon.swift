@@ -149,6 +149,7 @@ class PlasmaBeam: Node, Weapon {
             projectiles[i].collisionMask = 0b0000_0000
             projectiles[i].type = .plasma
         }
+        projectiles[1].zIndex += 1
         return projectiles
     }
 }
@@ -178,6 +179,7 @@ class RocketLauncher: Node, Weapon {
         projectile.collisionLayer = 0b1_0000
         projectile.collisionMask = 0b0010_0011
         projectile.type = .rocket
+        projectile.damage = 50
         
         return [projectile]
     }
