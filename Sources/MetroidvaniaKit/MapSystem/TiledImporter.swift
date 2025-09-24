@@ -19,6 +19,18 @@ func printTree(_ xml: XML.Element, level: Int) {
     }
 }
 
+enum ImportError: Error {
+    case unknown
+    case layerData(LayerDataErrorReason)
+    case unhandledObject
+    
+    enum LayerDataErrorReason {
+        case notFound
+        case formatNotSupported(String)
+        case empty
+    }
+}
+
 @Godot(.tool)
 class TiledImporter: EditorPlugin {
     
@@ -144,257 +156,226 @@ class MapImportPlugin: EditorImportPlugin {
             GD.pushError("[] Import file \(sourceFile) not found!")
             return .errFileNotFound
         }
-        
-        var filePathComponents = sourceFile.components(separatedBy: "/")
-        filePathComponents.removeLast()
-        let filePath = filePathComponents.joined(separator: "/")
-        // TODO parse options
-        
         let xmlTree = XML.parse(sourceFile, with: XMLParser())
         guard let xmlTree else { return .errBug }
             
-        printTree(xmlTree.root, level: 0)
+//        printTree(xmlTree.root, level: 0)
         
-        do {
-            
-            // for some reason, this runs from a background thread during autoimport check
-            DispatchQueue.main.async {
-                
-                guard let map = try? Tiled.TileMap(from: xmlTree.root) else {
-                    return //.errBug
-                }
-                guard map.orientation == .orthogonal else { // support only orthogonal
-                    return //.errBug
-                }
-    //            GD.print("MAP MODEL -----------------------------"); GD.print(map)
-                
-                var tileset: TileSet?
-    //            var tilesetGID: Int?
-                var tilesetColumns: Int = 0
-                var sourceID: Int32 = 0
-                
-                for tilesetRef in map.tilesets {
-                    guard let firstGID = tilesetRef.firstGID,
-                          let source = tilesetRef.source else { break }
-                    
-                    let tilesetFile = [filePath, source].joined(separator: "/")
-                    GD.print("TILESET SOURCE: \(tilesetFile)")
-                    
-                    guard FileAccess.fileExists(path: tilesetFile) else {
-                        GD.pushError("[] Import file \(tilesetFile) not found!")
-                        return //.errFileNotFound
-                    }
-                    guard let tilesetXml = XML.parse(tilesetFile, with: XMLParser()) else {
-                        return //.errBug
-                    }
-    //                        GD.print("TILESET XML -----------------------------")
-    //                        printTree(tilesetXml.root, level: 0)
-                    if let tiledTileset = try? Tiled.TileSet(from: tilesetXml.root) {
-                        //                GD.print("TILESET MODEL -----------------------------")
-                        //                GD.print(tileset)
-                        
-                        let tup = self.createTileSet(tiledTileset, sourceFile: tilesetFile)
-                        tileset = tup?.0
-                        sourceID = tup?.1 ?? -1
-                        //                tilesetGID = Int(tiledTileset.firstGID ?? "")
-                        tilesetColumns = tiledTileset.columns ?? 0
-                    }
-                }
-            
-                let tilemap = TileMap()
-                tilemap.name = "<name>"
-                
-                tileset?.setupLocalToScene() // save .res from separate importer and load as resource?
-                tilemap.tileSet = tileset
-    //            tilemap.tileSet = resTileset
-                GD.print("Is layer 0 enabled: \(tilemap.isLayerEnabled(layer: 0))")
-                
-                    let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
-                    
-                    let sid = sourceID
-                    GD.print("TileSet source ID: \(sid)")
-                    
-                // TODO: Flipped tiles bit shifting
-                for layer in map.layers {
-                    if let data = layer.data {
-                        guard data.encoding == "csv" else {
-                            return  // err
-                        }
-                        guard let text = data.text else {
-                            return  // err
-                        }
-                        let cellArray = text
-                            .components(separatedBy: .whitespacesAndNewlines)
-                            .joined()
-                            .components(separatedBy: ",")
-                            .compactMap { Int($0) }
-                        
-                        GD.print("Cell count: \(cellArray.count)")
-                        
-                        for idx in 0..<cellArray.count {
-                            
-                            let cellValue = cellArray[idx]
-                            let tileIndex = cellValue - (tilesetGID ?? 0)
-                            if tileIndex < 0 {
-                                continue
-                            }
-                            
-                            let mapCoords = Vector2i(
-                                x: Int32(idx % layer.width),
-                                y: Int32(idx / layer.width))
-                            
-                            let tileCoords = Vector2i(
-                                x: Int32(tileIndex % tilesetColumns),
-                                y: Int32(tileIndex / tilesetColumns)
-                            )
-                            tilemap.setCell(layer: 0, coords: mapCoords, sourceId: sid, atlasCoords: tileCoords, alternativeTile: 0)
-                        }
-                    }
-                }
-            
-            
-//            let tilemap2 = TileMap()
-//            tilemap2.name = "tilemap 2"
-//
-                let node = Node2D()
-                node.name = "root"
-                node.addChild(node: tilemap)
-                tilemap.owner = node
-    //            node.addChild(node: tilemap2)
-                let scene = PackedScene()
-                scene.pack(path: node)
-//                scene.pack(path: tilemap)
-                let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
-                
-                if err != .ok {
-                    GD.print("ERROR SAVING OUTPUT: \(err)")
-                } else {
-                    GD.print("SAVE SUCCESSFUL")
-                }
-            }
-            
-            
-            
-            return .ok // bp
-            
-        } catch {
-            GD.print("ERROR PARSING MAP \(error)")
+        // for some reason, this runs from a background thread during autoimport check
+        DispatchQueue.main.async {
+            self.importMap(sourceFile: sourceFile, xml: xmlTree.root)
         }
-        
-//            if let map = Tiled.parseMap(from: xmlTree.root) {
-//                GD.print("MAP MODEL -----------------------------"); GD.print(map)
-//            }
-//        }
-//        let node = Node2D()
-//        node.name = "root"
-//        
-//        let scene = PackedScene()
-//        scene.pack(path: node)
-//        let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
-//        
-//        if err != .ok {
-//            GD.print("ERROR SAVING OUTPUT: \(err)")
-//        }
-        
         return .ok
     }
     
-    func createTileSet(_ tileset: Tiled.TileSet, sourceFile: String) -> (TileSet, Int32)? {
-        let gTileset = TileSet()
-        gTileset.resourceName = tileset.name ?? ""
-        
-        gTileset.setupLocalToScene()
-        
-        let tileSize = Vector2i(
-            x: Int32(tileset.tileWidth ?? 0),
-            y: Int32(tileset.tileHeight ?? 0)
-        )
-        
-        gTileset.tileShape = .square
-        gTileset.tileSize = tileSize
-        
-        var pathComponents = sourceFile.components(separatedBy: "/")
-        pathComponents.removeLast()
-        let tilesetDir = pathComponents.joined(separator: "/")
-        
-        guard let imageSource = tileset.image?.source else {
-            GD.print("ERROR IMG SOURCE"); return nil
+    func importMap(sourceFile: String, xml: XML.Element) {
+        guard let map = try? Tiled.TileMap(from: xml) else {
+            return //.errBug
+        }
+        guard map.orientation == .orthogonal else { // support only orthogonal
+            return //.errBug
         }
         
-        let imageFile = [tilesetDir, imageSource].joined(separator: "/")
-        guard let image = Image.loadFromFile(path: imageFile) else {
-            GD.print("ERROR LOADING IMAGE"); return nil
-        }
-        guard let imageTexture = ImageTexture.createFromImage(image) else {
-            GD.print("ERROR MAKING IMAGE TEXTURE"); return nil
-        }
+        var tileset: TileSet?
         
-        let margin = Int32(tileset.margin ?? 0)
-        let spacing = Int32(tileset.spacing ?? 0)
-        
-        let atlasSource = TileSetAtlasSource()
-        atlasSource.margins = Vector2i(x: margin, y: margin)
-        atlasSource.separation = Vector2i(x: spacing, y: spacing)
-        atlasSource.texture = imageTexture
-        atlasSource.resourceName = imageFile.components(separatedBy: "/").last ?? ""
-        let sourceId = gTileset.addSource(atlasSource)
-        
-        gTileset.addPhysicsLayer(toPosition: 0)
-        gTileset.setPhysicsLayerCollisionLayer(layerIndex: 0, layer: 0b0001)
-        
-        // create tiles
-        let columns = tileset.columns ?? 0
-        for tile in tileset.tiles {
-            let atlasCoords = Vector2i(
-                x: Int32(tile.id % columns),
-                y: Int32(tile.id / columns))
-            atlasSource.createTile(atlasCoords: atlasCoords)
+        for tilesetRef in map.tilesets {
+            guard let firstGID = tilesetRef.firstGID,
+                  let source = tilesetRef.source else { break }
             
-            guard let tileData = atlasSource.getTileData(atlasCoords: atlasCoords, alternativeTile: 0) else {
-                GD.print("ERROR GETTING TILE DATA"); break
+            var filePathComponents = sourceFile.components(separatedBy: "/")
+            filePathComponents.removeLast()
+            let filePath = filePathComponents.joined(separator: "/")
+            let tilesetFile = [filePath, source].joined(separator: "/")
+            GD.print("TILESET SOURCE: \(tilesetFile)")
+            
+            guard FileAccess.fileExists(path: tilesetFile) else {
+                GD.pushError("[] Import file \(tilesetFile) not found!")
+                return //.errFileNotFound
             }
-            let halfTile = tileSize / 2
-            
-            if let objectGroup = tile.objectGroup {
-                for object in objectGroup.objects {
-                    if let polygon = object.polygon {
-                        let origin = Vector2i(x: object.x, y: object.y)
-                        let array = PackedVector2Array()
-                        for point in polygon.points {
-                            array.append(value: Vector2(
-                                x: origin.x + Int32(point.x) - halfTile.x,
-                                y: origin.y + Int32(point.y) - halfTile.y
-                            ))
-                        }
-                        tileData.addCollisionPolygon(layerId: 0)
-                        tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
-                    } else { // rectangle
-                        let origin = Vector2i(x: object.x - tileSize.x >> 1, y: object.y - tileSize.y >> 1)
-                        let array = PackedVector2Array()
-                        array.append(value: Vector2(x: origin.x, y: origin.y))
-                        array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
-                        array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
-                        array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
-                        tileData.addCollisionPolygon(layerId: 0)
-                        tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
-                    }
+            guard let tilesetXml = XML.parse(tilesetFile, with: XMLParser()) else {
+                return //.errBug
+            }
+            if let tiledTileset = try? Tiled.TileSet(from: tilesetXml.root) {
+                tileset = TileSetImporter.createTileSet(tiledTileset, sourceFile: tilesetFile)
+            }
+        }
+        
+        guard let tileset else { return }
+        guard let tilemapNode = try? createTileMap(map: map, using: tileset) else { return }
+        
+        let scene = PackedScene()
+        scene.pack(path: tilemapNode)
+        let err = ResourceSaver.save(resource: scene, path: "res://output/scene_output.tscn")
+        
+        if err != .ok {
+            GD.print("ERROR SAVING OUTPUT: \(err)")
+        } else {
+            GD.print("SAVE SUCCESSFUL")
+        }
+    }
+    
+    func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
+        guard let source = tileset.getSource(sourceId: tileset.getSourceId(index: 0)) as? TileSetAtlasSource else {
+            throw ImportError.unknown // no source
+        }
+        let textureWidth = source.texture?.getWidth() ?? -1
+        let tilesetColumns = Int(textureWidth / tileset.tileSize.x)
+        let tilesetSourceID = tileset.getSourceId(index: 0)
+
+        let root = Node2D()
+        
+        let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
+
+        // TODO: Flipped tiles bit shifting
+        for layer in map.layers {
+            let tilemap = TileMap()
+            tilemap.name = "<name>"
+            tilemap.tileSet = tileset
+            let cellArray = try layer.getTileData()
+                .components(separatedBy: .whitespacesAndNewlines)
+                .joined()
+                .components(separatedBy: ",")
+                .compactMap { Int($0) }
+            for idx in 0..<cellArray.count {
+                let cellValue = cellArray[idx]
+                let tileIndex = cellValue - (tilesetGID ?? 0)
+                if tileIndex < 0 {
+                    continue
                 }
+                let mapCoords = Vector2i(
+                    x: Int32(idx % layer.width),
+                    y: Int32(idx / layer.width))
+                let tileCoords = Vector2i(
+                    x: Int32(tileIndex % tilesetColumns),
+                    y: Int32(tileIndex / tilesetColumns)
+                )
+                tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
+            }
+            root.addChild(node: tilemap)
+            tilemap.owner = root
+        }
+        for group in map.groups {
+            // hardest to handle
+        }
+        for group in map.objectGroups {
+            root.addChild(node: try transformObjectGroup(group))
+        }
+        for child in root.getChildren() {
+            setOwner(root, to: child)
+        }
+        return root
+    }
+    
+    func setOwner(_ owner: Node, to node: Node) {
+        node.owner = owner
+        for child in node.getChildren() {
+            setOwner(owner, to: child)
+        }
+    }
+    
+    func transformObjectGroup(_ objectGroup: Tiled.ObjectGroup) throws -> Node2D {
+        let node = Node2D()
+        node.name = StringName(objectGroup.name)
+        node.position.x = Float(objectGroup.offsetX)
+        node.position.y = Float(objectGroup.offsetY)
+        // TODO: handle parallax
+        // TODO: handle draw order
+        node.visible = objectGroup.isVisible
+        // TODO: handle properties
+//        node.modulate -> use this for opacity and tint?
+        for object in objectGroup.objects {
+            node.addChild(node: transformObject(object))
+        }
+        return node
+    }
+    
+    func transformObject(_ object: Tiled.Object) -> Node2D {
+        let node: Node2D
+        
+        if let gid = object.gid { // is tile
+            let sprite = Sprite2D()
+            node = sprite
+            // TODO
+        } else if let polygon = object.polygon {
+            let type = object.type.lowercased()
+            node = if type == "area" || type == "area2d" {
+                Area2D()
+            } else {
+                StaticBody2D()
+            }
+            let collision = CollisionPolygon2D()
+            let array = PackedVector2Array()
+            for point in polygon.points {
+                array.append(value: Vector2(x: point.x, y: point.y))
+            }
+            collision.polygon = array
+            node.addChild(node: collision)
+//        } else if let text = object.text { // is text obj
+//        } else if let template = object.template { // TODO
+        } else if object.isPoint {
+            node = Node2D()
+//        } else if object.isEllipse {
+        } else { // treat as a rectangle
+            let type = object.type.lowercased()
+            node = if type == "area" || type == "area2d" {
+                Area2D()
+            } else {
+                StaticBody2D()
+            }
+            let shape = RectangleShape2D()
+            shape.size = Vector2(x: object.width, y: object.height)
+            let collision = CollisionShape2D()
+            collision.shape = shape
+            collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
+            node.addChild(node: collision)
+        }
+        node.setName(object.name)
+        node.position = Vector2(x: object.x, y: object.y)
+        node.visible = object.isVisible
+        return node
+    }
+    
+    func createTileMapUsingLayers(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
+        guard let source = tileset.getSource(sourceId: tileset.getSourceId(index: 0)) as? TileSetAtlasSource else {
+            throw ImportError.unknown // no source
+        }
+        let textureWidth = source.texture?.getWidth() ?? -1
+        let tilesetColumns = Int(textureWidth / tileset.tileSize.x)
+        let tilesetSourceID = tileset.getSourceId(index: 0)
+
+        let tilemap = TileMap()
+        tilemap.name = "<name>"
+        tilemap.tileSet = tileset
+        let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
+
+        for layerIdx in 0..<map.layers.count {
+            let layer = map.layers[layerIdx]
+            tilemap.addLayer(toPosition: Int32(layerIdx))
+            let cellArray = try layer.getTileData()
+                .components(separatedBy: .whitespacesAndNewlines)
+                .joined()
+                .components(separatedBy: ",")
+                .compactMap { Int($0) }
+            for idx in 0..<cellArray.count {
+                let cellValue = cellArray[idx]
+                let tileIndex = cellValue - (tilesetGID ?? 0)
+                if tileIndex < 0 {
+                    continue
+                }
+                let mapCoords = Vector2i(
+                    x: Int32(idx % layer.width),
+                    y: Int32(idx / layer.width))
+                let tileCoords = Vector2i(
+                    x: Int32(tileIndex % tilesetColumns),
+                    y: Int32(tileIndex / tilesetColumns)
+                )
+                tilemap.setCell(layer: Int32(layerIdx), coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
             }
         }
-        
-        
-        GD.print("ADDED SOURCE WITH ID: \(sourceId)")
-        
-//        let outputDir = "res://output"
-//        if !DirAccess.dirExistsAbsolute(path: outputDir) {
-//            DirAccess.makeDirRecursiveAbsolute(path: outputDir)
-//        }
-//        let saveFile = "tileset_test.tres"
-//        let outputFile = [outputDir, saveFile].joined(separator: "/")
-//        let err = ResourceSaver.save(resource: gTileset, path: outputFile)
-//        if err != .ok {
-//            GD.print("ERROR SAVING RESOURCE: \(err)")
-//        }
-        return (gTileset, sourceId)
+        let rootNode = Node2D()
+        rootNode.name = "root"
+        rootNode.addChild(node: tilemap)
+        tilemap.owner = rootNode
+        return rootNode
     }
 }

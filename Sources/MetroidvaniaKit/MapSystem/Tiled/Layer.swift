@@ -36,6 +36,19 @@ extension Tiled {
 //        let y: Int = 0
         var properties: [Property]
         var data: Data?
+        
+        func getTileData() throws -> String {
+            guard let data else {
+                throw ImportError.layerData(.notFound)
+            }
+            guard data.encoding == "csv" else {
+                throw ImportError.layerData(.formatNotSupported(data.encoding ?? "unknown"))
+            }
+            guard let text = data.text, !text.isEmpty else {
+                throw ImportError.layerData(.empty)
+            }
+            return text
+        }
     }
 }
 

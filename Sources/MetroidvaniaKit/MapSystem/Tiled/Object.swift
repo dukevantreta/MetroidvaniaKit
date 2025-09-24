@@ -9,15 +9,14 @@ extension Tiled {
         let width: Int32
         let height: Int32
         let rotation: Double // degrees
-        let gid: Int?
+        let gid: Int? // When the object has a gid set, then it is represented by the image of the tile with that global ID.
         let isVisible: Bool
-//        let template: ?
+//        let template: ? // TODO
         var properties: [Property]
         var isEllipse = false
         var isPoint = false
         var polygon: Polygon?
-//        var polyline: ?
-//        var text: ?
+        var text: Text?
     }
 }
 
@@ -45,8 +44,10 @@ extension Tiled.Object: XMLDecodable {
                 isPoint = true
             } else if child.name == "polygon" {
                 polygon = try Tiled.Polygon(from: child)
-//            } else if child.name == "polyline" {
-//            } else if child.name == "text" {
+            } else if child.name == "polyline" {
+                polygon = try Tiled.Polygon(from: child) // treat polyline the same as a polygon
+            } else if child.name == "text" {
+                text = try Tiled.Text(from: child)
             } else if child.name == "properties" {
                 for subchild in child.children {
                     properties.append(try Tiled.Property(from: subchild))

@@ -6,8 +6,8 @@ extension Tiled {
         let name: String?
         let tileWidth: Int?
         let tileHeight: Int?
-        let spacing: Int?
-        let margin: Int?
+        let spacing: Int32
+        let margin: Int32
         let tileCount: Int?
         let columns: Int?
         let objectAlignment: String? // Valid values are unspecified, topleft, top, topright, left, center, right, bottomleft, bottom and bottomright. The default value is unspecified, for compatibility reasons. When unspecified, tile objects use bottomleft in orthogonal mode and bottom in isometric mode. (since 1.4)
@@ -36,8 +36,8 @@ extension Tiled.TileSet: XMLDecodable {
             name: attributes?["name"],
             tileWidth: attributes?["tilewidth"]?.asInt(),
             tileHeight: attributes?["tileheight"]?.asInt(),
-            spacing: attributes?["spacing"]?.asInt(),
-            margin: attributes?["margin"]?.asInt(),
+            spacing: attributes?["spacing"]?.asInt32() ?? 0,
+            margin: attributes?["margin"]?.asInt32() ?? 0,
             tileCount: attributes?["tilecount"]?.asInt(),
             columns: attributes?["columns"]?.asInt(),
             objectAlignment: attributes?["objectalignment"],

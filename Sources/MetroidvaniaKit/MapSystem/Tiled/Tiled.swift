@@ -37,6 +37,8 @@ extension String {
     }
 }
 
+//typealias TInt = Int32
+
 /*
  All documentation is copied from Tiled map editor reference docs.
  
