@@ -17,11 +17,11 @@ class JumpingState: PlayerState {
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
-        let yDirection = Input.getVerticalAxis()
-        let xDirection = Input.getHorizontalAxis()
+        let yDirection = player.input.getVerticalAxis()
+        let xDirection = player.input.getHorizontalAxis()
         var targetSpeed = player.speed * xDirection
         
-        if Input.isActionJustPressed(.leftShoulder) {
+        if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
         
@@ -46,10 +46,10 @@ class JumpingState: PlayerState {
         let airInterval = Time.getTicksMsec() - jumpTimestamp
         let airHeight = player.getJumpspeed() * Double(airInterval) / 1000
         
-        if Input.isActionJustReleased(.action0) && player.velocity.y < 0 { // stop jump mid-air
+        if player.input.isActionJustReleased(.action0) && player.velocity.y < 0 { // stop jump mid-air
             player.velocity.y = 0
         }
-        if Input.isActionPressed(.action0) && airHeight < player.linearHeight && player.allowJumpSensitivity {
+        if player.input.isActionPressed(.action0) && airHeight < player.linearHeight && player.allowJumpSensitivity {
             // do nothing
         } else {
             player.velocity.y += Float(player.getGravity() * dt)
@@ -64,7 +64,7 @@ class JumpingState: PlayerState {
         }
         
         // Mid-air jump
-        if Input.isActionJustPressed(.action0) && player.canDoubleJump && player.upgrades.hasDoubleJump {
+        if player.input.isActionJustPressed(.action0) && player.canDoubleJump && player.upgrades.hasDoubleJump {
             player.velocity.y = Float(-player.getJumpspeed())
             jumpTimestamp = Time.getTicksMsec()
             player.canDoubleJump = false
@@ -81,7 +81,7 @@ class JumpingState: PlayerState {
         
         player.moveAndSlide()
         
-        if Input.isActionJustPressed(.action1) {
+        if player.input.isActionJustPressed(.action1) {
             player.fire()
             player.lastShotTimestamp = Time.getTicksMsec()
             hasShotDuringJump = true
@@ -105,7 +105,7 @@ class JumpingState: PlayerState {
                 player.aimUp()
             }
         } else {
-            if Input.isActionPressed(.leftShoulder) || (!yDirection.isZero && !xDirection.isZero) {
+            if player.input.isActionPressed(.leftShoulder) || (!yDirection.isZero && !xDirection.isZero) {
                 if !yDirection.isZero {
                     player.isAimingDown = yDirection < 0
                 }

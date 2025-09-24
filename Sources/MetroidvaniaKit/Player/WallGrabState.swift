@@ -19,15 +19,15 @@ class WallGrabState: PlayerState {
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
-        let yDirection = Input.getVerticalAxis()
-        let xDirection = Input.getHorizontalAxis()
+        let yDirection = player.input.getVerticalAxis()
+        let xDirection = player.input.getHorizontalAxis()
         
-        if Input.isActionJustPressed(.action1) {
+        if player.input.isActionJustPressed(.action1) {
             player.fire()
             player.lastShotTimestamp = Time.getTicksMsec()
         }
         
-        if Input.isActionJustPressed(.action0) {
+        if player.input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
             player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()
@@ -39,7 +39,7 @@ class WallGrabState: PlayerState {
         player.facingDirection = -lastFacingDirection
         player.sprite?.flipH = player.facingDirection < 0
         
-        if Input.isActionPressed(.leftShoulder) || !yDirection.isZero {
+        if player.input.isActionPressed(.leftShoulder) || !yDirection.isZero {
             if !yDirection.isZero {
                 player.isAimingDown = yDirection < 0
             }

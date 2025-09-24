@@ -13,10 +13,12 @@ enum CollisionMask: UInt32 {
 @Godot
 class PlayerNode: CharacterBody2D {
     
-    @SceneTree(path: "CollisionShape2D") var collisionShape: CollisionShape2D?
-    @SceneTree(path: "PlayerHitbox/CollisionShape2D") var hitbox: CollisionShape2D?
-    @SceneTree(path: "PlayerUpgrades") var upgrades: PlayerUpgrades!
-    @SceneTree(path: "AnimatedSprite2D") var sprite: AnimatedSprite2D?
+    @SceneTree(path: "CollisionShape2D") weak var collisionShape: CollisionShape2D?
+    @SceneTree(path: "PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
+    @SceneTree(path: "PlayerUpgrades") weak var upgrades: PlayerUpgrades!
+    @SceneTree(path: "AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
+    
+    @SceneTree(path: "Input") weak var input: InputController!// = InputController()
     
     @Export
     var speed: Double = 180.0
@@ -93,12 +95,6 @@ class PlayerNode: CharacterBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
-        
-//        if Input.isActionJustPressed(.action1) {
-//            fire()
-//            lastShotTimestamp = Time.getTicksMsec()
-//        }
-        
         let faceDirX = Int(velocity.sign().x)
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX

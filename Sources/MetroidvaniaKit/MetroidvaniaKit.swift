@@ -35,6 +35,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PlayerUpgrades.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
+            InputController.self,
         ].forEach { register(type: $0) }
     default:
         break

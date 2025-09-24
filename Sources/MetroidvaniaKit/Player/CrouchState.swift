@@ -15,27 +15,27 @@ class CrouchState: PlayerState {
     
     func update(_ player: PlayerNode, dt: Double) -> (any PlayerState)? {
         
-        let yDirection = Input.getVerticalAxis()
-        let xDirection = Input.getHorizontalAxis()
+        let yDirection = player.input.getVerticalAxis()
+        let xDirection = player.input.getHorizontalAxis()
         
-        if Input.isActionJustPressed(.action1) {
+        if player.input.isActionJustPressed(.action1) {
             player.fire()
             player.lastShotTimestamp = Time.getTicksMsec()
         }
         
         // Jump
-        if Input.isActionJustPressed(.action0) {
+        if player.input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
             return JumpingState()
         }
         
         // Stand
-        if Input.isActionJustPressed(action: "ui_up") || !xDirection.isZero {
+        if player.input.isActionJustPressed(.up) || !xDirection.isZero {
             return RunningState()
         }
         
         // Morph
-        if Input.isActionJustPressed(action: "ui_down") {
+        if player.input.isActionJustPressed(.down) {
             return MorphState()
         }
         
@@ -45,7 +45,7 @@ class CrouchState: PlayerState {
         }
         
         // Handle animations
-        if Input.isActionPressed(.leftShoulder) {
+        if player.input.isActionPressed(.leftShoulder) {
             player.sprite?.play(name: "crouch-aim-up")
             player.aimCrouchUp()
         } else {

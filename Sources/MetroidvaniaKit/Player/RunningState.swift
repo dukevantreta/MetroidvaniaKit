@@ -20,11 +20,11 @@ class RunningState: PlayerState {
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
-        let yDirection = Input.getVerticalAxis()
-        let xDirection = Input.getHorizontalAxis()
+        let yDirection = player.input.getVerticalAxis()
+        let xDirection = player.input.getHorizontalAxis()
         var targetSpeed = player.speed * xDirection
         
-        if Input.isActionJustPressed(.leftShoulder) {
+        if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
         
@@ -51,7 +51,7 @@ class RunningState: PlayerState {
         } else {
             player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration))
             
-            if yDirection < 0 && !Input.isActionPressed(.leftShoulder) {
+            if yDirection < 0 && !player.input.isActionPressed(.leftShoulder) {
                 player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
                 player.sprite?.play(name: "stand-to-crouch")
                 return CrouchState()
@@ -66,7 +66,7 @@ class RunningState: PlayerState {
         }
         
         // Jump
-        if Input.isActionJustPressed(.action0) {
+        if player.input.isActionJustPressed(.action0) {
             lastActionTimestamp = Time.getTicksMsec()
             player.velocity.y = Float(-player.getJumpspeed())
         }
@@ -77,7 +77,7 @@ class RunningState: PlayerState {
         
         player.moveAndSlide()
         
-        if Input.isActionJustPressed(.action1) {
+        if player.input.isActionJustPressed(.action1) {
             player.fire()
             player.lastShotTimestamp = Time.getTicksMsec()
         }
@@ -88,7 +88,7 @@ class RunningState: PlayerState {
         
         // Handle animations
         if abs(player.getRealVelocity().x) > 0 {
-            if Input.isActionPressed(.leftShoulder) || !yDirection.isZero {
+            if player.input.isActionPressed(.leftShoulder) || !yDirection.isZero {
                 if !yDirection.isZero {
                     player.isAimingDown = yDirection < 0
                 }
@@ -108,7 +108,7 @@ class RunningState: PlayerState {
                 player.aimForward()
             }
         } else {
-            if Input.isActionPressed(.leftShoulder) {
+            if player.input.isActionPressed(.leftShoulder) {
                 if !yDirection.isZero {
                     player.isAimingDown = yDirection < 0
                 }

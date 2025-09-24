@@ -18,10 +18,10 @@ class IdleState: PlayerState {
     
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
-        let yDirection = Input.getVerticalAxis()
-        let hDirection = Input.getHorizontalAxis()
+        let yDirection = player.input.getVerticalAxis()
+        let hDirection = player.input.getHorizontalAxis()
         
-        if Input.isActionJustPressed(.action1) {
+        if player.input.isActionJustPressed(.action1) {
             player.fire()
             player.lastShotTimestamp = Time.getTicksMsec()
         }
@@ -29,7 +29,7 @@ class IdleState: PlayerState {
         if !hDirection.isZero {
             return RunningState()
         }
-        if Input.isActionJustPressed(.action0) {
+        if player.input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())
             return JumpingState()
         }
@@ -37,10 +37,10 @@ class IdleState: PlayerState {
             return JumpingState()
         }
         
-        if Input.isActionJustPressed(.leftShoulder) {
+        if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
-        if Input.isActionPressed(.leftShoulder) {
+        if player.input.isActionPressed(.leftShoulder) {
             if !yDirection.isZero {
                 player.isAimingDown = yDirection < 0
             }
