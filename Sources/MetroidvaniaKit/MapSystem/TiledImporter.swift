@@ -229,7 +229,7 @@ class MapImportPlugin: EditorImportPlugin {
         // TODO: Flipped tiles bit shifting
         for layer in map.layers {
             let tilemap = TileMap()
-            tilemap.name = "<name>"
+            tilemap.setName(layer.name)
             tilemap.tileSet = tileset
             let cellArray = try layer.getTileData()
                 .components(separatedBy: .whitespacesAndNewlines)
@@ -270,6 +270,33 @@ class MapImportPlugin: EditorImportPlugin {
         for child in node.getChildren() {
             setOwner(owner, to: child)
         }
+    }
+    
+    // Solve GIDs
+    func transformLayer(_ layer: Tiled.Layer) throws -> Node2D {
+        let tilemap = TileMap()
+        tilemap.setName(layer.name)
+//        tilemap.tileSet = tileset
+        let cells = try layer.getTileData()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .joined()
+            .components(separatedBy: ",")
+            .compactMap { Int($0) }
+//        for idx in 0..<cells.count {
+//            let tileIndex = cells[idx] - (tilesetGID ?? 0)
+//            if tileIndex < 0 {
+//                continue
+//            }
+//            let mapCoords = Vector2i(
+//                x: Int32(idx % layer.width),
+//                y: Int32(idx / layer.width))
+//            let tileCoords = Vector2i(
+//                x: Int32(tileIndex % tilesetColumns),
+//                y: Int32(tileIndex / tilesetColumns)
+//            )
+//            tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
+//        }
+        return tilemap
     }
     
     func transformGroup(_ group: Tiled.Group) -> Node2D {
