@@ -28,6 +28,7 @@ enum SubweaponType {
     case none
     case rocket
     case granade
+    case smartBomb
 }
 
 @PickerNameProvider
@@ -61,6 +62,7 @@ class PlayerNode: CharacterBody2D {
     @Node("Weapons/PlasmaBeam") var plasmaBeam: WeaponNode?
     @Node("Weapons/RocketLauncher") var rocketLauncher: WeaponNode?
     @Node("Weapons/GranadeLauncher") var granadeLauncher: WeaponNode?
+    @Node("Weapons/SmartBomb") var smartBomb: WeaponNode?
     
     @Node("Hookshot") var hookshot: Hookshot?
     @Node("Ammo") var ammo: Ammo?
@@ -198,11 +200,12 @@ class PlayerNode: CharacterBody2D {
             waveBeam,
             plasmaBeam,
             rocketLauncher,
-            granadeLauncher
+            granadeLauncher,
+            smartBomb
         ].compactMap {$0}.forEach { $0.ammo = ammo } 
 
         switchWeapons(weaponLevel)
-        switchSubweapon(.granade) // check for weapon flags
+        switchSubweapon(.smartBomb) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
             self?.hookHit()
         }
@@ -346,6 +349,7 @@ class PlayerNode: CharacterBody2D {
         case .none: subweapon = nil
         case .rocket: subweapon = rocketLauncher
         case .granade: subweapon = granadeLauncher
+        case .smartBomb: subweapon = smartBomb
         }
     }
     

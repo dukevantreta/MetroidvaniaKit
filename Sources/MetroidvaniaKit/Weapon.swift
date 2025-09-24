@@ -300,3 +300,38 @@ class GranadeLauncher: WeaponNode {
         return [p]
     }
 }
+
+@Godot
+class SmartBomb: WeaponNode {
+
+    // @Export var projectile: PackedScene?
+
+    @Export var explosion: PackedScene?
+
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+        let projectile = Projectile()
+        
+        let tex = PlaceholderTexture2D()
+        tex.size = Vector2(x: 8, y: 8)
+        let sprite = Sprite2D()
+        sprite.texture = tex
+
+        projectile.addChild(node: sprite)
+
+        let ai = LinearMoveAI()
+        projectile.ai = ai
+        projectile.addChild(node: ai)
+        
+        ai.direction = direction
+        ai.speed = 100
+        projectile.lifetime = 1.0
+
+        projectile.destroyOnTimeout = true
+
+        var effectSpawner = HitEffectSpawner()
+        effectSpawner.object = explosion
+        projectile.effectSpawner = effectSpawner
+
+        return [projectile]
+    }
+}

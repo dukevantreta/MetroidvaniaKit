@@ -20,7 +20,9 @@ class Projectile: Node2D {
     
     var ai: NodeAI?
     
-    var onDestroy: (() -> Void)?
+    // var onDestroy: (() -> Void)?
+
+    var destroyOnTimeout: Bool = false
     
     var destroyMask: LayerMask = .floor
     // @Node("Hitbox") 
@@ -56,13 +58,23 @@ class Projectile: Node2D {
         
         lifetime -= delta
         if lifetime <= 0 {
-            queueFree()
+            // queueFree()
+            self.timeout()
         }
     }
     
     func destroy() {
-        onDestroy?()
+        // onDestroy?()
         if let parent = getParent() {
+            if let effect = effectSpawner?.spawn(on: parent) {
+                effect.position = self.position
+            }
+        }
+        queueFree()
+    }
+
+    func timeout() {
+        if destroyOnTimeout, let parent = getParent() {
             if let effect = effectSpawner?.spawn(on: parent) {
                 effect.position = self.position
             }

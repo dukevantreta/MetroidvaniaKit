@@ -44,6 +44,8 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PlasmaBeam.self,
             RocketLauncher.self,
             GranadeLauncher.self,
+            SmartBomb.self,
+            SmartBombExplosion.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
             RocketBlock.self,
