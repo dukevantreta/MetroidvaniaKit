@@ -5,19 +5,23 @@ import Foundation
 @Godot(.tool)
 class TileMapImporter: Node {
     
-//    @Callable
-//    func importResource(
-//        sourceFile: String,
-//        savePath: String,
-//        options: GDictionary,
-//        platformVariants: VariantCollection<String>,
-//        genFiles: VariantCollection<String>
-//    ) -> Int {
+    enum Error: Swift.Error {
+        case missingTileSetSource(gid: String?)
+    }
+    
+    @Callable
+    func importResource(
+        sourceFile: String,
+        savePath: String,
+        options: GDictionary,
+        platformVariants: VariantCollection<String>,
+        genFiles: VariantCollection<String>
+    ) -> Int {
 //        DispatchQueue.main.async {
-//            self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
+            self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
 //        }
-//        return 0
-//    }
+        return 0
+    }
     
     @discardableResult
     private func `import`(
@@ -30,15 +34,24 @@ class TileMapImporter: Node {
             return .errFileNotFound
         }
         do {
-            let xml = try XML.parse(sourceFile, with: XMLParser())
+            let file = try File(path: sourceFile)
+            let xml = try XML.parse(file.path, with: XMLParser())
             let map = try Tiled.TileMap(from: xml.root)
             guard map.orientation == .orthogonal else {
                 return .errBug //
             }
-            let godotTileset = try TileSetImporter.loadTileSet()
+//            let godotTileset = try TileSetImporter.loadTileSet()
+            let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
+            
+            let tilesetImporter = TileSetImporter()
+            for tilesetRef in map.tilesets {
+                let tilesetSource = try tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID)
+                let tilesetSourceFile = [file.directory, tilesetSource].joined(separator: "/")
+                try tilesetImporter.importLazy(sourceFile: tilesetSourceFile, toTileSet: godotTileset)
+            }
+            
             let tilemap = try createTileMap(map: map, using: godotTileset)
             
-//            let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
             let filename = try getFileName(from: sourceFile)
             tilemap.name = StringName(filename)
             
@@ -68,7 +81,8 @@ class TileMapImporter: Node {
         
         for tilesetRef in map.tilesets {
             if let gid = Int32(tilesetRef.firstGID ?? "") {
-                let name = tilesetRef.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+//                let name = tilesetRef.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+                let name = try getFileName(from: tilesetRef.source ?? "")
                 localTilesetRefs[gid] = name
             }
         }
@@ -265,48 +279,4 @@ class TileMapImporter: Node {
         node.visible = object.isVisible
         return node
     }
-    
-//    func createTileMapUsingLayers(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
-//        guard let source = tileset.getSource(sourceId: tileset.getSourceId(index: 0)) as? TileSetAtlasSource else {
-//            throw ImportError.unknown // no source
-//        }
-//        let textureWidth = source.texture?.getWidth() ?? -1
-//        let tilesetColumns = Int(textureWidth / tileset.tileSize.x)
-//        let tilesetSourceID = tileset.getSourceId(index: 0)
-//
-//        let tilemap = TileMap()
-//        tilemap.name = "<name>"
-//        tilemap.tileSet = tileset
-//        let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
-//
-//        for layerIdx in 0..<map.layers.count {
-//            let layer = map.layers[layerIdx]
-//            tilemap.addLayer(toPosition: Int32(layerIdx))
-//            let cellArray = try layer.getTileData()
-//                .components(separatedBy: .whitespacesAndNewlines)
-//                .joined()
-//                .components(separatedBy: ",")
-//                .compactMap { Int($0) }
-//            for idx in 0..<cellArray.count {
-//                let cellValue = cellArray[idx]
-//                let tileIndex = cellValue - (tilesetGID ?? 0)
-//                if tileIndex < 0 {
-//                    continue
-//                }
-//                let mapCoords = Vector2i(
-//                    x: Int32(idx % layer.width),
-//                    y: Int32(idx / layer.width))
-//                let tileCoords = Vector2i(
-//                    x: Int32(tileIndex % tilesetColumns),
-//                    y: Int32(tileIndex / tilesetColumns)
-//                )
-//                tilemap.setCell(layer: Int32(layerIdx), coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
-//            }
-//        }
-//        let rootNode = Node2D()
-//        rootNode.name = "root"
-//        rootNode.addChild(node: tilemap)
-//        tilemap.owner = rootNode
-//        return rootNode
-//    }
 }

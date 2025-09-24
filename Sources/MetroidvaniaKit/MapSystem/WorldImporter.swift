@@ -14,32 +14,7 @@ struct World: Codable {
     let onlyShowAdjacentMaps: Bool
 }
 
-struct File {
-    
-    enum Error: Swift.Error {
-        case malformedFileName(String)
-    }
-    
-    let path: String
-    let name: String
-    let `extension`: String
-    let directory: String
-    
-    init(path: String) throws {
-        var pathComponents = path.components(separatedBy: "/")
-        let fileName = pathComponents.removeLast()
-        let nameStrings = fileName.components(separatedBy: ".")
-        
-        self.path = path
-        self.name = try nameStrings.first ??? Error.malformedFileName(fileName)
-        self.extension = try nameStrings.last ??? Error.malformedFileName(fileName)
-        self.directory = pathComponents.joined(separator: "/")
-    }
-    
-    var exists: Bool {
-        FileAccess.fileExists(path: self.path)
-    }
-}
+
 
 @Godot(.tool)
 class WorldImporter: Node {
@@ -54,8 +29,8 @@ class WorldImporter: Node {
         platformVariants: VariantCollection<String>,
         genFiles: VariantCollection<String>
     ) -> Int {
-        let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
-//        let error = importModular(sourceFile: sourceFile, savePath: savePath, options: options)
+//        let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
+        let error = importModular(sourceFile: sourceFile, savePath: savePath, options: options)
         return Int(error.rawValue)
     }
     
@@ -142,217 +117,6 @@ class WorldImporter: Node {
 //            return .ok
 //        }
         return .ok
-    }
-    
-//    var currentTileset: TileSet? // find a better solution
-//    var localTilesetRefs: [Int32: String] = [:]
-    
-    private func importTileMap(
-        sourceFile: String,
-        savePath: String,
-        gTileset: TileSet
-    ) throws {
-        let file = try File(path: sourceFile)
-        guard FileAccess.fileExists(path: file.path) else {
-            logError("Import file '\(sourceFile)' not found.")
-            throw ImportError.godotError(.errFileNotFound)
-        }
-        let xml = try XML.parse(file.path, with: XMLParser())
-        let map = try Tiled.TileMap(from: xml.root)
-        guard map.orientation == .orthogonal else {
-            throw ImportError.unsupportedMapType(map.orientation)
-        }
-        
-        for tilesetRef in map.tilesets {
-            let tilesetPath = [file.directory, tilesetRef.source ?? ""].joined(separator: "/")
-            
-            // open tileset file
-            log("OPENING TILESET FILE: \(tilesetPath)")
-            try openTileSet(sourceFile: tilesetPath, importTo: gTileset)
-            
-//            if let gid = Int32(tilesetRef.firstGID ?? "") {
-//                let name = tilesetRef.source?.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
-//                localTilesetRefs[gid] = name
-//            }
-        }
-        
-//        let tilemap = try TileMapImporter().createTileMap(map: map, using: gTileset)
-//        tilemap.name = StringName(file.name)
-//        
-//        let scene = PackedScene()
-//        scene.pack(path: tilemap)
-//        try saveResource(scene, path: "\(savePath).tscn")
-//        
-//        try saveResource(gTileset, path: "res://maps/tileset.tres")
-    }
-    
-    private func openTileSet(sourceFile: String, importTo gTileset: TileSet) throws {
-        guard FileAccess.fileExists(path: sourceFile) else {
-            logError("Import file '\(sourceFile)' not found.")
-            throw ImportError.godotError(.errFileNotFound)
-        }
-        let xml = try XML.parse(sourceFile, with: XMLParser())
-        
-        let tiledTileset = try Tiled.TileSet(from: xml.root)
-        
-        guard let imageSource = tiledTileset.image?.source else {
-            logError("No image source reference found for tileset: \(tiledTileset.name)")
-            throw ImportError.noTileSetImageSource
-        }
-        
-        var path = sourceFile.components(separatedBy: "/")
-        var filename = path.removeLast()
-        let atlasName = filename.components(separatedBy: ".").first ?? ""
-        
-        let spritesheetPath = [path.joined(separator: "/"), imageSource].joined(separator: "/")
-        
-        let atlasTexture = try loadResource(ofType: Texture2D.self, at: spritesheetPath)
-        
-        if !gTileset.hasSource(named: atlasName) {
-            log("Creating new atlas source: \(atlasName)")
-            
-            parseProperties(from: tiledTileset, toGodot: gTileset)
-            
-            let atlasSource = TileSetAtlasSource()
-            atlasSource.resourceName = atlasName
-            atlasSource.texture = atlasTexture
-            atlasSource.margins = Vector2i(x: tiledTileset.margin, y: tiledTileset.margin)
-            atlasSource.separation = Vector2i(x: tiledTileset.spacing, y: tiledTileset.spacing)
-            
-            let columns = Int32(tiledTileset.columns ?? 0)
-            let rows = Int32(tiledTileset.tileCount ?? 0) / columns
-            
-            // create tiles
-            for row in 0..<rows {
-                for column in 0..<columns {
-                    let atlasCoords = Vector2i(x: column, y: row)
-                    atlasSource.createTile(atlasCoords: atlasCoords)
-                }
-            }
-            
-            for tile in tiledTileset.tiles {
-                let atlasCoords = Vector2i(
-                    x: Int32(tile.id) % columns,
-                    y: Int32(tile.id) / columns)
-                
-                guard let tileData = atlasSource.getTileData(atlasCoords: atlasCoords, alternativeTile: 0) else {
-                    GD.print("ERROR GETTING TILE DATA"); break
-                }
-                let tileSize = Vector2i(
-                    x: Int32(tiledTileset.tileWidth ?? 0),
-                    y: Int32(tiledTileset.tileHeight ?? 0)
-                )
-                let halfTile = tileSize / 2
-                
-                // there is some buggy stuff here
-// LOG: scene/resources/tile_set.cpp:5430 - Index p_layer_id = 0 is out of bounds (physics.size() = 0).
-                if let objectGroup = tile.objectGroup {
-                    for object in objectGroup.objects {
-                        
-                        var physicsLayerIdx: Int32 = 0
-                        for property in object.properties {
-                            if property.name == "physics_layer" {
-                                if let index = Int32(property.value ?? "") {
-                                    physicsLayerIdx = index
-                                }
-                            }
-                        }
-                        
-                        if let polygon = object.polygon {
-                            let origin = Vector2i(x: Int32(object.x), y: Int32(object.y))
-                            let array = PackedVector2Array()
-                            for point in polygon.points {
-                                array.append(value: Vector2(
-                                    x: origin.x + Int32(point.x) - halfTile.x,
-                                    y: origin.y + Int32(point.y) - halfTile.y
-                                ))
-                            }
-                            GD.print("ADDING COLLISION POLYGON TO: \(physicsLayerIdx)")
-                            tileData.addCollisionPolygon(layerId: physicsLayerIdx)
-                            tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
-                        } else { // rectangle
-                            let origin = Vector2i(x: Int32(object.x) - tileSize.x >> 1, y: Int32(object.y) - tileSize.y >> 1)
-                            let array = PackedVector2Array()
-                            array.append(value: Vector2(x: origin.x, y: origin.y))
-                            array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
-                            array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
-                            array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
-                            GD.print("ADDING COLLISION RECT TO: \(physicsLayerIdx)")
-                            tileData.addCollisionPolygon(layerId: physicsLayerIdx)
-                            tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
-                        }
-                    }
-                }
-                
-                // tile animation support is too limited
-//                if let animationFrames = tile.animation?.frames {
-//                    atlasSource.setTileAnimationFramesCount(atlasCoords: atlasCoords, framesCount: Int32(animationFrames.count))
-//                    let uniqueFrames = Array(Set(animationFrames.map { $0.tileID }))
-//                    atlasSource.setTileAnimationColumns(atlasCoords: atlasCoords, frameColumns: Int32(animationFrames.count))
-//                    for i in 0..<animationFrames.count {
-//                        let frameDuration = Double(animationFrames[i].duration) / 1000
-//                        atlasSource.setTileAnimationFrameDuration(atlasCoords: atlasCoords, frameIndex: Int32(i), duration: frameDuration)
-//                    }
-//                }
-            }
-            
-            
-        }
-    }
-    
-    private func overrideTileSet(named name: String) throws -> TileSet {
-        let tilesetName = "\(name).tileset"
-        if FileAccess.fileExists(path: "res://maps/\(tilesetName).tres") {
-            let err = DirAccess().remove(path: "res://maps/\(tilesetName).tres")
-            if err != .ok {
-                logError("Failed to delete tileset resource file: \(err)")
-                throw ImportError.godotError(err)
-            }
-        }
-        let tileset = TileSet()
-        tileset.resourceName = tilesetName
-        tileset.tileShape = .square
-        tileset.tileSize = Vector2i(x: 16, y: 16) // MAGIC NUMBER
-        return tileset
-    }
-    
-    static func touchTileSet(width: Int32, height: Int32) -> TileSet {
-        let gTileset: TileSet
-        if !FileAccess.fileExists(path: "res://maps/tileset.tres") {
-            let newTileset = TileSet()
-            newTileset.resourceName = "tileset"
-            newTileset.tileShape = .square
-            newTileset.tileSize = Vector2i(
-                x: width,
-                y: height
-            )
-//                ResourceSaver.save(resource: newTileset, path: defaultTileSetPath)
-            gTileset = newTileset
-        } else {
-            gTileset = ResourceLoader.load(path: "res://maps/tileset.tres") as! TileSet
-        }
-        
-//        for tTileset in tiledMap.tilesets {
-//            
-//        }
-        
-        return gTileset
-    }
-    
-    func parseProperties(from tiledTileset: Tiled.TileSet, toGodot tileset: TileSet) {
-        for property in tiledTileset.properties {
-            if property.name.hasPrefix("collision_layer_") {
-                if let layerIndex = Int32(property.name.components(separatedBy: "_").last ?? "") {
-                    tileset.addPhysicsLayer(toPosition: layerIndex)
-                    GD.print("ADDING PHYSICS LAYER: \(layerIndex)")
-                    var layerMask: UInt32 = 0
-                    for layer in property.value?.components(separatedBy: ",").compactMap { UInt32($0) } ?? [] {
-                        layerMask |= 1 << (layer - 1)
-                    }
-                    tileset.setPhysicsLayerCollisionLayer(layerIndex: layerIndex, layer: layerMask)
-                }
-            }
-        }
     }
     
     private func importModular(
@@ -524,7 +288,7 @@ class WorldImporter: Node {
                         sideCell.borders[0] = .empty
                     }
                 }
-//
+
                 // i = 3
                 if let sideCell = indexedCells[cellCoords + .up] {
                     if cell.borders[3] != sideCell.borders[1] {
