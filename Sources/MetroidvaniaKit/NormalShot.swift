@@ -54,35 +54,3 @@ class NormalShot: Area2D {
         queueFree()
     }
 }
-
-protocol ProjectileBehavior {
-    func update(_ shot: Projectile, delta: Double)
-}
-
-class LinearShotBehavior: ProjectileBehavior {
-    func update(_ shot: Projectile, delta: Double) {
-        shot.position.x += Float(shot.speed * delta) * shot.direction.x
-        shot.position.y += Float(shot.speed * delta) * shot.direction.y
-    }
-}
-
-class WaveShotBehavior: ProjectileBehavior {
-    
-    var timeElapsed: Double = 0.0
-    let waveAmplitude: Float = 4.0
-    let waveFrequency: Float = 10.0
-    
-    func update(_ shot: Projectile, delta: Double) {
-        timeElapsed += delta
-        
-        shot.position.x += Float(shot.speed * delta) * shot.direction.x
-        shot.position.y += Float(shot.speed * delta) * shot.direction.y
-        
-        let perpX = -shot.direction.y
-        let perpY = shot.direction.x
-        
-        let waveOffset = Float.sin(Float(timeElapsed) * waveFrequency * .pi) * waveAmplitude
-        shot.position.x += waveOffset * perpX
-        shot.position.y += waveOffset * perpY
-    }
-}

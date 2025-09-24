@@ -17,8 +17,18 @@ class PlayerNode: CharacterBody2D {
     @SceneTree(path: "PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
     @SceneTree(path: "AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
-    @SceneTree(path: "Stats") weak var stats: PlayerStats!
-    @SceneTree(path: "Input") weak var input: InputController!
+    @SceneTree(path: "Weapons/PowerBeam") var powerBeam: Weapon?
+    @SceneTree(path: "Weapons/WaveBeam") var waveBeam: Weapon?
+    @SceneTree(path: "Weapons/PlasmaBeam") var plasmaBeam: Weapon?
+    
+    @BindNode var stats: PlayerStats
+    @BindNode var input: InputController
+    
+    @Export(.range, "0,4,") var weaponLevel: Int = 0 {
+        didSet {
+            switchWeapons(weaponLevel)
+        }
+    }
     
     @Export
     var speed: Double = 180.0
@@ -53,7 +63,7 @@ class PlayerNode: CharacterBody2D {
     
     var state: PlayerState = IdleState()
     
-    var weapon: Weapon = PlasmaBeam()//PowerBeam()
+    var weapon: Weapon?
     
     var facingDirection: Int = 1
     
@@ -98,6 +108,7 @@ class PlayerNode: CharacterBody2D {
         slideOnCeiling = false // doesnt work on this movement model
         floorSnapLength = 6.0
         collisionMask = 0b1011
+        switchWeapons(weaponLevel)
         state.enter(self)
     }
     
@@ -160,11 +171,21 @@ class PlayerNode: CharacterBody2D {
         return false
     }
     
+    func switchWeapons(_ level: Int) {
+        switch level {
+        case 0: weapon = nil
+        case 1: weapon = powerBeam
+        case 2: weapon = waveBeam
+        default: weapon = plasmaBeam
+        }
+    }
+    
     func fire() {
-        let shots = weapon.fire(direction: shotDirection)
-        for shot in shots {
-            shot.position = self.position + shotOrigin
-            getParent()?.addChild(node: shot)
+        if let shots = weapon?.fire(direction: shotDirection) {
+            for shot in shots {
+                shot.position = self.position + shotOrigin
+                getParent()?.addChild(node: shot)
+            }
         }
     }
     
