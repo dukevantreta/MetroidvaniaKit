@@ -8,7 +8,6 @@ class WallGrabState: PlayerState {
         player.velocity.x = 0
         player.velocity.y = 0
         player.isSpeedBoosting = false
-//        player.sprite?.play(name: "wall-aim")
         lastFacingDirection = player.facingDirection
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -22,10 +21,8 @@ class WallGrabState: PlayerState {
         let yDirection = player.input.getVerticalAxis()
         let xDirection = player.input.getHorizontalAxis()
         
-        if player.input.isActionJustPressed(.action1) {
-            player.fire()
-            player.lastShotTimestamp = Time.getTicksMsec()
-        }
+        player.fire()
+        player.fireSubweapon()
         
         if player.input.isActionJustPressed(.action0) {
             player.velocity.y = Float(-player.getJumpspeed())

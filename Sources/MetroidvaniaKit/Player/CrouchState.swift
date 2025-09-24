@@ -18,10 +18,8 @@ class CrouchState: PlayerState {
         let yDirection = player.input.getVerticalAxis()
         let xDirection = player.input.getHorizontalAxis()
         
-        if player.input.isActionJustPressed(.action1) {
-            player.fire()
-            player.lastShotTimestamp = Time.getTicksMsec()
-        }
+        player.fire()
+        player.fireSubweapon()
         
         // Jump
         if player.input.isActionJustPressed(.action0) {

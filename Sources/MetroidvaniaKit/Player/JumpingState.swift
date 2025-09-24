@@ -81,9 +81,9 @@ class JumpingState: PlayerState {
         
         player.moveAndSlide()
         
-        if player.input.isActionJustPressed(.action1) {
-            player.fire()
-            player.lastShotTimestamp = Time.getTicksMsec()
+        if player.fire() {
+            hasShotDuringJump = true
+        } else if player.fireSubweapon() {
             hasShotDuringJump = true
         }
         

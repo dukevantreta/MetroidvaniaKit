@@ -5,8 +5,11 @@ enum InputAction: StringName {
     case down = "ui_down"
     case left = "ui_left"
     case right = "ui_right"
-    case action0 = "action_0" // Jump
-    case action1 = "action_1" // Fire
+    /// Jump
+    case action0 = "action_0"
+    /// Fire main weapon
+    case action1 = "action_1"
+    /// Fire subweapon
     case action2 = "action_2"
     case action3 = "action_3"
     case leftShoulder = "action_left"

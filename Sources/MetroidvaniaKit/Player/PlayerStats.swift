@@ -10,7 +10,7 @@ class PlayerStats: Node2D {
     
     @Export var hp: Int = 100
     
-    @Export var energy: Int = 100
+    @Export var ammo: Int = 10
     
     @Export var hasMorph: Bool = false
     

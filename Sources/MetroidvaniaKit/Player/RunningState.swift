@@ -77,10 +77,8 @@ class RunningState: PlayerState {
         
         player.moveAndSlide()
         
-        if player.input.isActionJustPressed(.action1) {
-            player.fire()
-            player.lastShotTimestamp = Time.getTicksMsec()
-        }
+        player.fire()
+        player.fireSubweapon()
         
         if !player.isOnFloor() {
             return JumpingState()

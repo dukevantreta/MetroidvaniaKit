@@ -20,24 +20,25 @@ func setupScene (level: GDExtension.InitializationLevel) {
         register(type: WorldImporter.self)
     case .scene:
         [
+            GameController.self,
+            InputController.self,
+            SidescrollerCamera.self,
             CharacterController2D.self,
             PlayerNode.self,
+            PlayerStats.self,
             TriggerArea2D.self,
             PlayerHitbox.self,
             HookHitbox.self,
+            Projectile.self,
             PowerBeam.self,
             WaveBeam.self,
             PlasmaBeam.self,
-            Projectile.self,
+            RocketLauncher.self,
             MiniMapHUD.self,
             MapConfiguration.self,
-            GameController.self,
             PauseMenu.self,
-            SidescrollerCamera.self,
-            PlayerStats.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
-            InputController.self,
         ].forEach { register(type: $0) }
     default:
         break

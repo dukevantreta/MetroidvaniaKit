@@ -21,10 +21,8 @@ class IdleState: PlayerState {
         let yDirection = player.input.getVerticalAxis()
         let hDirection = player.input.getHorizontalAxis()
         
-        if player.input.isActionJustPressed(.action1) {
-            player.fire()
-            player.lastShotTimestamp = Time.getTicksMsec()
-        }
+        player.fire()
+        player.fireSubweapon()
         
         if !hDirection.isZero {
             return RunningState()

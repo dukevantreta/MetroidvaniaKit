@@ -2,6 +2,7 @@ import SwiftGodot
 import Numerics
 
 protocol Weapon {
+    var ammoCost: Int { get }
     func fire(direction: Vector2) -> [Node2D]
 }
 
@@ -44,6 +45,8 @@ class PowerBeam: Node, Weapon {
     
     @Export var hitEffect: PackedScene?
     
+    var ammoCost: Int = 0
+    
     func fire(direction: Vector2) -> [Node2D] {
         let projectile = Projectile()
         
@@ -63,6 +66,7 @@ class PowerBeam: Node, Weapon {
         projectile.direction = direction
         projectile.collisionLayer = 0b1_0000
         projectile.collisionMask = 0b0010_0011
+        projectile.type = .normal
         
         projectile.onDestroy = { [weak self] in
             if let hit = self?.hitEffect?.instantiate() as? AnimatedSprite2D {
@@ -82,6 +86,8 @@ class WaveBeam: Node, Weapon {
     @Export var waveFrequency: Float = 15.0
     
     @Export var sprite: PackedScene?
+    
+    var ammoCost: Int = 0
     
     func fire(direction: Vector2) -> [Node2D] {
         let projectiles = [Projectile(), Projectile()]
@@ -106,6 +112,7 @@ class WaveBeam: Node, Weapon {
             projectiles[i].direction = direction
             projectiles[i].collisionLayer = 0b1_0000
             projectiles[i].collisionMask = 0b0010_0000
+            projectiles[i].type = .wave
         }
         return projectiles
     }
@@ -115,6 +122,8 @@ class WaveBeam: Node, Weapon {
 class PlasmaBeam: Node, Weapon {
     
     @Export var sprite: PackedScene?
+    
+    var ammoCost: Int = 0
     
     func fire(direction: Vector2) -> [Node2D] {
         let projectiles = [Projectile(), Projectile(), Projectile()]
@@ -138,7 +147,38 @@ class PlasmaBeam: Node, Weapon {
             projectiles[i].direction = newDirection
             projectiles[i].collisionLayer = 0b1_0000
             projectiles[i].collisionMask = 0b0000_0000
+            projectiles[i].type = .plasma
         }
         return projectiles
+    }
+}
+
+@Godot
+class RocketLauncher: Node, Weapon {
+    
+    @Export var sprite: PackedScene?
+
+    @Export var ammoCost: Int = 1
+    
+    func fire(direction: Vector2) -> [Node2D] {
+        let projectile = Projectile()
+        if let sprite = sprite?.instantiate() as? Sprite2D {
+            projectile.addChild(node: sprite)
+            sprite.rotation = Double(Float.atan2(y: direction.y, x: direction.x))
+        }
+        
+        let collisionRect = RectangleShape2D()
+        collisionRect.size = Vector2(x: 14, y: 10)
+        let collisionBox = CollisionShape2D()
+        collisionBox.shape = collisionRect
+        projectile.addChild(node: collisionBox)
+        
+        projectile.behavior = LinearShotBehavior()
+        projectile.direction = direction
+        projectile.collisionLayer = 0b1_0000
+        projectile.collisionMask = 0b0010_0011
+        projectile.type = .rocket
+        
+        return [projectile]
     }
 }

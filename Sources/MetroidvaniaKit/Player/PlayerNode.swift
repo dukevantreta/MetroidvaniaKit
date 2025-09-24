@@ -10,6 +10,11 @@ enum CollisionMask: UInt32 {
     case player     = 0b0001_0000_0000
 }
 
+enum SubweaponType {
+    case none
+    case rocket
+}
+
 @Godot
 class PlayerNode: CharacterBody2D {
     
@@ -20,6 +25,7 @@ class PlayerNode: CharacterBody2D {
     @SceneTree(path: "Weapons/PowerBeam") var powerBeam: Weapon?
     @SceneTree(path: "Weapons/WaveBeam") var waveBeam: Weapon?
     @SceneTree(path: "Weapons/PlasmaBeam") var plasmaBeam: Weapon?
+    @SceneTree(path: "Weapons/RocketLauncher") var rocketLauncher: Weapon?
     
     @BindNode var stats: PlayerStats
     @BindNode var input: InputController
@@ -67,6 +73,8 @@ class PlayerNode: CharacterBody2D {
     
     var weapon: Weapon?
     
+    var subweapon: Weapon?
+    
     var facingDirection: Int = 1
     
     var canDoubleJump = true
@@ -111,6 +119,7 @@ class PlayerNode: CharacterBody2D {
         floorSnapLength = 6.0
         collisionMask = 0b1011
         switchWeapons(weaponLevel)
+        switchSubweapon(.rocket) // check for weapon flags
         state.enter(self)
     }
     
@@ -132,6 +141,16 @@ class PlayerNode: CharacterBody2D {
             state = newState
         }
     }
+    
+    func enterWater() {
+        isInWater = true
+    }
+    
+    func exitWater() {
+        isInWater = false
+    }
+    
+    // MARK: RAYCASTS
     
     func raycastForWall() -> Bool {
         guard let size = getCollisionRectSize(), let space = getWorld2d()?.directSpaceState else { return false }
@@ -179,6 +198,8 @@ class PlayerNode: CharacterBody2D {
         return false
     }
     
+    // MARK: WEAPON FUNCTIONS
+    
     func switchWeapons(_ level: Int) {
         switch level {
         case 0: weapon = nil
@@ -188,21 +209,46 @@ class PlayerNode: CharacterBody2D {
         }
     }
     
-    func fire() {
-        if let shots = weapon?.fire(direction: shotDirection) {
+    func switchSubweapon(_ type: SubweaponType) {
+        switch type {
+        case .none: subweapon = nil
+        case .rocket: subweapon = rocketLauncher
+        }
+    }
+    
+    @discardableResult
+    func fire() -> Bool {
+        guard let weapon else { return false }
+        if input.isActionJustPressed(.action1) {
+            let shots = weapon.fire(direction: shotDirection)
             for shot in shots {
                 shot.position = self.position + shotOrigin
                 getParent()?.addChild(node: shot)
             }
+            lastShotTimestamp = Time.getTicksMsec()
+            return true
         }
+        return false
     }
     
-    func enterWater() {
-        isInWater = true
-    }
-    
-    func exitWater() {
-        isInWater = false
+    @discardableResult
+    func fireSubweapon() -> Bool {
+        guard let subweapon else { return false }
+        if input.isActionJustPressed(.action2) {
+            if stats.ammo >= subweapon.ammoCost {
+                stats.ammo -= subweapon.ammoCost
+                let shots = subweapon.fire(direction: shotDirection)
+                for shot in shots {
+                    shot.position = self.position + shotOrigin
+                    getParent()?.addChild(node: shot)
+                }
+                lastShotTimestamp = Time.getTicksMsec()
+                return true
+            } else {
+                // play fail sfx feedback
+            }
+        }
+        return false
     }
     
     // MARK: AIMING FUNCTIONS
