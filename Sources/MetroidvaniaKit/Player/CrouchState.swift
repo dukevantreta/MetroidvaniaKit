@@ -15,7 +15,7 @@ class CrouchState: PlayerState {
     
     func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         // Jump
-        if player.input.isActionJustPressed(.action0) {
+        if player.input.isActionJustPressed(.actionRight) {
             player.velocity.y = Float(-player.getJumpspeed())
             return .jump
         }

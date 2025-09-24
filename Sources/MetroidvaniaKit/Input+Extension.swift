@@ -1,20 +1,32 @@
 import SwiftGodot
 
 enum InputAction: StringName {
-    case up = "ui_up"
-    case down = "ui_down"
+    
     case left = "ui_left"
     case right = "ui_right"
-    /// Jump
-    case action0 = "action_0"
-    /// Fire main weapon
-    case action1 = "action_1"
+    case up = "ui_up"
+    case down = "ui_down"
+    
+    case secondaryLeft = "bg_left"
+    case secondaryRight = "bg_right"
+    case secondaryUp = "bg_up"
+    case secondaryDown = "bg_down"
+    
     /// Fire subweapon
-    case action2 = "action_2"
-    case action3 = "action_3"
-    case leftShoulder = "action_left"
-    case rightShoulder = "action_right"
+    case actionLeft = "action_left"
+    /// Jump
+    case actionRight = "action_right"
+    case actionUp = "action_up"
+    /// Fire main weapon
+    case actionDown = "action_down"
+    
+    case leftShoulder = "left_shoulder"
+    case rightShoulder = "right_shoulder"
+    case leftTrigger = "left_trigger"
+    case rightTrigger = "right_trigger"
+    
     case start = "action_start"
+    case select = "action_select"
 }
 
 extension Input {

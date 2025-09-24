@@ -275,7 +275,7 @@ class PlayerNode: CharacterBody2D {
     @discardableResult
     func fire() -> Bool {
         guard let weapon else { return false }
-        if input.isActionJustPressed(.action1) {
+        if input.isActionJustPressed(.actionDown) {
             let shots = weapon.fire(direction: shotDirection)
             for shot in shots {
                 shot.position = self.position + shotOrigin
@@ -290,7 +290,7 @@ class PlayerNode: CharacterBody2D {
     @discardableResult
     func fireSubweapon() -> Bool {
         guard let subweapon else { return false }
-        if input.isActionJustPressed(.action2) {
+        if input.isActionJustPressed(.actionLeft) {
             if stats.ammo >= subweapon.ammoCost {
                 stats.ammo -= subweapon.ammoCost
                 let shots = subweapon.fire(direction: shotDirection)

@@ -22,7 +22,7 @@ class IdleState: PlayerState {
         if !player.xDirection.isZero {
             return .run
         }
-        if player.input.isActionJustPressed(.action0) {
+        if player.input.isActionJustPressed(.actionRight) {
             player.velocity.y = Float(-player.getJumpspeed())
             return .jump
         }

@@ -37,7 +37,7 @@ class MorphState: PlayerState {
         
         
         // Jump
-        if player.input.isActionJustPressed(.action0) && player.isOnFloor() {
+        if player.input.isActionJustPressed(.actionRight) && player.isOnFloor() {
             player.velocity.y = Float(-player.getJumpspeed())
         }
         
@@ -58,10 +58,10 @@ class MorphState: PlayerState {
             let airInterval = Time.getTicksMsec() - jumpTimestamp
             let airHeight = jumpspeed * Double(airInterval) / 1000
             
-            if player.input.isActionJustReleased(.action0) && player.velocity.y < 0 { // stop jump mid-air
+            if player.input.isActionJustReleased(.actionRight) && player.velocity.y < 0 { // stop jump mid-air
                 player.velocity.y = 0
             }
-            if player.input.isActionPressed(.action0) && airHeight < player.linearHeight && player.allowJumpSensitivity {
+            if player.input.isActionPressed(.actionRight) && airHeight < player.linearHeight && player.allowJumpSensitivity {
                 // do nothing
             } else {
                 player.velocity.y += Float(player.getGravity() * dt)
