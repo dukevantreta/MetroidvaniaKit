@@ -23,6 +23,10 @@ extension String {
         Int32(self)
     }
     
+    func asUInt32() -> UInt32? {
+        UInt32(self)
+    }
+    
     func asDouble() -> Double? {
         Double(self)
     }

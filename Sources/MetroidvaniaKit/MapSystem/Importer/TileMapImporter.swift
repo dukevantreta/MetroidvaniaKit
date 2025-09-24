@@ -91,7 +91,7 @@ class TileMapImporter: Node {
         
         let root = Node2D()
         
-        // TODO: Flipped tiles bit shifting
+        // TODO: Flipped tiles bit shifting (already implmented in objects GIDs)
         for layer in map.layers {
 //            let tilemap = TileMap()
             let tilemap = TileMapLayer()
@@ -208,16 +208,22 @@ class TileMapImporter: Node {
     }
     
     func transformObject(_ object: Tiled.Object) -> Node2D {
-        let node: Node2D
+        let node: Node2D = instantiate(object)
         
         if let gid = object.gid { // is tile
+            let trueGID: UInt32 = UInt32(gid) & 0x0FFF_FFFF
+            let flipBits: UInt32 = UInt32(gid) & 0xF000_0000
+            let flipHorizontally = flipBits & 1 << 31 != 0
+            let flipVertically = flipBits & 1 << 30 != 0
+            GD.print("GID: \(gid)")
+            GD.print("TRUE GID: \(trueGID)")
             let sprite = Sprite2D()
-            node = sprite
+            node.addChild(node: sprite)
             
             guard let currentTileset else { fatalError() }
             
             let gids: [Int32] = Array(localTilesetRefs.keys)
-            let tilesetGID = gids.filter { $0 <= gid }.max() ?? 0
+            let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
             
             let atlasName = localTilesetRefs[Int32(tilesetGID)] ?? ""
             guard let atlas = currentTileset.getSource(named: atlasName) as? TileSetAtlasSource else {
@@ -225,7 +231,7 @@ class TileMapImporter: Node {
                 return node
             }
             
-            let tileIndex = Int32(gid) - tilesetGID
+            let tileIndex = Int32(trueGID) - tilesetGID
             
 //            let tilesetColumns = currentTileset.getColumnCount(gid: tilesetGID)
             let sourceID = currentTileset.getSourceId(named: atlasName)
@@ -243,42 +249,58 @@ class TileMapImporter: Node {
             sprite.offset.x = Float(currentTileset.tileSize.x >> 1)
             sprite.offset.y = Float(currentTileset.tileSize.y >> 1)
             
+            sprite.flipH = flipHorizontally
+            sprite.flipV = flipVertically
         } else if let polygon = object.polygon {
             let type = object.type.lowercased()
-            node = if type == "area" || type == "area2d" {
+            let body = if type == "area" || type == "area2d" {
                 Area2D()
             } else {
                 StaticBody2D()
             }
+            node.addChild(node: body)
+            
             let collision = CollisionPolygon2D()
             let array = PackedVector2Array()
             for point in polygon.points {
                 array.append(value: Vector2(x: point.x, y: point.y))
             }
             collision.polygon = array
-            node.addChild(node: collision)
+            body.addChild(node: collision)
 //        } else if let text = object.text { // is text obj
 //        } else if let template = object.template { // TODO
         } else if object.isPoint {
-            node = Node2D()
+//            node = Node2D()
 //        } else if object.isEllipse {
         } else { // treat as a rectangle
             let type = object.type.lowercased()
-            node = if type == "area" || type == "area2d" {
+            let body = if type == "area" || type == "area2d" {
                 Area2D()
             } else {
                 StaticBody2D()
             }
+            node.addChild(node: body)
+            
             let shape = RectangleShape2D()
             shape.size = Vector2(x: object.width, y: object.height)
             let collision = CollisionShape2D()
             collision.shape = shape
             collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
-            node.addChild(node: collision)
+            body.addChild(node: collision)
         }
         node.setName(object.name)
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
         return node
     }
+    
+    func instantiate(_ object: Tiled.Object) -> Node2D {
+        switch object.type {
+        case "SpeedBoosterBlock":
+            return SpeedBoosterBlock()
+        default:
+            return Node2D()
+        }
+    }
 }
+
