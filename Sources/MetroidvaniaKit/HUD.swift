@@ -13,15 +13,17 @@ class HUD: Control {
         self.playerStats = playerStats
         playerStats.connect(signal: PlayerStats.hpChanged, to: self, method: "healthChanged")
         playerStats.connect(signal: PlayerStats.ammoChanged, to: self, method: "ammoChanged")
+        healthChanged()
+        ammoChanged()
     }
     
     @Callable func healthChanged() {
         guard let playerStats else { return }
-        healthLabel?.text = "HP:\(playerStats.hp)"
+        healthLabel?.text = "\(playerStats.hp)"
     }
     
     @Callable func ammoChanged() {
         guard let playerStats else { return }
-        ammoLabel?.text = "Ammo:\(playerStats.ammo)"
+        ammoLabel?.text = "\(playerStats.ammo)"
     }
 }
