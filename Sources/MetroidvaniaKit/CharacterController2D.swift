@@ -217,7 +217,7 @@ class CharacterController2D: CharacterBody2D {
     
     func normalShot() {
         let shot = NormalShot()
-        shot.direction = facingDirection
+        shot.direction = Vector2(x: facingDirection, y: 0)
         shot.position = shotOrigin
         addChild(node: shot)
     }

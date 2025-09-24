@@ -1,9 +1,13 @@
 import SwiftGodot
 
 enum CollisionMask: UInt32 {
-    case floor = 0b0001
-//    case oneWayPlatform = 0b0010 ?
-    case player = 0b1_0000_0000
+    case floor      = 0b0001
+    case block      = 0b0010
+    case water      = 0b0100
+    case hazard     = 0b1000
+    case projectile = 0b0001_0000
+    case enemy      = 0b0010_0000
+    case player     = 0b0001_0000_0000
 }
 
 @Godot
@@ -114,9 +118,10 @@ class PlayerNode: CharacterBody2D {
     
     func normalShot() {
         let shot = NormalShot()
-        shot.direction = facingDirection
-        shot.position = shotOrigin
-        addChild(node: shot)
+//        shot.direction = Vector2(x: facingDirection, y: facingDirection).normalized()
+        shot.direction = Vector2(x: facingDirection, y: 0).normalized()
+        shot.position = self.position + shotOrigin
+        getParent()?.addChild(node: shot)
     }
     
     // DEBUG

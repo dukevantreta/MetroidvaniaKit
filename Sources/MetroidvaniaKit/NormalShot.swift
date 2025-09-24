@@ -4,7 +4,9 @@ import SwiftGodot
 class NormalShot: RigidBody2D {
     
     var speed: Double = 400
-    var direction: Int = 1
+    var direction: Vector2 = .zero
+    
+    var behavior: ProjectileBehavior = WaveShotBehavior()
     
     override func _ready() {
         collisionMask = 0b0011
@@ -37,10 +39,44 @@ class NormalShot: RigidBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
-        position.x += Float(speed * delta * Double(direction))
+//        position.x += Float(speed * delta) * direction.x
+//        position.y += Float(speed * delta) * direction.y
+        behavior.update(self, delta: delta)
     }
     
     func destroy() {
         queueFree()
+    }
+}
+
+protocol ProjectileBehavior {
+    func update(_ shot: NormalShot, delta: Double)
+}
+
+class NormalShotBehavior: ProjectileBehavior {
+    func update(_ shot: NormalShot, delta: Double) {
+        shot.position.x += Float(shot.speed * delta) * shot.direction.x
+        shot.position.y += Float(shot.speed * delta) * shot.direction.y
+    }
+}
+
+class WaveShotBehavior: ProjectileBehavior {
+    
+    var timeElapsed: Double = 0.0
+    let waveAmplitude: Float = 4.0
+    let waveFrequency: Float = 10.0
+    
+    func update(_ shot: NormalShot, delta: Double) {
+        timeElapsed += delta
+        
+        shot.position.x += Float(shot.speed * delta) * shot.direction.x
+        shot.position.y += Float(shot.speed * delta) * shot.direction.y
+        
+        let perpX = -shot.direction.y
+        let perpY = shot.direction.x
+        
+        let waveOffset = Float.sin(Float(timeElapsed) * waveFrequency * .pi) * waveAmplitude
+        shot.position.x += waveOffset * perpX
+        shot.position.y += waveOffset * perpY
     }
 }
