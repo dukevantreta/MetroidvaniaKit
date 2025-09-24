@@ -121,8 +121,8 @@ class TileMapImporter: Node {
                 let tilesetColumns = tileset.getColumnCount(sourceId: sourceID)
                 
                 let mapCoords = Vector2i(
-                    x: Int32(idx % layer.width),
-                    y: Int32(idx / layer.width))
+                    x: Int32(idx) % layer.width,
+                    y: Int32(idx) / layer.width)
                 let tileCoords = Vector2i(
                     x: Int32(tileIndex % UInt32(tilesetColumns)),
                     y: Int32(tileIndex / UInt32(tilesetColumns))
@@ -133,10 +133,25 @@ class TileMapImporter: Node {
             if let zIndex = properties["z_index"] as? Int32 {
                 tilemap.zIndex = zIndex
             }
+            
+            // Handle parallax layer (this is broken)
+//            if let xParallax = layer.parallaxX, let yParallax = layer.parallaxY, (xParallax != 1.0 || yParallax != 1.0) {
+//                let parallax = Parallax2D()
+//                parallax.name = StringName("Parallax2D")
+//                parallax.scrollScale = Vector2(x: -xParallax, y: -yParallax)
+////                parallax.repeatSize = Vector2(x: layer.width * TILE_SIZE, y: layer.height * TILE_SIZE)
+//                parallax.repeatSize = Vector2(x: 25 * TILE_SIZE, y: 15 * TILE_SIZE)
+//                parallax.followViewport = true
+//                parallax.addChild(node: tilemap)
+////                parallax.repeatTimes = 3
+//                root.addChild(node: parallax)
+//            } else {
+                root.addChild(node: tilemap)
+//            }
+            
             if layer.name == "collision-mask" {
                 tilemap.visible = false
             }
-            root.addChild(node: tilemap)
         }
         for group in map.groups {
             root.addChild(node: transformGroup(group))

@@ -4,7 +4,7 @@ import SwiftGodot
 class SidescrollerCamera: Camera2D {
     
 //    @Export var target: CharacterController2D?
-//    @SceneTree(path: "../CharacterController2D") var target: CharacterController2D?
+//    @SceneTree(path: "../PlayerNode") var target: Node2D?
     weak var target: Node2D?
     
     override func _process(delta: Double) {
@@ -12,7 +12,7 @@ class SidescrollerCamera: Camera2D {
         
         self.position = Vector2(
             x: target.position.x,
-            y: target.position.y - 30)
+            y: target.position.y - 24)
         
 //        self.position.x = Float(GD.moveToward(
 //            from: Double(position.x),
