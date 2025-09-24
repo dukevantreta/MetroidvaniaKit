@@ -174,8 +174,8 @@ class WorldImporter: Node {
 //    }
     
     func processMapData(_ data: Minimap, map: World.Map, node: Node2D) {
-        guard let tilemap = node.getChildren().first as? TileMapLayer else {
-            logError("CANT GET TILEMAP FROM SCENE NODE")
+        guard let tilemap = node.findChild(pattern: "collision-mask") as? TileMapLayer else {
+            logError("CANT GET COLLISION MASK FROM SCENE NODE")
             return
         }
         let viewportSize = Vector2i(x: 25, y: 15) // static constant for the game

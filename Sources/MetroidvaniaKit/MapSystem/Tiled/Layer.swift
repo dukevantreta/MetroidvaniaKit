@@ -25,8 +25,8 @@ extension Tiled {
         let name: String
         let width: Int32
         let height: Int32
-        let opacity: Double?
-        let isVisible: Bool?
+        let opacity: Double
+        let visible: Int32
         let tintColor: String?
         let offsetX: Int?
         let offsetY: Int?
@@ -36,6 +36,10 @@ extension Tiled {
 //        let y: Int = 0
         var properties: [Property]
         var data: Data?
+        
+        var isVisible: Bool {
+            visible != 0
+        }
         
         func getTileData() throws -> String {
             guard let data else {
@@ -62,7 +66,7 @@ extension Tiled.Layer: XMLDecodable {
             width: attributes?["width"]?.asInt32() ?? 0,
             height: attributes?["height"]?.asInt32() ?? 0,
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
-            isVisible: attributes?["visible"]?.asBool() ?? true,
+            visible: attributes?["visible"]?.asInt32() ?? 1,
             tintColor: attributes?["tintcolor"],
             offsetX: attributes?["offsetx"]?.asInt() ?? 0,
             offsetY: attributes?["offsety"]?.asInt() ?? 0,

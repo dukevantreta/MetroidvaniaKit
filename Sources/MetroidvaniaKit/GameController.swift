@@ -167,7 +167,6 @@ class GameController: Node {
             overlayTween?.setPauseMode(.process)
             overlayTween?.tweenProperty(object: bgOverlay, property: "self_modulate", finalVal: Variant(Color.black), duration: 0.15)
             overlayTween?.finished.connect { [weak self] in
-                GD.print("TWEEN CALLBACK")
                 let newRoom = self?.instantiateRoom(map)
                 self?.getParent()?.addChild(node: newRoom)
                 

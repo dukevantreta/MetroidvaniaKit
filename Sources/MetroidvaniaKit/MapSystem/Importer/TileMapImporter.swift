@@ -97,12 +97,13 @@ class TileMapImporter: Node {
             let tilemap = TileMapLayer()
             tilemap.setName(layer.name)
             tilemap.tileSet = tileset
-            tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity ?? 0.0))
+            tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
             if let colorString = layer.tintColor {
                 if let color = parseHexColor(colorString) {
                     tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
                 }
             }
+            tilemap.visible = layer.isVisible
             
             let cellArray = try layer.getTileData()
                 .components(separatedBy: .whitespacesAndNewlines)
@@ -154,10 +155,6 @@ class TileMapImporter: Node {
 //            } else {
                 root.addChild(node: tilemap)
 //            }
-            
-            if layer.name == "collision-mask" {
-                tilemap.visible = false
-            }
         }
         for group in map.groups {
             root.addChild(node: transformGroup(group))
