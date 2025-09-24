@@ -1,6 +1,7 @@
 import SwiftGodot
 
 @Godot
+@NativeHandleDiscarding
 class HookHitbox: Area2D {
     
     weak var player: CharacterController2D?
@@ -15,12 +16,12 @@ class HookHitbox: Area2D {
     
     private var collisionToken: Object?
     
-    required init(nativeHandle: UnsafeRawPointer) {
-        super.init(nativeHandle: nativeHandle)
-    }
+//    required init(nativeHandle: UnsafeRawPointer) {
+//        super.init(nativeHandle: nativeHandle)
+//    }
     
-    required init() {
-        super.init()
+    required init(_ context: InitContext) {
+        super.init(context)
         
         collisionMask |= 0b00000001
         collisionMask |= 0b00000010
@@ -39,13 +40,18 @@ class HookHitbox: Area2D {
         collisionShape.shape = rectShape
         addChild(node: collisionShape)
         
-        collisionToken = bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
+//        collisionToken =
+        bodyShapeEntered.connect { [weak self] bodyRid, body, bodyShapeIndex, localShapeIndex in
             let layer = PhysicsServer2D.bodyGetCollisionLayer(body: bodyRid)
             if layer & 0b01 != 0 {
                 self?.hitWall()
             }
         }
     }
+    
+//    required init(_ context: InitContext) {
+//        fatalError("init(_:) has not been implemented")
+//    }
     
 //    override func _ready() {
 //        
@@ -75,7 +81,7 @@ class HookHitbox: Area2D {
     
     func hitWall() {
         guard let collisionToken else { return }
-        bodyShapeEntered.disconnect(collisionToken)
+//        bodyShapeEntered.disconnect(collisionToken)
 //        GD.print("HOOK HIT WALL")
 //        queueFree()
         lock = true

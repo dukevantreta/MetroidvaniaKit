@@ -15,6 +15,13 @@ enum SubweaponType {
     case rocket
 }
 
+@PickerNameProvider
+enum WeaponType: Int {
+    case normal
+    case wave
+    case plasma
+}
+
 @Godot
 class PlayerNode: CharacterBody2D {
     
@@ -30,16 +37,16 @@ class PlayerNode: CharacterBody2D {
         case hook
     }
     
-    @SceneTree(path: "CollisionShape2D") weak var collisionShape: CollisionShape2D?
-    @SceneTree(path: "PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
-    @SceneTree(path: "AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
+    @Node("CollisionShape2D") weak var collisionShape: CollisionShape2D?
+    @Node("PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
+    @Node("AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
-    @SceneTree(path: "Weapons/PowerBeam") var powerBeam: Weapon?
-    @SceneTree(path: "Weapons/WaveBeam") var waveBeam: Weapon?
-    @SceneTree(path: "Weapons/PlasmaBeam") var plasmaBeam: Weapon?
-    @SceneTree(path: "Weapons/RocketLauncher") var rocketLauncher: Weapon?
+    @Node("Weapons/PowerBeam") var powerBeam: Weapon?
+    @Node("Weapons/WaveBeam") var waveBeam: Weapon?
+    @Node("Weapons/PlasmaBeam") var plasmaBeam: Weapon?
+    @Node("Weapons/RocketLauncher") var rocketLauncher: Weapon?
     
-    @SceneTree(path: "Hookshot") var hookshot: Hookshot?
+    @Node("Hookshot") var hookshot: Hookshot?
     
     @BindNode var stats: PlayerStats
     @BindNode var input: InputController
@@ -49,6 +56,8 @@ class PlayerNode: CharacterBody2D {
             switchWeapons(weaponLevel)
         }
     }
+    
+    @Export(.enum) var weaponType: WeaponType = .normal
     
     @Export
     var speed: Double = 180.0

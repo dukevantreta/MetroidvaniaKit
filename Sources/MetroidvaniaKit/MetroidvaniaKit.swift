@@ -40,6 +40,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             Enemy.self,
             EnemyHurtbox.self,
             EnemyHitbox.self,
+            EnemyAI.self,
             PatrolEnemyAI.self,
             CrawlerEnemyAI.self,
             LinearEnemyAI.self,
@@ -48,7 +49,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PauseMenu.self,
             MiniMapHUD.self,
             MapConfiguration.self,
-            Hookshot.self
+            Hookshot.self,
         ].forEach { register(type: $0) }
     default:
         break

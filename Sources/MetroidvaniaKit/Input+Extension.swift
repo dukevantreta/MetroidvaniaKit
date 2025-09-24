@@ -12,12 +12,9 @@ enum InputAction: StringName {
     case secondaryUp = "bg_up"
     case secondaryDown = "bg_down"
     
-    /// Fire subweapon
     case actionLeft = "action_left"
-    /// Jump
     case actionRight = "action_right"
     case actionUp = "action_up"
-    /// Fire main weapon
     case actionDown = "action_down"
     
     case leftShoulder = "left_shoulder"

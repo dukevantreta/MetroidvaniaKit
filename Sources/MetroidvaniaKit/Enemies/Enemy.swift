@@ -1,15 +1,19 @@
 import SwiftGodot
 
-protocol EnemyAI {
-    func update(_ enemy: Enemy, delta: Double)
+@Godot
+class EnemyAI: Node2D {
+    func update(_ enemy: Enemy, delta: Double) {}
 }
 
 @Godot
 class Enemy: Node2D {
     
-    @SceneTree(path: "AI") var enemyAI: EnemyAI?
-    @SceneTree(path: "Sprite2D") var sprite: Sprite2D?
-    @SceneTree(path: "Hurtbox") var hurtbox: EnemyHurtbox?
+//    @Node var enemyAI: EnemyAI?
+//    @Node var sprite: Sprite2D?
+//    @Node var hurtbox: EnemyHurtbox?
+    @Node("AI") var enemyAI: EnemyAI?
+    @Node("Sprite2D") var sprite: Sprite2D?
+    @Node("Hurtbox") var hurtbox: EnemyHurtbox?
     
     @Export var hp: Int = 10
     

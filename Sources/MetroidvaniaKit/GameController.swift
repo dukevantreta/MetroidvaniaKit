@@ -8,16 +8,16 @@ let ROOM_HEIGHT: Int32 = 15
 @Godot
 class GameController: Node {
     
-    @SceneTree(path: "../PlayerNode") var player: PlayerNode?
-    @SceneTree(path: "../SidescrollerCamera") var camera: SidescrollerCamera?
-    @SceneTree(path: "../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
-    @SceneTree(path: "../SubViewport") var subViewport: SubViewport?
+    @Node("../PlayerNode") var player: PlayerNode?
+    @Node("../SidescrollerCamera") var camera: SidescrollerCamera?
+    @Node("../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
+    @Node("../SubViewport") var subViewport: SubViewport?
     
-    @SceneTree(path: "../CanvasLayer/HUD") var hud: HUD?
-    @SceneTree(path: "../CanvasLayer/PauseMenu") var pauseMenu: Control?
-    @SceneTree(path: "../CanvasLayer/PauseMenu/Overlay") var canvasOverlay: ColorRect?
+    @Node("../CanvasLayer/HUD") var hud: HUD?
+    @Node("../CanvasLayer/PauseMenu") var pauseMenu: Control?
+    @Node("../CanvasLayer/PauseMenu/Overlay") var canvasOverlay: ColorRect?
     
-    @SceneTree(path: "../Parallax2D") var parallaxLayer: Parallax2D?
+    @Node("../Parallax2D") var parallaxLayer: Parallax2D?
     
     @Export var roomToLoad: String = ""
     

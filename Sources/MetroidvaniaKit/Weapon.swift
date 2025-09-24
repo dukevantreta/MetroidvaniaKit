@@ -176,7 +176,7 @@ class RocketLauncher: Node, Weapon {
         
         projectile.behavior = LinearShotBehavior()
         projectile.direction = direction
-        projectile.collisionLayer = 0b1_0000
+        projectile.collisionLayer = 0b0_0000
         projectile.collisionMask = 0b0010_0011
         projectile.type = .rocket
         projectile.damage = 50

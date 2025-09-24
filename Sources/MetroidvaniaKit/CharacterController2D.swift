@@ -3,8 +3,8 @@ import SwiftGodot
 @Godot
 class CharacterController2D: CharacterBody2D {
     
-    @SceneTree(path: "AnimationPlayer") var animationPlayer: AnimationPlayer?
-    @SceneTree(path: "Sprite2D") var sprite: Sprite2D?
+    @Node("AnimationPlayer") var animationPlayer: AnimationPlayer?
+    @Node("Sprite2D") var sprite: Sprite2D?
     
     @Export
     var speed: Double = 180.0

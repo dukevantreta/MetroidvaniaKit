@@ -1,7 +1,7 @@
 import SwiftGodot
 
 @Godot
-class PatrolEnemyAI: Node2D, EnemyAI {
+class PatrolEnemyAI: EnemyAI {
     
     enum State {
         case idle
@@ -21,7 +21,7 @@ class PatrolEnemyAI: Node2D, EnemyAI {
         size = Vector2(x: 16, y: 16) // TODO: get size from enemy
     }
     
-    func update(_ enemy: Enemy, delta: Double) {
+    override func update(_ enemy: Enemy, delta: Double) {
         switch state {
         
         case .idle:

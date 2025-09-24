@@ -3,10 +3,10 @@ import SwiftGodot
 @Godot
 class RocketBlock: RigidBody2D {
     
-    @SceneTree(path: "Area2D") weak var area: Area2D?
-    @SceneTree(path: "Sprite2D") weak var coverSprite: Sprite2D?
-    @SceneTree(path: "RealSprite") weak var realSprite: Sprite2D?
-    @SceneTree(path: "AnimatedSprite2D") weak var destroyAnimation: AnimatedSprite2D?
+    @Node("Area2D") weak var area: Area2D?
+    @Node("Sprite2D") weak var coverSprite: Sprite2D?
+    @Node("RealSprite") weak var realSprite: Sprite2D?
+    @Node("AnimatedSprite2D") weak var destroyAnimation: AnimatedSprite2D?
     
     override func _ready() {
         guard let area else {

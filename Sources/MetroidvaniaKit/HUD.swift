@@ -3,9 +3,9 @@ import SwiftGodot
 @Godot(.tool)
 class HUD: Control {
     
-    @SceneTree(path: "HealthLabel") weak var healthLabel: Label?
-    @SceneTree(path: "AmmoLabel") weak var ammoLabel: Label?
-    @SceneTree(path: "MiniMapHUD") var minimap: MiniMapHUD?
+    @Node("HealthLabel") weak var healthLabel: Label?
+    @Node("AmmoLabel") weak var ammoLabel: Label?
+    @Node("MiniMapHUD") var minimap: MiniMapHUD?
     
     func setPlayerStats(_ playerStats: PlayerStats) {
         updateHealth(playerStats.hp)

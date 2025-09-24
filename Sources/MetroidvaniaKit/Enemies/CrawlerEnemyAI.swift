@@ -1,7 +1,7 @@
 import SwiftGodot
 
 @Godot
-class CrawlerEnemyAI: Node2D, EnemyAI {
+class CrawlerEnemyAI: EnemyAI {
     
     @Export var speed: Double = 100
     @Export var direction: Double = 1
@@ -20,7 +20,7 @@ class CrawlerEnemyAI: Node2D, EnemyAI {
         size = Vector2(x: 16, y: 16) // TODO: get size from enemy
     }
     
-    func update(_ enemy: Enemy, delta: Double) {
+    override func update(_ enemy: Enemy, delta: Double) {
         idleCountdown -= delta
         guard idleCountdown <= 0 else { return } // hackish way to skip first frames before floor is ready
         

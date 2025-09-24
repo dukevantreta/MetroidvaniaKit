@@ -1,7 +1,7 @@
 import SwiftGodot
 
 @Godot
-class LinearEnemyAI: Node2D, EnemyAI {
+class LinearEnemyAI: EnemyAI {
     
     @Export var speed: Float = 100
     @Export var moveDirection: Vector2 = .zero
@@ -12,7 +12,7 @@ class LinearEnemyAI: Node2D, EnemyAI {
         size = Vector2(x: 16, y: 16) // TODO: get size from enemy
     }
     
-    func update(_ enemy: Enemy, delta: Double) {
+    override func update(_ enemy: Enemy, delta: Double) {
         let deltaMove = moveDirection * Double(speed) * delta
         enemy.position += deltaMove
 
