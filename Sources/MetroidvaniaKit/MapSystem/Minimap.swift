@@ -80,6 +80,10 @@ final class Minimap {
         return cells[coords]
     }
     
+    func mapCell(at coords: Vector3i) {
+        cells[coords]?.state = .mapped
+    }
+    
     func visitCell(at coords: Vector3i) {
         cells[coords]?.state = .explored
     }

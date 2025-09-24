@@ -29,6 +29,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             MiniMapHUD.self,
             MapConfiguration.self,
             GameController.self,
+            PauseMenu.self
         ].forEach { register(type: $0) }
     default:
         break

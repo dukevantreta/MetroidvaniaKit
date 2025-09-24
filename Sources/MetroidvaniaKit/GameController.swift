@@ -8,11 +8,20 @@ class GameController: Node {
     @SceneTree(path: "../CharacterController2D") var player: CharacterController2D?
     @SceneTree(path: "../CanvasLayer/MiniMapHUD") var minimapHUD: MiniMapHUD?
     
+    @SceneTree(path: "../CanvasLayer/PauseMenu") var pauseMenu: Control?
+    
+    @SceneTree(path: "../CanvasLayer/PauseMenu/Overlay") var overlay: ColorRect?
+    
     private(set) var world: World?
     
     var lastCellPosition: Vector2i = .zero
+    var currentRoom: String = ""
+    
+    var isPaused = false
     
     override func _ready() {
+        self.processMode = .always
+        
         log("Player: \(player)")
         log("MinimapHUD: \(minimapHUD)")
         
@@ -30,6 +39,14 @@ class GameController: Node {
     }
     
     override func _process(delta: Double) {
+        if Input.isActionJustPressed(action: "ui_cancel") {
+            if isPaused {
+                unpause()
+            } else {
+                pause()
+            }
+        }
+        
         guard let player else {
             logError("Player instance not found!")
             return
@@ -48,17 +65,46 @@ class GameController: Node {
             minimapHUD?.onCellChanged(newOffset: playerCellPosition)
             
             for map in world.maps {
-                if Int32(player.position.x) >= map.x && Int32(player.position.x) < map.x + map.width &&
-                    Int32(player.position.y) >= map.y && Int32(player.position.y) < map.y + map.height {
-                    let roomName = try? getFileName(from: map.fileName) ?? ""
-                    log("Current room: \(roomName)")
-                    
-                    camera?.limitLeft = map.x
-                    camera?.limitRight = map.x + map.width
-                    camera?.limitTop = map.y
-                    camera?.limitBottom = map.y + map.height
+                if // find which room the player is in
+                    Int32(player.position.x) >= map.x && Int32(player.position.x) < map.x + map.width &&
+                    Int32(player.position.y) >= map.y && Int32(player.position.y) < map.y + map.height
+                {
+                    if let roomName = try? getFileName(from: map.fileName), roomName != currentRoom {
+                        currentRoom = roomName
+                        log("Current room: \(currentRoom)")
+                        camera?.limitLeft = map.x
+                        camera?.limitRight = map.x + map.width
+                        camera?.limitTop = map.y
+                        camera?.limitBottom = map.y + map.height
+                    }
                 }
             }
+        }
+    }
+    
+    func pause() {
+        isPaused = true
+        pauseMenu?.visible = true
+        getTree()?.paused = true
+        
+        log("\(overlay)")
+        let tween = getTree()?.createTween()
+        tween?.setPauseMode(.process)
+        tween?.tweenProperty(object: overlay, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)
+    }
+    
+    func unpause() {
+//        isPaused = false
+//        getTree()?.paused = false
+//        pauseMenu?.visible = false
+        
+        let tween = getTree()?.createTween()
+        tween?.setPauseMode(.process)
+        tween?.tweenProperty(object: overlay, property: "modulate", finalVal: Variant(Color.transparent), duration: 0.4)
+        tween?.finished.connect { [weak self] in
+            self?.isPaused = false
+            self?.getTree()?.paused = false
+            self?.pauseMenu?.visible = false
         }
     }
 }

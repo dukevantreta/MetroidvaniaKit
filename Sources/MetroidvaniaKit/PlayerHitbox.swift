@@ -63,9 +63,9 @@ class PlayerHitbox: Area2D {
         playerPosition.y -= 1
         
         for body in getOverlappingBodies() {
-            if let tilemap = body as? TileMap, let tileset = tilemap.tileSet {
+            if let tilemap = body as? TileMapLayer, let tileset = tilemap.tileSet {
                 let mapCoordinates = tilemap.localToMap(localPosition: playerPosition)
-                if let tileData = tilemap.getCellTileData(layer: 0, coords: mapCoordinates) {
+                if let tileData = tilemap.getCellTileData(coords: mapCoordinates) {
                     var tileCollisionLayer: UInt32 = 0
                     for physicsLayerIdx in 0..<tileset.getPhysicsLayersCount() { // ugly workaround to get tile's collision layer
                         if tileData.getCollisionPolygonsCount(layerId: physicsLayerIdx) > 0 {
