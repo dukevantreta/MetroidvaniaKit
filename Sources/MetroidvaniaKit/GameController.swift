@@ -42,11 +42,12 @@ class GameController: Node {
             logError("Failed to decode world data from '\(worldFile)' with error: \(error).")
         }
         
+        guard let player, let world else { return }
+        
         camera?.target = player
-        hud?.playerStats = player?.stats
+        hud?.setPlayerStats(player.stats)
         
         if roomToLoad != "" {
-            guard let player, let world else { return }
             for map in world.maps {
                 if let name = try? getFileName(from: map.fileName), name == roomToLoad {
                     player.position.x = Float(map.x)
