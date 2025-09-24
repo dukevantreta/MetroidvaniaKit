@@ -194,7 +194,10 @@ class MapImportPlugin: EditorImportPlugin {
         }
     }
     
+    var currentTileset: TileSet? // find a better solution
+    
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
+        currentTileset = tileset
         
         var sourceIDs: [Int32] = []
         for i in 0..<tileset.getSourceCount() {
@@ -242,7 +245,7 @@ class MapImportPlugin: EditorImportPlugin {
             root.addChild(node: tilemap)
         }
         for group in map.groups {
-            transformGroup(group)
+            root.addChild(node: transformGroup(group))
         }
         for group in map.objectGroups {
             root.addChild(node: transformObjectGroup(group))
@@ -289,6 +292,10 @@ class MapImportPlugin: EditorImportPlugin {
     
     func transformGroup(_ group: Tiled.Group) -> Node2D {
         let node = Node2D()
+        node.name = StringName(group.name)
+        node.position.x = Float(group.offsetX)
+        node.position.y = Float(group.offsetY)
+        node.visible = group.isVisible
         // TODO: layers
         for objectGroup in group.objectGroups {
             node.addChild(node: transformObjectGroup(objectGroup))
@@ -322,7 +329,28 @@ class MapImportPlugin: EditorImportPlugin {
         if let gid = object.gid { // is tile
             let sprite = Sprite2D()
             node = sprite
-            // TODO
+            
+            guard let currentTileset else { fatalError() }
+            
+            let tilesetGID = currentTileset.getAtlasGID(tileGID: Int32(gid))
+            let atlas = currentTileset.getSource(sourceId: tilesetGID) as! TileSetAtlasSource
+            
+            let tileIndex = Int32(gid) - tilesetGID
+            
+            let tilesetColumns = currentTileset.getColumnCount(gid: tilesetGID)
+            let tileCoords = Vector2i(
+                x: tileIndex % tilesetColumns,
+                y: tileIndex / tilesetColumns)
+            
+            let texRegion = atlas.getTileTextureRegion(atlasCoords: tileCoords)
+            
+            sprite.texture = atlas.texture
+            sprite.regionEnabled = true
+            sprite.regionRect = Rect2(from: texRegion)
+            
+            sprite.offset.x = Float(currentTileset.tileSize.x >> 1)
+            sprite.offset.y = Float(currentTileset.tileSize.y >> 1)
+            
         } else if let polygon = object.polygon {
             let type = object.type.lowercased()
             node = if type == "area" || type == "area2d" {

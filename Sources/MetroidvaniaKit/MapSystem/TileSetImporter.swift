@@ -119,7 +119,7 @@ class TileSetImporter {
                         }
                         
                         if let polygon = object.polygon {
-                            let origin = Vector2i(x: object.x, y: object.y)
+                            let origin = Vector2i(x: Int32(object.x), y: Int32(object.y))
                             let array = PackedVector2Array()
                             for point in polygon.points {
                                 array.append(value: Vector2(
@@ -130,7 +130,7 @@ class TileSetImporter {
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         } else { // rectangle
-                            let origin = Vector2i(x: object.x - tileSize.x >> 1, y: object.y - tileSize.y >> 1)
+                            let origin = Vector2i(x: Int32(object.x) - tileSize.x >> 1, y: Int32(object.y) - tileSize.y >> 1)
                             let array = PackedVector2Array()
                             array.append(value: Vector2(x: origin.x, y: origin.y))
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
@@ -327,7 +327,7 @@ class TileSetImporter {
             if let objectGroup = tile.objectGroup {
                 for object in objectGroup.objects {
                     if let polygon = object.polygon {
-                        let origin = Vector2i(x: object.x, y: object.y)
+                        let origin = Vector2i(x: Int32(object.x), y: Int32(object.y))
                         let array = PackedVector2Array()
                         for point in polygon.points {
                             array.append(value: Vector2(
@@ -338,7 +338,7 @@ class TileSetImporter {
                         tileData.addCollisionPolygon(layerId: 0)
                         tileData.setCollisionPolygonPoints(layerId: 0, polygonIndex: 0, polygon: array)
                     } else { // rectangle
-                        let origin = Vector2i(x: object.x - tileSize.x >> 1, y: object.y - tileSize.y >> 1)
+                        let origin = Vector2i(x: Int32(object.x) - tileSize.x >> 1, y: Int32(object.y) - tileSize.y >> 1)
                         let array = PackedVector2Array()
                         array.append(value: Vector2(x: origin.x, y: origin.y))
                         array.append(value: Vector2(x: origin.x + object.width, y: origin.y))

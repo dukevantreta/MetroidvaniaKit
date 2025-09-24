@@ -4,8 +4,8 @@ extension Tiled {
         let id: Int
         let name: String
         let type: String
-        let x: Int32
-        let y: Int32
+        let x: Double
+        let y: Double
         let width: Int32
         let height: Int32
         let rotation: Double // degrees
@@ -28,8 +28,10 @@ extension Tiled.Object: XMLDecodable {
             id: attributes?["id"]?.asInt() ?? 0,
             name: attributes?["name"] ?? "",
             type: attributes?["type"] ?? "",
-            x: attributes?["x"]?.asInt32() ?? 0,
-            y: attributes?["y"]?.asInt32() ?? 0,
+//            x: attributes?["x"]?.asInt32() ?? 0,
+//            y: attributes?["y"]?.asInt32() ?? 0,
+            x: attributes?["x"]?.asDouble() ?? 0,
+            y: attributes?["y"]?.asDouble() ?? 0,
             width: attributes?["width"]?.asInt32() ?? 0,
             height: attributes?["height"]?.asInt32() ?? 0,
             rotation: attributes?["rotation"]?.asDouble() ?? 0.0,

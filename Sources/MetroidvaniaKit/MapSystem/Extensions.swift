@@ -19,3 +19,21 @@ extension Node2D {
         self.name = StringName(name)
     }
 }
+
+extension TileSet {
+    
+    func getGIDs() -> [Int32] {
+        (0..<getSourceCount()).map { getSourceId(index: $0) }
+    }
+    
+    func getColumnCount(gid: Int32) -> Int32 {
+        guard let source = getSource(sourceId: gid) as? TileSetAtlasSource else {
+            return -1
+        }
+        return source.getAtlasGridSize().x
+    }
+    
+    func getAtlasGID(tileGID: Int32) -> Int32 {
+        getGIDs().filter { $0 <= tileGID }.max() ?? -1
+    }
+}
