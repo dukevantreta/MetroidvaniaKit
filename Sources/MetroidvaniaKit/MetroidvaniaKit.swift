@@ -27,6 +27,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             HookHitbox.self,
             WaveShot.self,
             NormalShot.self,
+            Projectile.self,
             MiniMapHUD.self,
             MapConfiguration.self,
             GameController.self,

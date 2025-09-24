@@ -53,6 +53,8 @@ class PlayerNode: CharacterBody2D {
     
     var state: PlayerState = IdleState()
     
+    var weapon: Weapon = PowerBeam()
+    
     var facingDirection: Int = 1
     
     var canDoubleJump = true
@@ -159,9 +161,9 @@ class PlayerNode: CharacterBody2D {
     }
     
     func fire() {
-        let shot = NormalShot()
-//        shot.direction = Vector2(x: facingDirection, y: facingDirection).normalized()
-        shot.direction = shotDirection //Vector2(x: facingDirection, y: 0).normalized()
+//        let shot = NormalShot()
+//        shot.direction = shotDirection
+        let shot = weapon.fire(direction: shotDirection)
         shot.position = self.position + shotOrigin
         getParent()?.addChild(node: shot)
     }

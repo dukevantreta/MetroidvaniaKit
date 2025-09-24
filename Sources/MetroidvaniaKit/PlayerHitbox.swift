@@ -3,7 +3,7 @@ import SwiftGodot
 @Godot
 class PlayerHitbox: Area2D {
     
-    @SceneTree(path: "..") var player: PlayerNode?
+    @SceneTree(path: "..") weak var player: PlayerNode?
     
     override func _ready() {
         guard let player else {
