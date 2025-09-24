@@ -92,7 +92,7 @@ class TileMapImporter: Node {
         let gids = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
         
         let root = Node2D()
-        
+
         for layer in map.layers {
             let tilemap = TileMapLayer()
             tilemap.setName(layer.name)
@@ -140,6 +140,9 @@ class TileMapImporter: Node {
             if let zIndex = properties["z_index"] as? Int32 {
                 tilemap.zIndex = zIndex
             }
+            for property in layer.properties {
+                tilemap.setMeta(name: StringName(property.name), value: Variant(property.value))
+            }
             
             // Handle parallax layer (this is broken)
 //            if let xParallax = layer.parallaxX, let yParallax = layer.parallaxY, (xParallax != 1.0 || yParallax != 1.0) {
@@ -161,6 +164,9 @@ class TileMapImporter: Node {
         }
         for group in map.objectGroups {
             root.addChild(node: transformObjectGroup(group))
+        }
+        for property in map.properties {
+            root.setMeta(name: StringName(property.name), value: Variant(property.value))
         }
         for child in root.getChildren() {
             setOwner(root, to: child)
@@ -300,6 +306,9 @@ class TileMapImporter: Node {
         node.setName(object.name)
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
+        for property in object.properties {
+            node.setMeta(name: StringName(property.name), value: Variant(property.value))
+        }
         return node
     }
     
@@ -393,6 +402,7 @@ class TileMapImporter: Node {
     func instantiate(_ object: Tiled.Object) -> Node2D? {
         let path = "\(objectsPath)\(object.type).tscn"
         if
+            FileAccess.fileExists(path: path),
             let scene = ResourceLoader.load(path: path) as? PackedScene,
             let node = scene.instantiate() as? Node2D
         {

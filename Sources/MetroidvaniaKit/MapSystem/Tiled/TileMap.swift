@@ -37,7 +37,7 @@ extension Tiled {
         let nextObjectID: Int
         let isInfinite: Bool
 //        var editorSettings: ? // not needed?
-//        var properties: ?
+        var properties: [Property]
         
         var tilesets: [TileSet]
         var layers: [Layer]
@@ -67,6 +67,7 @@ extension Tiled.TileMap: XMLDecodable {
             nextLayerID: attributes?["nextlayerid"]?.asInt() ?? 0,
             nextObjectID: attributes?["nextobjectid"]?.asInt() ?? 0,
             isInfinite: attributes?["infinite"] == "1",
+            properties: [],
             tilesets: [],
             layers: [],
             objectGroups: [],
@@ -81,6 +82,10 @@ extension Tiled.TileMap: XMLDecodable {
                 objectGroups.append(try Tiled.ObjectGroup(from: child))
             } else if child.name == "group" {
                 groups.append(try Tiled.Group(from: child))
+            } else if child.name == "properties" {
+                for subchild in child.children {
+                    properties.append(try Tiled.Property(from: subchild))
+                }
             }
         }
     }

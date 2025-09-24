@@ -116,6 +116,13 @@ class GameController: Node {
             if let parallax = room?.findChild(pattern: "parallax") as? Node2D {
                 parallax.owner = nil
                 parallax.reparent(newParent: parallaxLayer, keepGlobalTransform: false)
+
+                if let xParallax = parallax.getMeta(name: "parallax_x", default: Variant(0.2)) {
+                    parallaxLayer.scrollScale.x = Float(xParallax) ?? 0.0
+                }
+                if let yParallax = parallax.getMeta(name: "parallax_y", default: Variant(0.2)) {
+                    parallaxLayer.scrollScale.y = Float(yParallax) ?? 0.0
+                }
             }
         }
         
