@@ -175,32 +175,7 @@ class MapImportPlugin: EditorImportPlugin {
         guard map.orientation == .orthogonal else { // support only orthogonal
             return //.errBug
         }
-        
-        var tileset: TileSet?
-        
-        for tilesetRef in map.tilesets {
-            guard let firstGID = tilesetRef.firstGID,
-                  let source = tilesetRef.source else { break }
-            
-            var filePathComponents = sourceFile.components(separatedBy: "/")
-            filePathComponents.removeLast()
-            let filePath = filePathComponents.joined(separator: "/")
-            let tilesetFile = [filePath, source].joined(separator: "/")
-            GD.print("TILESET SOURCE: \(tilesetFile)")
-            
-            guard FileAccess.fileExists(path: tilesetFile) else {
-                GD.pushError("[] Import file \(tilesetFile) not found!")
-                return //.errFileNotFound
-            }
-            guard let tilesetXml = XML.parse(tilesetFile, with: XMLParser()) else {
-                return //.errBug
-            }
-            if let tiledTileset = try? Tiled.TileSet(from: tilesetXml.root) {
-                tileset = TileSetImporter.createTileSet(tiledTileset, sourceFile: tilesetFile)
-            }
-        }
-        
-        guard let tileset else { return }
+        guard let tileset = TileSetImporter.parseTileSets(map: map, sourceFile: sourceFile) else { return }
         guard let tilemapNode = try? createTileMap(map: map, using: tileset) else { return }
         
         let scene = PackedScene()
