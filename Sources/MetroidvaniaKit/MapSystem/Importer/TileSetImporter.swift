@@ -1,8 +1,6 @@
 import SwiftGodot
 import Dispatch
 
-
-
 @Godot(.tool)
 class TileSetImporter: Node {
     
@@ -119,7 +117,7 @@ class TileSetImporter: Node {
                                     y: origin.y + Int32(point.y) - halfTile.y
                                 ))
                             }
-                            GD.print("ADDING COLLISION POLYGON TO: \(physicsLayerIdx)")
+                            log("ADDING COLLISION POLYGON TO: \(physicsLayerIdx)")
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         } else { // rectangle
@@ -129,7 +127,7 @@ class TileSetImporter: Node {
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
                             array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
                             array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
-                            GD.print("ADDING COLLISION RECT TO: \(physicsLayerIdx)")
+                            log("ADDING COLLISION RECT TO: \(physicsLayerIdx)")
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         }
@@ -147,10 +145,7 @@ class TileSetImporter: Node {
 //                    }
 //                }
             }
-//            gTileset.addSource(atlasSource)
-//            let a: TileMapLayer = TileMapLayer()
             
-//            try saveResource(atlasSource, path: "\(savePath).tres")
             try saveResource(gTileset, path: defaultTileSetPath)
             
             log("Imported tileset atlas source: '\(atlasName)'")
@@ -159,13 +154,6 @@ class TileSetImporter: Node {
             log("Found tileset atlas '\(atlasName)'. Skipping import...")
         }
     }
-    
-//    func saveResource(_ resource: Resource, path: String) throws {
-//        let errorCode = ResourceSaver.save(resource: resource, path: path)
-//        if errorCode != .ok {
-//            throw ImportError.failedToSaveFile(path, errorCode)
-//        }
-//    }
     
     // check for layer before adding?
     func parseProperties(from tiledTileset: Tiled.TileSet, toGodot tileset: TileSet) {
@@ -192,15 +180,6 @@ class TileSetImporter: Node {
             }
         }
     }
-    
-//    private func touchTileSet() -> TileSet {
-//        if FileAccess.fileExists(path: defaultTileSetPath),
-//            let tileset = ResourceLoader.load(path: defaultTileSetPath) as? TileSet {
-//            return tileset
-//        } else {
-//            
-//        }
-//    }
     
     static func loadTileSet() throws -> TileSet {
         try loadResource(ofType: TileSet.self, at: self.defaultImportPath)
