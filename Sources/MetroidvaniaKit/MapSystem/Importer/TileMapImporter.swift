@@ -97,7 +97,13 @@ class TileMapImporter: Node {
             let tilemap = TileMapLayer()
             tilemap.setName(layer.name)
             tilemap.tileSet = tileset
-            tilemap.selfModulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity ?? 0.0))
+            tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity ?? 0.0))
+            if let colorString = layer.tintColor {
+                if let color = parseHexColor(colorString) {
+                    tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+                }
+            }
+            
             let cellArray = try layer.getTileData()
                 .components(separatedBy: .whitespacesAndNewlines)
                 .joined()
@@ -364,6 +370,27 @@ class TileMapImporter: Node {
             properties[property.name] = value
         }
         return properties
+    }
+    
+    func parseHexColor(_ hex: String) -> (r: Float, g: Float, b: Float, a: Float)? {
+        var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hexString.hasPrefix("#") {
+            hexString.removeFirst()
+        }
+        
+        let scanner = Scanner(string: hexString)
+        var hexNumber: UInt64 = 0
+        
+        guard scanner.scanHexInt64(&hexNumber) else {
+            return nil
+        }
+        
+        let r = Float((hexNumber & 0x00FF0000) >> 16) / 255.0
+        let g = Float((hexNumber & 0x0000FF00) >> 8) / 255.0
+        let b = Float(hexNumber & 0x000000FF) / 255.0
+        let a = hexString.count == 8 ? Float((hexNumber & 0xFF000000) >> 24) / 255.0 : 1.0
+        
+        return (r, g, b, a)
     }
     
     func instantiate(_ object: Tiled.Object) -> Node2D? {
