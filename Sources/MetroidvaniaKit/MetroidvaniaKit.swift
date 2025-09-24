@@ -4,4 +4,5 @@ import SwiftGodot
     CharacterController2D.self,
     TriggerArea2D.self,
     PlayerHitbox.self,
+    HookHitbox.self,
 ])

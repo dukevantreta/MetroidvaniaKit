@@ -34,6 +34,7 @@ class CharacterController2D: CharacterBody2D {
         GD.print("Floor block on wall: \(floorBlockOnWall)")
         GD.print("Slide on ceiling: \(slideOnCeiling)")
 //        floorSnapLength = 4.0
+        collisionMask = 0b0011
     }
     
     @Export var airTime: Double = 0
@@ -50,8 +51,50 @@ class CharacterController2D: CharacterBody2D {
     
     var canDoubleJump = true
     
+    let playerHeight: Float = 28.0
+    
+//    override func _input(event: InputEvent) {
+//        if let event = event as InputEventKey {
+//            if event
+//        }
+//    }
+    
+    var facingDirection: Int = 1
+    
+    var hook: HookHitbox?
+    
     override func _physicsProcess(delta: Double) {
-//        if isInEvent { return }
+        //        if isInEvent { return }
+        
+        let lastDirX = Int(getLastMotion().sign().x)
+        if lastDirX != 0 && lastDirX != facingDirection {
+            facingDirection = lastDirX
+        }
+        
+        if isHooking {
+            velocity.y = 0
+            guard let hook else { return }
+            if abs(hook.position.x - position.x) <= 4 + 14 + 1 {
+                isHooking = false
+                hook.destroy()
+                self.hook = nil
+            } else {
+                velocity.x = (hook.position - position).normalized().x * 900
+                moveAndSlide()
+                return
+            }
+        }
+        
+        if Input.isActionJustPressed(action: "action_1") {
+            let hook = HookHitbox()
+            hook.position.x = 7 - 4
+            hook.position.y = -playerHeight * 0.5
+            hook.zIndex = -1
+            hook.direction = facingDirection
+            addChild(node: hook)
+            hook.player = self
+            self.hook = hook
+        }
         
         let gravity = 8 * parabolicHeight / (jumpDuration * jumpDuration)
         let jumpSpeed = isInWater ? (2 * parabolicHeight * gravity).squareRoot() * 0.7 : (2 * parabolicHeight * gravity).squareRoot()
@@ -160,6 +203,15 @@ class CharacterController2D: CharacterBody2D {
     func exitWater() {
         isInWater = false
         GD.print("EXIT WATER")
+    }
+    
+    var isHooking = false
+    
+    func hookshot() {
+        isHooking = true
+//        removeChild(node: hook)
+//        getParent()?.addChild(node: hook)
+        hook?.reparent(newParent: getParent())
     }
     
     // DEBUG
