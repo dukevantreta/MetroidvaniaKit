@@ -34,7 +34,8 @@ extension Node: GodotLogger {}
 @Godot(.tool)
 class TileSetImporter: Node {
     
-    let defaultOutputPath = "res://output/"
+    let defaultOutputPath = "res://maps/"
+    let defaultTileSetPath = "res://maps/tileset.tres"
     
     @Callable
     func importResource(
@@ -72,9 +73,27 @@ class TileSetImporter: Node {
                 return .errFileNotFound
             }
             let imageName = imageFile.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
+            let name = filename.components(separatedBy: ".").first ?? ""
+            
+            
+            let gTileset: TileSet
+            if !FileAccess.fileExists(path: defaultTileSetPath) {
+                let newTileset = TileSet()
+                newTileset.resourceName = "tileset"
+                newTileset.tileShape = .square
+                newTileset.tileSize = Vector2i(
+                    x: Int32(tiledTileset.tileWidth ?? 0),
+                    y: Int32(tiledTileset.tileHeight ?? 0)
+                )
+//                ResourceSaver.save(resource: newTileset, path: defaultTileSetPath)
+                gTileset = newTileset
+            } else {
+                gTileset = ResourceLoader.load(path: defaultTileSetPath) as! TileSet
+            }
+            
             
             let atlasSource = TileSetAtlasSource()
-            atlasSource.resourceName = imageName //imageFile.components(separatedBy: "/").last ?? ""
+            atlasSource.resourceName = name//imageName //imageFile.components(separatedBy: "/").last ?? ""
             atlasSource.texture = ResourceLoader.load(path: imageFile) as? Texture2D
             atlasSource.margins = Vector2i(x: tiledTileset.margin, y: tiledTileset.margin)
             atlasSource.separation = Vector2i(x: tiledTileset.spacing, y: tiledTileset.spacing)
@@ -90,24 +109,37 @@ class TileSetImporter: Node {
                 }
             }
             
-            let saveError = ResourceSaver.save(resource: atlasSource, path: "\(savePath).tres")
-            if saveError != .ok {
-                logError("Failed to save resource at '\(savePath)'")
-                return saveError
+            if gTileset.hasSource(named: atlasSource.resourceName) {
+                log("REMOVING EXISTING SOURCE")
+                gTileset.removeSource(named: atlasSource.resourceName)
             }
+            gTileset.addSource(atlasSource)
             
-//            let copyName = "\(filename.components(separatedBy: ".").first ?? "").tres"
-//            let copyError = ResourceSaver.save(resource: atlasSource, path: "\(defaultOutputPath)\(copyName)")
-//            if copyError != .ok {
-//                logError("Failed to save copy of '\(copyName)'")
-//                return copyError
-//            }
+            
+            try saveResource(atlasSource, path: "\(savePath).tres")
+            try saveResource(gTileset, path: defaultTileSetPath)
+            return .ok
         } catch {
-            logError("Error: \(error)")
+            logError("Import file '\(sourceFile)' failed with error: \(error)")
+            return .errBug
         }
-        
-        return .ok
     }
+    
+    func saveResource(_ resource: Resource, path: String) throws {
+        let errorCode = ResourceSaver.save(resource: resource, path: path)
+        if errorCode != .ok {
+            throw ImportError.failedToSaveFile(path, errorCode)
+        }
+    }
+    
+//    private func touchTileSet() -> TileSet {
+//        if FileAccess.fileExists(path: defaultTileSetPath),
+//            let tileset = ResourceLoader.load(path: defaultTileSetPath) as? TileSet {
+//            return tileset
+//        } else {
+//            
+//        }
+//    }
 }
 
 class TileSetParser {

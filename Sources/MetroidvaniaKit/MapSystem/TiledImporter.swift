@@ -23,6 +23,7 @@ enum ImportError: Error {
     case unknown
     case layerData(LayerDataErrorReason)
     case unhandledObject
+    case failedToSaveFile(_ path: String, GodotError)
     
     enum LayerDataErrorReason {
         case notFound

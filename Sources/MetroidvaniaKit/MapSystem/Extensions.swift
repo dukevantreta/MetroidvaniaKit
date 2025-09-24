@@ -66,4 +66,25 @@ extension TileSet {
         }
         return nil
     }
+    
+    func hasSource(named name: String) -> Bool {
+        for i in 0..<getSourceCount() {
+            let sourceId = getSourceId(index: i)
+            let source = getSource(sourceId: sourceId) as? TileSetAtlasSource
+            if source?.resourceName == name {
+                return true
+            }
+        }
+        return false
+    }
+    
+    func removeSource(named name: String) {
+        for i in 0..<getSourceCount() {
+            let sourceId = getSourceId(index: i)
+            let source = getSource(sourceId: sourceId) as? TileSetAtlasSource
+            if source?.resourceName == name {
+                removeSource(sourceId: sourceId)
+            }
+        }
+    }
 }
