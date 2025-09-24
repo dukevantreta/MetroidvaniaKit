@@ -148,7 +148,6 @@ class WorldImporter: Node {
     
     func createWorld(named name: String, from data: Data) throws -> Node2D {
         let world = try JSONDecoder().decode(World.self, from: data)
-        log("WORLD: \(world)")
         
         let root = Node2D()
         root.name = StringName(name)
@@ -158,14 +157,14 @@ class WorldImporter: Node {
         for map in world.maps {
             let path = "res://tiled/\(map.fileName)"
             if let mapScene = ResourceLoader.load(path: path) as? PackedScene, let mapNode = mapScene.instantiate() as? Node2D {
-                log("FOUND SCENE NODE")
+                log("Processing map data for '\(path)'")
                 mapNode.position.x = Float(map.x)
                 mapNode.position.y = Float(map.y)
                 root.addChild(node: mapNode)
                 
                 processMapData(mapData, map: map, node: mapNode)
             } else {
-                log("MISSING SCENE NODE!!!")
+                logError("MISSING SCENE NODE: '\(path)'")
             }
         }
         for child in root.getChildren() {
