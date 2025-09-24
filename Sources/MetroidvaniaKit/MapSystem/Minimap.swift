@@ -1,6 +1,18 @@
 import SwiftGodot
 import Foundation
 
+enum Border: Int {
+    case right = 0
+    case down = 1
+    case left = 2
+    case up = 3
+    
+    init(idx: Int) {
+        self.init(rawValue: idx % 4)!
+    }
+}
+
+// cell xyz can be a uint8
 struct CellData: Codable {
     let x: Int32
     let y: Int32
@@ -15,12 +27,26 @@ final class Minimap {
     }
     
     final class Cell {
-        var state: CellState = .undiscovered
-        var borders: [BorderType] = [.empty, .empty, .empty, .empty]
+        var state: CellState// = .undiscovered
+        var borders: [BorderType]// = [.empty, .empty, .empty, .empty]
+        
+        init(borders: [BorderType] = [.empty, .empty, .empty, .empty]) {
+            self.state = .undiscovered
+            self.borders = borders
+        }
         
         func getBorder(_ idx: Int) -> Int {
             // overrides
             return borders[idx].rawValue
+        }
+        
+        subscript(border: Border) -> BorderType {
+            get {
+                borders[border.rawValue]
+            }
+            set {
+                borders[border.rawValue] = newValue
+            }
         }
     }
     
