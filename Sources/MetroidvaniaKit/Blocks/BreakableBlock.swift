@@ -40,8 +40,4 @@ class BreakableBlock: RigidBody2D {
     func reveal() {
         coverSprite?.visible = false
     }
-    
-    deinit {
-        GD.print("BreakableBlock deinitialized")
-    }
 }
