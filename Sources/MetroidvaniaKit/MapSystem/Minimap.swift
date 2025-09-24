@@ -32,6 +32,9 @@ final class Minimap {
     
     enum CellState: Int {
         case undiscovered = 0
+        case mapped
+        case explored
+        // case exploredSecret
     }
     
     final class Cell {
@@ -77,6 +80,10 @@ final class Minimap {
         return cells[coords]
     }
     
+    func visitCell(at coords: Vector3i) {
+        cells[coords]?.state = .explored
+    }
+    
     func encode() throws -> String {
         let cellData = cells.map { (position, cell) in
             CellData(x: position.x, y: position.y, z: position.z, borders: cell.borders)
@@ -85,8 +92,8 @@ final class Minimap {
         return String(data: data, encoding: .utf8)!
     }
     
-    static func load() throws -> Minimap {
-        let fileData = FileAccess.getFileAsString(path: "res://maps/mapdata.json").data(using: .utf8)! // FIX
+    static func load(at path: String) throws -> Minimap {
+        let fileData = FileAccess.getFileAsString(path: path).data(using: .utf8)! // FIX
         let cellData = try JSONDecoder().decode([CellData].self, from: fileData)
         
         let map = Minimap()

@@ -7,7 +7,13 @@ class MapConfiguration: Resource {
     
     @Export var passageWidth: Int = 4
     
-    @Export var backgroundColor: Color = Color(r: 0.1, g: 0.1, b: 0.1)
+    @Export var gridBackgroundColor: Color = Color(r: 33/255, g: 33/255, b: 74/255)
     
-    @Export var foregroundColor: Color = Color(r: 0.9, g: 0.9, b: 0.9)
+    @Export var gridForegroundColor: Color = Color(r: 0, g: 0, b: 148/255)
+    
+    @Export var unexploredColor: Color = Color(r: 0.5, g: 0.5, b: 0.5)
+    
+    @Export var exploredColor: Color = Color(r: 1.0, g: 0.0, b: 1.0)
+    
+//    @Export var secretExploredColor: Color
 }

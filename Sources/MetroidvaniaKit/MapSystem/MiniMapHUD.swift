@@ -3,7 +3,7 @@ import SwiftGodot
 @Godot(.tool)
 class MiniMapHUD: Control {
     
-    let mapData: Minimap = (try? Minimap.load()) ?? Minimap()
+    let minimap: Minimap = (try? Minimap.load(at: "res://maps/mapdata.json")) ?? Minimap()
     
     @Export var trackPosition: Bool = true
     
@@ -35,6 +35,7 @@ class MiniMapHUD: Control {
     
     func onCellChanged(newOffset: Vector2i) {
         log("Player visit cell: \(newOffset)")
+        minimap.visitCell(at: Vector3i(x: newOffset.x, y: newOffset.y, z: Int32(layer)))
         center = newOffset
     }
     
@@ -56,7 +57,7 @@ class MiniMapHUD: Control {
             for y in 0..<area.y {
                 // draw cell
                 let coords = Vector3i(x: center.x + offset.x + x, y: center.y + offset.y + y, z: Int32(layer))
-                MapDrawer.shared.draw(canvasItem: self, offset: Vector2i(x: x, y: y), coords: coords, mapData: mapData)
+                MapDrawer.shared.draw(canvasItem: self, offset: Vector2i(x: x, y: y), coords: coords, minimap: minimap)
             }
         }
         

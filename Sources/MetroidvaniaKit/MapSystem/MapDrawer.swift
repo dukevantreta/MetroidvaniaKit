@@ -44,9 +44,14 @@ class TextureMaker {
 
 class MapDrawer {
     
+    private(set) var cellSize: Vector2i
+    private(set) var bgColor: Color
+    private(set) var fgColor: Color
+    private(set) var unexploredColor: Color
+    private(set) var exploredColor: Color
+    
     static let shared = MapDrawer()
     private init() {
-//        self.setCellSize(self.cellSize)
         let configPath = "res://maps/map_config.tres"
         guard let mapConfig = ResourceLoader.load(path: configPath) as? MapConfiguration else {
             GD.pushError("[MapDrawer] Map configuration not found!")
@@ -54,14 +59,12 @@ class MapDrawer {
         }
         self.mapConfig = mapConfig
         self.cellSize = mapConfig.cellSize
-        self.bgColor = mapConfig.backgroundColor
-        self.fgColor = mapConfig.foregroundColor
+        self.bgColor = mapConfig.gridBackgroundColor
+        self.fgColor = mapConfig.gridForegroundColor
+        self.unexploredColor = mapConfig.unexploredColor
+        self.exploredColor = mapConfig.exploredColor
         reloadTextureCache()
     }
-    
-    private(set) var cellSize: Vector2i
-    private(set) var bgColor: Color
-    private(set) var fgColor: Color
     
     func setCellSize(_ size: Vector2i) {
         self.cellSize = size
@@ -100,19 +103,29 @@ class MapDrawer {
         return Vector2i(x: x, y: y)
     }
     
-    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, mapData: Minimap) {
+    /**
+     - offset: HUD square offset to draw
+     - coords: absolute map cell coordinates
+     */
+    func draw(canvasItem: CanvasItem, offset: Vector2i, coords: Vector3i, minimap: Minimap) {
         
-        guard let cellData = mapData.getCell(at: coords) else {
+        guard let cell = minimap.getCell(at: coords), cell.state != .undiscovered else {
             drawEmpty(canvasItem: canvasItem, offset: Vector2i(from: offset))
             return
         }
+        
         let ci = canvasItem.getCanvasItem()
         
         if let centerTexture = fillTexture {
-            let color = Color(r: 1.0, g: 0.0, b: 1.0)
+            let color: Color = if cell.state == .explored {
+                exploredColor
+            } else {
+                unexploredColor
+            }
+            
             centerTexture.draw(canvasItem: ci, position: Vector2(from: offset * cellSize), modulate: color)
         }
-        drawRegularBorders(canvasItem: canvasItem, offset: offset, coords: coords, mapData: mapData)
+        drawRegularBorders(canvasItem: canvasItem, offset: offset, coords: coords, mapData: minimap)
         
         canvasItem.drawSetTransformMatrix(xform: Transform2D())
     }
