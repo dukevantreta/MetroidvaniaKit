@@ -42,6 +42,8 @@ class PowerBeam: Node, Weapon {
     
     @Export var sprite: PackedScene?
     
+    @Export var hitEffect: PackedScene?
+    
     func fire(direction: Vector2) -> [Node2D] {
         let projectile = Projectile()
         
@@ -61,6 +63,13 @@ class PowerBeam: Node, Weapon {
         projectile.direction = direction
         projectile.collisionLayer = 0b1_0000
         projectile.collisionMask = 0b0010_0011
+        
+        projectile.onDestroy = { [weak self] in
+            if let hit = self?.hitEffect?.instantiate() as? AnimatedSprite2D {
+                hit.position = projectile.position
+                projectile.getParent()?.addChild(node: hit)
+            }
+        }
         
         return [projectile]
     }

@@ -11,6 +11,8 @@ class Projectile: Area2D {
     
     var behavior: ProjectileBehavior?
     
+    var onDestroy: (() -> Void)?
+    
     override func _ready() {
         bodyEntered.connect { [weak self] otherBody in
             guard let self else { return }
@@ -32,7 +34,7 @@ class Projectile: Area2D {
     }
     
     func destroy() {
-        // do effects
+        onDestroy?()
         queueFree()
     }
 }
