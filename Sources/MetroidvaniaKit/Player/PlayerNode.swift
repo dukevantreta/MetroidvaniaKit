@@ -113,12 +113,16 @@ class PlayerNode: CharacterBody2D {
     func raycastForWall() -> Bool {
         guard let size = getCollisionRectSize(), let space = getWorld2d()?.directSpaceState else { return false }
         
+        // I have no idea why this hack is needed
+        // Left wall grab stopped working after a map importer update, this fixes it
+        let correctionFactor: Float = facingDirection < 0 ? 2.0 : 1.0
+        
         let origin1 = position + Vector2(x: 0, y: -1)
-        let dest1 = origin1 + Vector2(x: (size.x * 0.5 + 1) * Float(facingDirection), y: 0)
+        let dest1 = origin1 + Vector2(x: (size.x * 0.5 + correctionFactor) * Float(facingDirection), y: 0)
         let ray1 = PhysicsRayQueryParameters2D.create(from: origin1, to: dest1, collisionMask: 0b0001)
         
         let origin2 = position + Vector2(x: 0, y: -size.y)
-        let dest2 = origin2 + Vector2(x: (size.x * 0.5 + 1) * Float(facingDirection), y: 0)
+        let dest2 = origin2 + Vector2(x: (size.x * 0.5 + correctionFactor) * Float(facingDirection), y: 0)
         let ray2 = PhysicsRayQueryParameters2D.create(from: origin2, to: dest2, collisionMask: 0b0001)
         
         let result1 = space.intersectRay(parameters: ray1)
