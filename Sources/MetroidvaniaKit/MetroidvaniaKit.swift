@@ -15,13 +15,9 @@ import SwiftGodot
 func setupScene (level: GDExtension.InitializationLevel) {
     switch level {
     case .editor:
-        register(type: TiledImporter.self)
-        register(type: MapImportPlugin.self)
         register(type: TileSetImporter.self)
         register(type: TileMapImporter.self)
         register(type: WorldImporter.self)
-//        register(type: TilemapBuilder.self)
-//        register(type: DictionaryBuilder.self)
     case .scene:
         [
             CharacterController2D.self,
@@ -32,6 +28,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             NormalShot.self,
             MiniMapHUD.self,
             MapConfiguration.self,
+            GameController.self,
         ].forEach { register(type: $0) }
     default:
         break
