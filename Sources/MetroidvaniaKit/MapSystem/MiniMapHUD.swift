@@ -33,10 +33,9 @@ class MiniMapHUD: Control {
         // setup listen to mapUpdated event
     }
     
-    func onCellChanged() {
-//    new_cell: Vector3i
-//    center = Vector2i(new_cell.x, new_cell.y)
-//    layer = new_cell.z
+    func onCellChanged(newOffset: Vector2i) {
+        log("Player visit cell: \(newOffset)")
+        center = newOffset
     }
     
     override func _getConfigurationWarnings() -> PackedStringArray {

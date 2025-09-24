@@ -54,12 +54,14 @@ class MapDrawer {
         }
         self.mapConfig = mapConfig
         self.cellSize = mapConfig.cellSize
+        self.bgColor = mapConfig.backgroundColor
+        self.fgColor = mapConfig.foregroundColor
         reloadTextureCache()
     }
     
-//    private(set) var cellSize: Vector2i = Vector2i(x: 32, y: 32)
-//    private(set) var cellSize = Vector2i(x: 16, y: 16)
-    private(set) var cellSize: Vector2i //= Vector2i(x: 8, y: 8)
+    private(set) var cellSize: Vector2i
+    private(set) var bgColor: Color
+    private(set) var fgColor: Color
     
     func setCellSize(_ size: Vector2i) {
         self.cellSize = size
@@ -80,8 +82,10 @@ class MapDrawer {
         emptyTexture = TextureMaker.makeGridTexture(
             size: cellSize,
             margin: cellSize.x/8,
-            bgColor: Color(r: 33/255, g: 33/255, b: 74/255),
-            fgColor: Color(r: 0, g: 0, b: 148/255))
+            bgColor: bgColor,
+            fgColor: fgColor)
+//            bgColor: Color(r: 33/255, g: 33/255, b: 74/255),
+//            fgColor: Color(r: 0, g: 0, b: 148/255))
         fillTexture = TextureMaker.makeBoxTexture(size: cellSize)
         vWallTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
         cornerTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y / 8))
