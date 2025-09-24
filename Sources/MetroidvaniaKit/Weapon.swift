@@ -45,7 +45,7 @@ class WeaponNode: Node {
 
     @Export var autofire: Bool = false
     
-    private(set) var cooldownCounter: Double = 0.0
+    var cooldownCounter: Double = 0.0
 
     override func _process(delta: Double) {
         cooldownCounter -= delta
@@ -71,6 +71,9 @@ class WeaponNode: Node {
     func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         logError("Method not implemented")
         return []
+    }
+
+    func release() {
     }
 }
 
@@ -333,5 +336,72 @@ class SmartBomb: WeaponNode {
         projectile.effectSpawner = effectSpawner
 
         return [projectile]
+    }
+}
+
+@Godot
+class Flamethrower: WeaponNode {
+
+    private var ammoCounter: Double = 0.0
+
+    override func _process(delta: Double) {
+        cooldownCounter -= delta
+        ammoCounter -= delta
+    }
+
+    override func fire(from node: Node, origin: Vector2, direction: Vector2) {
+        guard cooldownCounter <= 0 else {
+            return 
+        }
+        if ammoCounter <= 0 {
+            guard ammo?.consume(ammoCost) == true else {
+                return
+            }
+            ammoCounter = 0.5
+        }
+        cooldownCounter = cooldown
+        let projectiles = makeProjectiles(origin: origin, direction: direction) 
+        projectiles.forEach {
+            $0.position = origin
+            node.addChild(node: $0)
+        }
+    }
+
+    override func release() {
+        ammoCounter = 0
+    }
+
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+        let projectile = Projectile()
+
+        let sprite = FlameSprite()
+        projectile.addChild(node: sprite)
+
+        let ai = LinearMoveAI()
+        projectile.ai = ai
+        projectile.addChild(node: ai)
+        
+        ai.direction = direction
+        ai.speed = 200
+        projectile.lifetime = 0.5
+
+        return [projectile]
+    }
+}
+
+@Godot
+class FlameSprite: Sprite2D {
+
+    var spriteScale = 1.0
+
+    override func _ready() {
+        let tex = PlaceholderTexture2D()
+        tex.size = Vector2(x: 8, y: 8)
+        self.texture = tex
+    }
+
+    override func _physicsProcess(delta: Double) {
+        spriteScale += 8 * delta
+        self.scale = Vector2(x: spriteScale, y: spriteScale) // TODO also needs to scale bullet collider size
     }
 }

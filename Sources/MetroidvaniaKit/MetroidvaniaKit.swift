@@ -45,6 +45,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             RocketLauncher.self,
             GranadeLauncher.self,
             SmartBomb.self,
+            Flamethrower.self,
             SmartBombExplosion.self,
             BreakableBlock.self,
             SpeedBoosterBlock.self,
@@ -58,6 +59,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             Hookshot.self,
             SelfDestruct.self,
             Ammo.self,
+            FlameSprite.self
         ].forEach { register(type: $0) }
     default:
         break

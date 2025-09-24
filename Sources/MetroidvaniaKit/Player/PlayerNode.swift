@@ -29,6 +29,7 @@ enum SubweaponType {
     case rocket
     case granade
     case smartBomb
+    case flamethrower
 }
 
 @PickerNameProvider
@@ -63,6 +64,7 @@ class PlayerNode: CharacterBody2D {
     @Node("Weapons/RocketLauncher") var rocketLauncher: WeaponNode?
     @Node("Weapons/GranadeLauncher") var granadeLauncher: WeaponNode?
     @Node("Weapons/SmartBomb") var smartBomb: WeaponNode?
+    @Node("Weapons/Flamethrower") var flamethrower: Flamethrower?
     
     @Node("Hookshot") var hookshot: Hookshot?
     @Node("Ammo") var ammo: Ammo?
@@ -201,11 +203,12 @@ class PlayerNode: CharacterBody2D {
             plasmaBeam,
             rocketLauncher,
             granadeLauncher,
-            smartBomb
+            smartBomb,
+            flamethrower,
         ].compactMap {$0}.forEach { $0.ammo = ammo } 
 
         switchWeapons(weaponLevel)
-        switchSubweapon(.smartBomb) // check for weapon flags
+        switchSubweapon(.flamethrower) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
             self?.hookHit()
         }
@@ -350,6 +353,7 @@ class PlayerNode: CharacterBody2D {
         case .rocket: subweapon = rocketLauncher
         case .granade: subweapon = granadeLauncher
         case .smartBomb: subweapon = smartBomb
+        case .flamethrower: subweapon = flamethrower
         }
     }
     
@@ -369,6 +373,9 @@ class PlayerNode: CharacterBody2D {
                 return true
             }
         }
+        if input.isActionJustReleased(.actionLeft) {
+            weapon.release()
+        }
         return false
     }
     
@@ -387,6 +394,9 @@ class PlayerNode: CharacterBody2D {
                 lastShotTimestamp = Time.getTicksMsec()
                 return true
             }
+        }
+        if input.isActionJustReleased(.actionUp) {
+            subweapon.release()
         }
         return false
     }
