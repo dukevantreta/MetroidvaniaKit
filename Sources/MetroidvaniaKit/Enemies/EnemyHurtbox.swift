@@ -18,24 +18,23 @@ class EnemyHurtbox: Area2D {
     }
 }
 
-
-//@Godot
-//class EnemyHitbox: Area2D {
-//    
-//    var damage: Int = 0
-//    var destroyMask: UInt32 = 0
-//    
+@Godot
+class EnemyHitbox: Area2D {
+    
+    @Export var damage: Int = 10
+    
 //    var onDestroy: (() -> Void)?
-//    
-//    override func _ready() {
-//        areaEntered.connect { [weak self] otherArea in
-//            guard let self, let otherArea else { return }
-////            if let hurtbox = otherArea as? Hurtbox {
-////                hurtbox.onDamage?(damage)
-////            }
-//            if otherArea.collisionLayer & destroyMask != 0 {
-//                onDestroy?()
-//            }
-//        }
-//    }
-//}
+    
+    override func _ready() {
+        collisionMask = 0b1_0000_0000
+        
+        // TODO: if player stays in area it should take damage
+        areaEntered.connect { [weak self] otherArea in
+            guard let self, let otherArea else { return }
+            if let playerHurtbox = otherArea as? PlayerHitbox {
+                let direction: Float = playerHurtbox.globalPosition < self.globalPosition ? -1.0 : 1.0
+                playerHurtbox.takeHit(damage, xDirection: direction)
+            }
+        }
+    }
+}

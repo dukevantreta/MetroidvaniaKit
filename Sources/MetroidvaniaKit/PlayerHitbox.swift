@@ -5,6 +5,11 @@ class PlayerHitbox: Area2D {
     
     @SceneTree(path: "..") weak var player: PlayerNode?
     
+    private var hitTimer = Timer()
+    private var invFramesTimer = Timer()
+    
+    private var isInvincible = false
+    
     private var lastFrameInWater = false
     
     override func _ready() {
@@ -16,20 +21,22 @@ class PlayerHitbox: Area2D {
         collisionLayer = 0b1_0000_0000
         collisionMask |= 0b00000100
         
-//        areaEntered.connect { [weak self] area in
-//            guard let self, let area else { return }
-//            if area.collisionLayer & 0b0100 != 0 {
-//                GD.print("ENTER WATER")
-//                player.enterWater()
-//            }
-//        }
-//        areaExited.connect { [weak self] area in
-//            guard let self, let area else { return }
-//            if area.collisionLayer & 0b0100 != 0 {
-//                GD.print("EXIT WATER")
-//                player.exitWater()
-//            }
-//        }
+        // Hit cooldown timer
+        hitTimer.autostart = false
+        hitTimer.oneShot = true
+        hitTimer.timeout.connect { [weak self] in
+            self?.hitTimeout()
+        }
+        addChild(node: hitTimer)
+        
+        // Invincible frames toggle timer
+        invFramesTimer.autostart = false
+        invFramesTimer.oneShot = false
+        invFramesTimer.timeout.connect { [weak self] in
+            guard let sprite = self?.player?.sprite else { return }
+            sprite.visible = !sprite.visible
+        }
+        addChild(node: invFramesTimer)
     }
     
     override func _process(delta: Double) {
@@ -64,5 +71,21 @@ class PlayerHitbox: Area2D {
             lastFrameInWater = false
             player?.exitWater()
         }
+    }
+    
+    func takeHit(_ damage: Int, xDirection: Float) {
+        guard !isInvincible else { return }
+        isInvincible = true
+        
+        player?.takeDamage(damage, xDirection: xDirection)
+        
+        invFramesTimer.start(timeSec: 0.05)
+        hitTimer.start(timeSec: 1.0)
+    }
+    
+    func hitTimeout() {
+        invFramesTimer.stop()
+        player?.sprite?.visible = true
+        isInvincible = false
     }
 }

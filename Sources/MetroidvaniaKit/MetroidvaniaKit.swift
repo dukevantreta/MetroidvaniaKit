@@ -39,6 +39,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             RocketBlock.self,
             Enemy.self,
             EnemyHurtbox.self,
+            EnemyHitbox.self,
             PatrolEnemyAI.self,
             CrawlerEnemyAI.self,
             LinearEnemyAI.self,

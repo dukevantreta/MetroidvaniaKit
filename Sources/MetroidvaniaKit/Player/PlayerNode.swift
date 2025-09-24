@@ -43,6 +43,8 @@ class PlayerNode: CharacterBody2D {
     @Export
     var deceleration: Double = 80.0
     
+    @Export var damageSpeed: Float = 500
+    
     @Export var allowJumpSensitivity: Bool = true
     
     @Export var jumpDuration: Double = 0.5
@@ -140,6 +142,10 @@ class PlayerNode: CharacterBody2D {
             newState.enter(self)
             state = newState
         }
+    }
+    
+    func takeDamage(_ amount: Int, xDirection: Float) {
+        velocity.x += xDirection * damageSpeed
     }
     
     func enterWater() {
