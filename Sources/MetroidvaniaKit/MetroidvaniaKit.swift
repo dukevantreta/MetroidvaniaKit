@@ -32,6 +32,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             GameController.self,
             PauseMenu.self,
             SidescrollerCamera.self,
+            PlayerUpgrades.self,
         ].forEach { register(type: $0) }
     default:
         break

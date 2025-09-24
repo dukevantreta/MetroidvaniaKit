@@ -1,7 +1,7 @@
 import SwiftGodot
 
 enum InputAction: StringName {
-    case accept
+    case accept = "ui_accept"
 }
 
 extension Input {

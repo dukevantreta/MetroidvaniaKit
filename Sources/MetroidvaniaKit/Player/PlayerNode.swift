@@ -14,6 +14,7 @@ enum Upgrade {
 class PlayerNode: CharacterBody2D {
     
     @SceneTree(path: "CollisionShape2D") var collisionShape: CollisionShape2D?
+    @SceneTree(path: "PlayerUpgrades") var upgrades: PlayerUpgrades!
     
     @Export
     var speed: Double = 180.0
@@ -38,6 +39,8 @@ class PlayerNode: CharacterBody2D {
     var state: PlayerState = IdleState()
     
     var facingDirection: Int = 1
+    
+    var canDoubleJump = true
     
     func getGravity() -> Double {
         8 * parabolicHeight / (jumpDuration * jumpDuration)
@@ -145,8 +148,9 @@ class IdleState: PlayerState {
 class RunningState: PlayerState {
     
     func enter(_ player: PlayerNode) {
-        
+        player.canDoubleJump = true
     }
+    
     func update(_ player: PlayerNode, dt: Double) -> PlayerState? {
         
         let direction = Input.getHorizontalAxis()
@@ -164,7 +168,7 @@ class RunningState: PlayerState {
         }
         
         // Jump
-        if Input.isActionJustPressed(action: "ui_accept") {
+        if Input.isActionJustPressed(.accept) {
             GD.print("Jump")
             player.velocity.y = Float(-player.getJumpspeed())
         }
@@ -225,6 +229,12 @@ class JumpingState: PlayerState {
             if player.velocity.y > terminalVelocity {
                 player.velocity.y = terminalVelocity
             }
+        }
+        
+        if Input.isActionJustPressed(.accept) && player.canDoubleJump && player.upgrades.hasDoubleJump {
+            player.velocity.y = Float(-player.getJumpspeed())
+            jumpTimestamp = Time.getTicksMsec()
+            player.canDoubleJump = false
         }
         
         player.moveAndSlide()
