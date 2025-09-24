@@ -7,9 +7,9 @@ class TriggerArea2D: Area2D {
     
     override func _ready() {
         bodyEntered.connect { body in
-            if body.isClass("\(CharacterController2D.self)") {
-                GD.print("Player entered area")
-            }
+//            if body.isClass("\(CharacterController2D.self)") {
+//                GD.print("Player entered area")
+//            }
             if let collisionBody = body as? CollisionObject2D {
                 let isPlayer = (collisionBody.collisionLayer & 0b1_00000000) != 0
                 let isFloor = (collisionBody.collisionLayer & 0b01) != 0

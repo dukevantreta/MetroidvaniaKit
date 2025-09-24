@@ -138,10 +138,12 @@ class TileMapImporter: Node {
         return root
     }
     
-    func setOwner(_ owner: Node, to node: Node) {
-        node.owner = owner
-        for child in node.getChildren() {
-            setOwner(owner, to: child)
+    func setOwner(_ owner: Node, to node: Node?) {
+        if let node {
+            node.owner = owner
+            for child in node.getChildren() {
+                setOwner(owner, to: child)
+            }
         }
     }
     

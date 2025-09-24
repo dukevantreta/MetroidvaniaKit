@@ -168,7 +168,7 @@ class WorldImporter: Node {
             }
         }
         for child in root.getChildren() {
-            child.owner = root
+            child?.owner = root
         }
         
         let dataString = try mapData.encode()
