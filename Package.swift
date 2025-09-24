@@ -14,7 +14,8 @@ let package = Package(
             targets: ["MetroidvaniaKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/migueldeicaza/SwiftGodot", branch: "main"),
+//        .package(url: "https://github.com/migueldeicaza/SwiftGodot", branch: "main"),
+        .package(url: "../../SwiftGodot", branch: "fix-callable-with-collections"),
 //        .package(path: "../../SwiftGodot"),
         .package(url: "https://github.com/apple/swift-numerics", from: "1.0.0"),
     ],
@@ -35,7 +36,7 @@ let package = Package(
                 .product(name: "Numerics", package: "swift-numerics"),
             ],
             swiftSettings: [.unsafeFlags(["-suppress-warnings"])]
-        ),
+        ), 
         .testTarget(
             name: "MetroidvaniaKitTests",
             dependencies: ["MetroidvaniaKit"]),

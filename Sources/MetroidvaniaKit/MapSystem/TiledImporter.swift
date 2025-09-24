@@ -27,6 +27,8 @@ enum ImportError: Error {
     case tileSetNotFound
     case godotError(GodotError)
     case malformedPath(String)
+    case unsupportedMapType(Tiled.TileMap.Orientation)
+    case noTileSetImageSource
     
     enum LayerDataErrorReason {
         case notFound
@@ -156,49 +158,49 @@ class MapImportPlugin: EditorImportPlugin {
     ) -> GodotError {
         GD.print("IMPORTING: \(sourceFile) | TO: \(savePath)")
         GD.print("IMPORT OPTIONS: \(options)")
-        guard FileAccess.fileExists(path: sourceFile) else {
-            GD.pushError("[] Import file \(sourceFile) not found!")
-            return .errFileNotFound
-        }
-        let xmlTree = try? XML.parse(sourceFile, with: XMLParser())
-        guard let xmlTree else { return .errBug }
-            
-//        printTree(xmlTree.root, level: 0)
-        
-        // for some reason, this runs from a background thread during autoimport check
-        DispatchQueue.main.async {
-            self.importMap(sourceFile: sourceFile, xml: xmlTree.root, savePath: savePath)
-        }
+//        guard FileAccess.fileExists(path: sourceFile) else {
+//            GD.pushError("[] Import file \(sourceFile) not found!")
+//            return .errFileNotFound
+//        }
+//        let xmlTree = try? XML.parse(sourceFile, with: XMLParser())
+//        guard let xmlTree else { return .errBug }
+//            
+////        printTree(xmlTree.root, level: 0)
+//        
+//        // for some reason, this runs from a background thread during autoimport check
+//        DispatchQueue.main.async {
+//            self.importMap(sourceFile: sourceFile, xml: xmlTree.root, savePath: savePath)
+//        }
         return .ok
     }
     
     func importMap(sourceFile: String, xml: XML.Element, savePath: String) {
-        guard let map = try? Tiled.TileMap(from: xml) else {
-            return //.errBug
-        }
-        guard map.orientation == .orthogonal else { // support only orthogonal
-            return //.errBug
-        }
-        guard let tileset = TileSetParser.parseTileSets(map: map, sourceFile: sourceFile) else { return }
-        guard let tilemapNode = try? createTileMap(map: map, using: tileset) else { return }
-        
-        guard let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first else {
-            return // err
-        }
-        
-        tilemapNode.name = StringName(filename)
-        let scene = PackedScene()
-        scene.pack(path: tilemapNode)
-        
-//        let outputFile = "res://output/\(filename).tscn"
-        let outputFile = "\(savePath).tscn"
-        let err = ResourceSaver.save(resource: scene, path: outputFile)
-        
-        if err != .ok {
-            GD.print("ERROR SAVING OUTPUT: \(err)")
-        } else {
-            GD.print("SAVE SUCCESSFUL")
-        }
+//        guard let map = try? Tiled.TileMap(from: xml) else {
+//            return //.errBug
+//        }
+//        guard map.orientation == .orthogonal else { // support only orthogonal
+//            return //.errBug
+//        }
+//        guard let tileset = TileSetParser.parseTileSets(map: map, sourceFile: sourceFile) else { return }
+//        guard let tilemapNode = try? createTileMap(map: map, using: tileset) else { return }
+//        
+//        guard let filename = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first else {
+//            return // err
+//        }
+//        
+//        tilemapNode.name = StringName(filename)
+//        let scene = PackedScene()
+//        scene.pack(path: tilemapNode)
+//        
+////        let outputFile = "res://output/\(filename).tscn"
+//        let outputFile = "\(savePath).tscn"
+//        let err = ResourceSaver.save(resource: scene, path: outputFile)
+//        
+//        if err != .ok {
+//            GD.print("ERROR SAVING OUTPUT: \(err)")
+//        } else {
+//            GD.print("SAVE SUCCESSFUL")
+//        }
     }
     
     var currentTileset: TileSet? // find a better solution

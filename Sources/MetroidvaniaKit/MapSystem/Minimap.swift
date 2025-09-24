@@ -12,6 +12,14 @@ enum Border: Int {
     }
 }
 
+enum BorderType: Int, Codable {
+    case empty = -1
+    case wall = 0
+    case passage = 1
+    case door = 2
+}
+
+
 // cell xyz can be a uint8
 struct CellData: Codable {
     let x: Int32

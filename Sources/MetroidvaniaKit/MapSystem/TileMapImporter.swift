@@ -5,37 +5,19 @@ import Foundation
 @Godot(.tool)
 class TileMapImporter: Node {
     
-//    static let importQueue = DispatchQueue(label: "queue.tilemap.import", qos: .userInteractive)
-//    static let importQueue = DispatchQueue(label: "queue.tilemap.import", qos: .userInteractive, target: .main)
-    
-    @Callable
-    func importResource(
-        sourceFile: String,
-        savePath: String,
-        options: GDictionary,
-        platformVariants: VariantCollection<String>,
-        genFiles: VariantCollection<String>
-    ) -> Int {
-        DispatchQueue.main.async {
-            self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
-        }
-        return 0
-//        if Thread.isMainThread {
-//            TileMapImporter.importQueue.sync {
-//                //        DispatchQueue.main.sync {
-//                let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
-//                return Int(error.rawValue)
-//            }
-//        } else {
-//            let error = DispatchQueue.main.sync {
-//                let error = self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
-////                return Int(error.rawValue)
-//                return error
-//            }
-//            return Int(error.rawValue)
+//    @Callable
+//    func importResource(
+//        sourceFile: String,
+//        savePath: String,
+//        options: GDictionary,
+//        platformVariants: VariantCollection<String>,
+//        genFiles: VariantCollection<String>
+//    ) -> Int {
+//        DispatchQueue.main.async {
+//            self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
 //        }
 //        return 0
-    }
+//    }
     
     @discardableResult
     private func `import`(
@@ -77,10 +59,6 @@ class TileMapImporter: Node {
         }
         return .ok
     }
-    
-//    func openTileSet() throws -> TileSet {
-//        
-//    }
     
     var currentTileset: TileSet? // find a better solution
     var localTilesetRefs: [Int32: String] = [:]
@@ -288,47 +266,47 @@ class TileMapImporter: Node {
         return node
     }
     
-    func createTileMapUsingLayers(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
-        guard let source = tileset.getSource(sourceId: tileset.getSourceId(index: 0)) as? TileSetAtlasSource else {
-            throw ImportError.unknown // no source
-        }
-        let textureWidth = source.texture?.getWidth() ?? -1
-        let tilesetColumns = Int(textureWidth / tileset.tileSize.x)
-        let tilesetSourceID = tileset.getSourceId(index: 0)
-
-        let tilemap = TileMap()
-        tilemap.name = "<name>"
-        tilemap.tileSet = tileset
-        let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
-
-        for layerIdx in 0..<map.layers.count {
-            let layer = map.layers[layerIdx]
-            tilemap.addLayer(toPosition: Int32(layerIdx))
-            let cellArray = try layer.getTileData()
-                .components(separatedBy: .whitespacesAndNewlines)
-                .joined()
-                .components(separatedBy: ",")
-                .compactMap { Int($0) }
-            for idx in 0..<cellArray.count {
-                let cellValue = cellArray[idx]
-                let tileIndex = cellValue - (tilesetGID ?? 0)
-                if tileIndex < 0 {
-                    continue
-                }
-                let mapCoords = Vector2i(
-                    x: Int32(idx % layer.width),
-                    y: Int32(idx / layer.width))
-                let tileCoords = Vector2i(
-                    x: Int32(tileIndex % tilesetColumns),
-                    y: Int32(tileIndex / tilesetColumns)
-                )
-                tilemap.setCell(layer: Int32(layerIdx), coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
-            }
-        }
-        let rootNode = Node2D()
-        rootNode.name = "root"
-        rootNode.addChild(node: tilemap)
-        tilemap.owner = rootNode
-        return rootNode
-    }
+//    func createTileMapUsingLayers(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
+//        guard let source = tileset.getSource(sourceId: tileset.getSourceId(index: 0)) as? TileSetAtlasSource else {
+//            throw ImportError.unknown // no source
+//        }
+//        let textureWidth = source.texture?.getWidth() ?? -1
+//        let tilesetColumns = Int(textureWidth / tileset.tileSize.x)
+//        let tilesetSourceID = tileset.getSourceId(index: 0)
+//
+//        let tilemap = TileMap()
+//        tilemap.name = "<name>"
+//        tilemap.tileSet = tileset
+//        let tilesetGID = Int(map.tilesets.first?.firstGID ?? "0") ?? -99999
+//
+//        for layerIdx in 0..<map.layers.count {
+//            let layer = map.layers[layerIdx]
+//            tilemap.addLayer(toPosition: Int32(layerIdx))
+//            let cellArray = try layer.getTileData()
+//                .components(separatedBy: .whitespacesAndNewlines)
+//                .joined()
+//                .components(separatedBy: ",")
+//                .compactMap { Int($0) }
+//            for idx in 0..<cellArray.count {
+//                let cellValue = cellArray[idx]
+//                let tileIndex = cellValue - (tilesetGID ?? 0)
+//                if tileIndex < 0 {
+//                    continue
+//                }
+//                let mapCoords = Vector2i(
+//                    x: Int32(idx % layer.width),
+//                    y: Int32(idx / layer.width))
+//                let tileCoords = Vector2i(
+//                    x: Int32(tileIndex % tilesetColumns),
+//                    y: Int32(tileIndex / tilesetColumns)
+//                )
+//                tilemap.setCell(layer: Int32(layerIdx), coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
+//            }
+//        }
+//        let rootNode = Node2D()
+//        rootNode.name = "root"
+//        rootNode.addChild(node: tilemap)
+//        tilemap.owner = rootNode
+//        return rootNode
+//    }
 }

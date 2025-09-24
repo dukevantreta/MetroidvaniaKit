@@ -1,3 +1,5 @@
+//typealias Int = Int32
+
 extension Tiled {
     // TODO: Missing properties
     struct TileSet {
