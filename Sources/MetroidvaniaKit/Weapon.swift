@@ -53,11 +53,9 @@ class WeaponNode: Node {
     
     func fire(from node: Node, origin: Vector2, direction: Vector2) {
         guard cooldownCounter <= 0 else {
-            log("Weapon in cooldown")
             return 
         }
         guard ammo?.consume(ammoCost) == true else {
-            log("No ammo")
             return // play fail sfx
         }
         cooldownCounter = cooldown

@@ -32,11 +32,9 @@ class TileSetImporter: Node {
                 x: tileWidth,
                 y: tileHeight
             )
-//                ResourceSaver.save(resource: newTileset, path: defaultTileSetPath)
             gTileset = newTileset
         } else {
             gTileset = try loadResource(ofType: TileSet.self, at: defaultImportPath)
-//            gTileset = ResourceLoader.load(path: defaultImportPath) as! TileSet
             // check for consistency (tile size, tile shape...)
         }
         
@@ -67,7 +65,7 @@ class TileSetImporter: Node {
             atlasSource.margins = Vector2i(x: tiledTileset.margin, y: tiledTileset.margin)
             atlasSource.separation = Vector2i(x: tiledTileset.spacing, y: tiledTileset.spacing)
             
-            gTileset.addSource(atlasSource) // Seems that atlas need to be added before adding collision to tiles
+            gTileset.addSource(atlasSource) // NOTE: Seems that atlas need to be added BEFORE adding collision to tiles (collisions bugging on import)
             
             let columns = Int32(tiledTileset.columns ?? 0)
             let rows = Int32(tiledTileset.tileCount ?? 0) / columns
@@ -157,22 +155,15 @@ class TileSetImporter: Node {
     func parseProperties(from tiledTileset: Tiled.TileSet, toGodot tileset: TileSet) {
         for property in tiledTileset.properties {
             if property.name.hasPrefix("collision_layer_") {
-//                GD.print("FOUND COLLISION LAYER")
                 if let layerIndex = Int32(property.name.components(separatedBy: "_").last ?? "") {
                     if layerIndex >= tileset.getPhysicsLayersCount() {
                         GD.print("ADDING PHYSICS LAYER: \(layerIndex)")
                         tileset.addPhysicsLayer(toPosition: layerIndex)
-                        
-//                        let curMask = tileset.getPhysicsLayerCollisionMask(layerIndex: layerIndex)
-//                        log("CURRENT LAYER MASK: \(curMask)")
-                        
                         var layerMask: UInt32 = 0
                         for layer in property.value?.components(separatedBy: ",").compactMap { UInt32($0) } ?? [] {
                             layerMask |= 1 << (layer - 1)
                         }
                         tileset.setPhysicsLayerCollisionLayer(layerIndex: layerIndex, layer: layerMask)
-//                        GD.print("DID SET PHYSICS LAYER: \(layerIndex), WITH MASK: \(tileset.getPhysicsLayerCollisionMask(layerIndex: layerIndex))")
-//                        log("PHYSICS LAYER COUNT: \(tileset.getPhysicsLayersCount())")
                     }
                 }
             }
@@ -183,13 +174,3 @@ class TileSetImporter: Node {
         try loadResource(ofType: TileSet.self, at: self.defaultImportPath)
     }
 }
-
-class TileSetProxy {
-    
-    private let tileSet: TileSet
-    
-    init(tileSet: TileSet) {
-        self.tileSet = tileSet
-    }
-}
-

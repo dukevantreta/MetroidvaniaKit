@@ -12,8 +12,12 @@ class TileMapImporter: Node {
     let objectsPath = "res://objects/"
     
     var currentTileset: TileSet? // find a better solution
-    var localTilesetRefs: [UInt32: String] = [:]
+    var gidToNameDict: [UInt32: String] = [:]
     
+    override func _enterTree() {
+        self.name = "TMX Importer"
+    }
+
     @Callable
     func importResource(
         sourceFile: String,
@@ -22,10 +26,10 @@ class TileMapImporter: Node {
         platformVariants: VariantCollection<String>,
         genFiles: VariantCollection<String>
     ) -> Int {
-        DispatchQueue.main.async {
-            self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
-        }
-        return 0
+        // DispatchQueue.main.async {
+            // self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
+        // }
+        return Int(`import`(sourceFile: sourceFile, savePath: savePath, options: options).rawValue)
     }
     
     @discardableResult
@@ -84,80 +88,17 @@ class TileMapImporter: Node {
         for tilesetRef in map.tilesets {
             if let gid = UInt32(tilesetRef.firstGID ?? "") {
                 let name = try getFileName(from: tilesetRef.source ?? "")
-                localTilesetRefs[gid] = name
+                gidToNameDict[gid] = name
             }
         }
-        log("CURRENT TILESETS: \(localTilesetRefs)")
+        log("Creating map with TileSets: \(gidToNameDict)")
         
         let gids = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
         
         let root = Node2D()
 
         for layer in map.layers {
-            let tilemap = TileMapLayer()
-            tilemap.setName(layer.name)
-            tilemap.tileSet = tileset
-            tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
-            if let colorString = layer.tintColor {
-                if let color = parseHexColor(colorString) {
-                    tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
-                }
-            }
-            tilemap.visible = layer.isVisible
-            
-            let cellArray = try layer.getTileData()
-                .components(separatedBy: .whitespacesAndNewlines)
-                .joined()
-                .components(separatedBy: ",")
-                .compactMap { UInt32($0) }
-            for idx in 0..<cellArray.count {
-                let cellValue = cellArray[idx]
-                if cellValue == 0 {
-                    continue
-                }
-                let trueGID: UInt32 = UInt32(cellValue) & 0x0FFF_FFFF
-//                let flipBits: UInt32 = UInt32(cellValue) & 0xF000_0000
-//                let flipHorizontally = flipBits & 1 << 31 != 0
-//                let flipVertically = flipBits & 1 << 30 != 0
-                
-                let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
-                let tileIndex = cellValue - tilesetGID
-                
-                let resourceName = localTilesetRefs[tilesetGID] ?? ""
-                let sourceID = tileset.getSourceId(named: resourceName)
-                let tilesetColumns = tileset.getColumnCount(sourceId: sourceID)
-                
-                let mapCoords = Vector2i(
-                    x: Int32(idx) % layer.width,
-                    y: Int32(idx) / layer.width)
-                let tileCoords = Vector2i(
-                    x: Int32(tileIndex % UInt32(tilesetColumns)),
-                    y: Int32(tileIndex / UInt32(tilesetColumns))
-                )
-                tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
-            }
-            let properties = parseProperties(layer.properties)
-            if let zIndex = properties["z_index"] as? Int32 {
-                tilemap.zIndex = zIndex
-            }
-            for property in layer.properties {
-                tilemap.setMeta(name: StringName(property.name), value: Variant(property.value))
-            }
-            
-            // Handle parallax layer (this is broken)
-//            if let xParallax = layer.parallaxX, let yParallax = layer.parallaxY, (xParallax != 1.0 || yParallax != 1.0) {
-//                let parallax = Parallax2D()
-//                parallax.name = StringName("Parallax2D")
-//                parallax.scrollScale = Vector2(x: -xParallax, y: -yParallax)
-////                parallax.repeatSize = Vector2(x: layer.width * TILE_SIZE, y: layer.height * TILE_SIZE)
-//                parallax.repeatSize = Vector2(x: 25 * TILE_SIZE, y: 15 * TILE_SIZE)
-//                parallax.followViewport = true
-//                parallax.addChild(node: tilemap)
-////                parallax.repeatTimes = 3
-//                root.addChild(node: parallax)
-//            } else {
-                root.addChild(node: tilemap)
-//            }
+            root.addChild(node: try transformLayer(layer, tilesetGIDs: gids))
         }
         for group in map.groups {
             root.addChild(node: transformGroup(group))
@@ -184,29 +125,70 @@ class TileMapImporter: Node {
     }
     
     // Solve GIDs
-    func transformLayer(_ layer: Tiled.Layer) throws -> Node2D {
-        let tilemap = TileMap()
+    func transformLayer(_ layer: Tiled.Layer, tilesetGIDs: [UInt32]) throws -> Node2D {
+        let tileset = try currentTileset ??? ImportError.tileSetNotFound
+        let tilemap = TileMapLayer()
         tilemap.setName(layer.name)
-//        tilemap.tileSet = tileset
-        let cells = try layer.getTileData()
+        tilemap.tileSet = tileset
+        tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
+        if let colorString = layer.tintColor {
+            if let color = parseHexColor(colorString) {
+                tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+            }
+        }
+        tilemap.visible = layer.isVisible
+        
+        let cellArray = try layer.getTileData()
             .components(separatedBy: .whitespacesAndNewlines)
             .joined()
             .components(separatedBy: ",")
-            .compactMap { Int($0) }
-//        for idx in 0..<cells.count {
-//            let tileIndex = cells[idx] - (tilesetGID ?? 0)
-//            if tileIndex < 0 {
-//                continue
-//            }
-//            let mapCoords = Vector2i(
-//                x: Int32(idx % layer.width),
-//                y: Int32(idx / layer.width))
-//            let tileCoords = Vector2i(
-//                x: Int32(tileIndex % tilesetColumns),
-//                y: Int32(tileIndex / tilesetColumns)
-//            )
-//            tilemap.setCell(layer: 0, coords: mapCoords, sourceId: tilesetSourceID, atlasCoords: tileCoords, alternativeTile: 0)
-//        }
+            .compactMap { UInt32($0) }
+        for idx in 0..<cellArray.count {
+            let cellValue = cellArray[idx]
+            if cellValue == 0 {
+                continue
+            }
+            let trueGID: UInt32 = UInt32(cellValue) & 0x0FFF_FFFF
+//                let flipBits: UInt32 = UInt32(cellValue) & 0xF000_0000
+//                let flipHorizontally = flipBits & 1 << 31 != 0
+//                let flipVertically = flipBits & 1 << 30 != 0
+            
+            let tilesetGID = tilesetGIDs.filter { $0 <= trueGID }.max() ?? 0
+            let tileIndex = cellValue - tilesetGID
+            
+            let resourceName = gidToNameDict[tilesetGID] ?? ""
+            let sourceID = tileset.getSourceId(named: resourceName)
+            let tilesetColumns = tileset.getColumnCount(sourceId: sourceID)
+            
+            let mapCoords = Vector2i(
+                x: Int32(idx) % layer.width,
+                y: Int32(idx) / layer.width)
+            let tileCoords = Vector2i(
+                x: Int32(tileIndex % UInt32(tilesetColumns)),
+                y: Int32(tileIndex / UInt32(tilesetColumns))
+            )
+            tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
+        }
+        let properties = parseProperties(layer.properties)
+        if let zIndex = properties["z_index"] as? Int32 {
+            tilemap.zIndex = zIndex
+        }
+        for property in layer.properties {
+            tilemap.setMeta(name: StringName(property.name), value: Variant(property.value))
+        }
+        
+        // Handle parallax layer (this is broken)
+//            if let xParallax = layer.parallaxX, let yParallax = layer.parallaxY, (xParallax != 1.0 || yParallax != 1.0) {
+//                let parallax = Parallax2D()
+//                parallax.name = StringName("Parallax2D")
+//                parallax.scrollScale = Vector2(x: -xParallax, y: -yParallax)
+////                parallax.repeatSize = Vector2(x: layer.width * TILE_SIZE, y: layer.height * TILE_SIZE)
+//                parallax.repeatSize = Vector2(x: 25 * TILE_SIZE, y: 15 * TILE_SIZE)
+//                parallax.followViewport = true
+//                parallax.addChild(node: tilemap)
+////                parallax.repeatTimes = 3
+//                root.addChild(node: parallax)
+//            } else {
         return tilemap
     }
     
@@ -236,6 +218,9 @@ class TileMapImporter: Node {
         // TODO: handle draw order
         node.visible = objectGroup.isVisible
         // TODO: handle properties
+        for property in objectGroup.properties {
+
+        }
 //        node.modulate -> use this for opacity and tint?
         for object in objectGroup.objects {
             node.addChild(node: transformObject(object))
@@ -256,15 +241,15 @@ class TileMapImporter: Node {
             let flipVertically = flipBits & 1 << 30 != 0
             
             let sprite = Sprite2D()
-            sprite.name = StringName("Sprite2D")
+            // sprite.name = StringName("Sprite2D")
             node.addChild(node: sprite)
             
             guard let currentTileset else { fatalError() }
             
-            let gids: [UInt32] = Array(localTilesetRefs.keys)
+            let gids: [UInt32] = Array(gidToNameDict.keys)
             let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
             
-            let atlasName = localTilesetRefs[UInt32(tilesetGID)] ?? ""
+            let atlasName = gidToNameDict[UInt32(tilesetGID)] ?? ""
             guard let atlas = currentTileset.getSource(named: atlasName) as? TileSetAtlasSource else {
                 GD.print("ERROR GETTING ATLAS SOURCE")
                 return node
@@ -303,7 +288,7 @@ class TileMapImporter: Node {
             let body = parseRectangle(from: object)
             node.addChild(node: body)
         }
-        node.setName(object.name)
+        node.setName(object.name.isEmpty ? "\(object.id)" : object.name)
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
         for property in object.properties {

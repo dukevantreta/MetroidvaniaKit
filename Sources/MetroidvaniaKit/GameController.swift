@@ -19,6 +19,7 @@ class GameController: Node {
     
     @Node("../Parallax2D") var parallaxLayer: Parallax2D?
     
+    @Export var worldToLoad: String = ""
     @Export var roomToLoad: String = ""
     
     @Export var tileMaterial: ShaderMaterial? // move somewhere else
@@ -36,7 +37,7 @@ class GameController: Node {
         
         log("Player: \(player)")
         
-        let worldFile = "res://tiled/world-test.world"
+        let worldFile = "res://tiled/\(worldToLoad).world"
         do {
             self.world = try World.load(from: worldFile)
         } catch {

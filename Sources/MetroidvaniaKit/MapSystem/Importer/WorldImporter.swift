@@ -24,83 +24,6 @@ class WorldImporter: Node {
         savePath: String,
         options: GDictionary
     ) -> GodotError {
-        
-        // remove old tileset .tres here
-        
-//        let gTileset = touchTileSet(tiledMap: map)
-        
-//        do {
-//            let file = try File(path: sourceFile)
-//            
-//            guard FileAccess.fileExists(path: file.path) else {
-//                logError("Import file '\(sourceFile)' not found.")
-//                return .errFileNotFound
-//            }
-//            guard let worldData = FileAccess.getFileAsString(path: file.path).data(using: .utf8) else {
-//                logError("Failed to read world data from '\(sourceFile)'.")
-//                return .errInvalidData
-//            }
-//            
-//            let world = try JSONDecoder().decode(World.self, from: worldData)
-//            log("Importing world: \(file.name)")
-//            
-//            let tileset = try overrideTileSet(named: file.name)
-//            
-//            // save tileset after or before maps
-//            
-//            let root = Node2D()
-//            root.name = StringName(file.name)
-//            
-//            let mapData = Minimap()
-//            
-//            for map in world.maps {
-//                let mapPath = "\(file.directory)/\(map.fileName)"
-//                
-//                let mapName = map.fileName.components(separatedBy: "/").last?.components(separatedBy: ".").first ?? ""
-//                
-//                // import map
-//                try importTileMap(sourceFile: mapPath, savePath: "res://maps/\(mapName)", gTileset: tileset)
-//                
-//                let path = "res://tiled/\(map.fileName)"
-//                if let mapScene = ResourceLoader.load(path: path) as? PackedScene, let mapNode = mapScene.instantiate() as? Node2D {
-//                    log("FOUND SCENE NODE")
-//                    mapNode.position.x = Float(map.x)
-//                    mapNode.position.y = Float(map.y)
-//                    root.addChild(node: mapNode)
-//                    
-//                    processMapData(mapData, map: map, node: mapNode)
-//                } else {
-//                    log("MISSING SCENE NODE!!!")
-//                }
-//            }
-//            
-//            // save tileset
-//            try saveResource(tileset, path: "res://maps/\(file.name).tileset.tres")
-//            
-//            let dataString = try mapData.encode()
-//            let fileHandle = FileAccess.open(path: "res://maps/mapdata.json", flags: .write)
-//            fileHandle?.storeString(dataString)
-//            fileHandle?.close()
-//            
-//            for child in root.getChildren() {
-//                child.owner = root
-//            }
-//            
-//            let scene = PackedScene()
-//            scene.pack(path: root)
-//            
-//            let outputFile = "\(savePath).tscn"
-//            let err = ResourceSaver.save(resource: scene, path: outputFile)
-//            
-//            if err != .ok {
-//                logError("ERROR SAVING WORLD: \(err)")
-//            }
-//            return err
-//            
-//        } catch {
-//            logError("ERROR IMPORTING WORLD: \(error)")
-//            return .ok
-//        }
         return .ok
     }
     
@@ -159,7 +82,7 @@ class WorldImporter: Node {
         }
         
         let dataString = try mapData.encode()
-        let fileHandle = FileAccess.open(path: "res://maps/mapdata.json", flags: .write)
+        let fileHandle = FileAccess.open(path: "res://maps/\(name).map", flags: .write)
         fileHandle?.storeString(dataString)
         fileHandle?.close()
         
@@ -178,8 +101,8 @@ class WorldImporter: Node {
             logError("CANT GET COLLISION MASK FROM SCENE NODE")
             return
         }
-        let viewportSize = Vector2i(x: 25, y: 15) // static constant for the game
-        let tileSize = Vector2i(x: 16, y: 16)
+        let viewportSize = Vector2i(x: ROOM_WIDTH, y: ROOM_HEIGHT) // Can be exposed to the editor via plugin options
+        let tileSize = Vector2i(x: TILE_SIZE, y: TILE_SIZE)
         
         let roomMatrix = Rect2i(
             x: (map.x / tileSize.x) / viewportSize.x,

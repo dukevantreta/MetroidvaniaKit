@@ -3,7 +3,7 @@ import SwiftGodot
 @Godot(.tool)
 class MiniMapHUD: Control {
     
-    let minimap: Minimap = (try? Minimap.load(at: "res://maps/mapdata.json")) ?? Minimap()
+    var minimap: Minimap = Minimap()
     
     @Export var trackPosition: Bool = true
     
@@ -28,6 +28,7 @@ class MiniMapHUD: Control {
     }
     
     override func _ready() {
+        minimap = (try? Minimap.load(at: "res://maps/mapdata.json")) ?? Minimap()
         if Engine.isEditorHint() { return }
         
         // setup listen to mapUpdated event
