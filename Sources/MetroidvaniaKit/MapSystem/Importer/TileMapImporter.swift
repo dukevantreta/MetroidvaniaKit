@@ -3,7 +3,7 @@ import Dispatch
 import Foundation
 
 @Godot(.tool)
-class TileMapImporter: Node {
+class TileMapImporter: RefCounted {
     
     enum Error: Swift.Error {
         case missingTileSetSource(gid: String?)
@@ -52,16 +52,8 @@ class TileMapImporter: Node {
                 return .errBug //
             }
             
-            let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
-            
-            // let tilesetImporter = TileSetImporter()
-            // for tilesetRef in map.tilesets {
-            //     let tilesetSource = try tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID)
-            //     let tilesetSourceFile = [file.directory, tilesetSource].joined(separator: "/")
-            //     // try tilesetImporter.importLazy(sourceFile: tilesetSourceFile, intoTileSet: godotTileset)
-            //     // if godotTileset.
-            // }
-
+            // let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
+            let godotTileset = try loadResource(ofType: TileSet.self, at: TileSetImporter.defaultImportPath)
 
             currentTileset = godotTileset
 
@@ -103,18 +95,6 @@ class TileMapImporter: Node {
     
     // Flipped tiles are clunky to setup, better use manual flipping
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
-        // currentTileset = tileset
-        
-        // for tilesetRef in map.tilesets {
-        //     if let gid = UInt32(tilesetRef.firstGID ?? "") {
-        //         let name = try getFileName(from: tilesetRef.source ?? "")
-        //         gidToNameDict[gid] = name
-        //     }
-        // }
-        // log("Creating map with TileSets: \(gidToNameDict)")
-        
-        // tilesetGIDs = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
-
         let root = Node2D()
         for layer in map.layers {
             root.addChild(node: try transformLayer(layer))
@@ -237,7 +217,6 @@ class TileMapImporter: Node {
         // TODO: handle parallax
         // TODO: handle draw order
         node.visible = objectGroup.isVisible
-        // TODO: handle properties
         for property in objectGroup.properties {
             node.setMeta(name: StringName(property.name), value: Variant(property.value))
         }

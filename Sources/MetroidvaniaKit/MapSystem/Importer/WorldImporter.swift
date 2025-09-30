@@ -2,7 +2,7 @@ import SwiftGodot
 import Foundation
 
 @Godot(.tool)
-class WorldImporter: Node {
+class WorldImporter: RefCounted {
     
     let mapsDir = "res://maps/"
     
