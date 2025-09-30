@@ -47,10 +47,10 @@ class XML {
     private init() {}
     
     // this sh!t is a piece of art
-    static func parse(_ sourceFile: String, with xmlParser: XMLParser) throws -> XML.Tree {
+    static func parse(_ sourceFile: String, with xmlParser: XMLParser) throws(XML.ParseError) -> XML.Tree {
         let openError = xmlParser.open(file: sourceFile)
         if openError != .ok {
-            throw XML.ParseError.fileOpenError(openError)
+            throw .fileOpenError(openError)
         }
         
         var root: XML.Element?
@@ -82,13 +82,13 @@ class XML {
             } else if type == .elementEnd {
                 let name = xmlParser.getNodeName()
                 if name != parseStack.last?.name {
-                    throw XML.ParseError.dataCorruped
+                    throw .dataCorruped
                 }
                 parseStack.popLast()
             }
         }
         guard let root else {
-            throw XML.ParseError.noData
+            throw .noData
         }
         return Tree(root: root)
     }

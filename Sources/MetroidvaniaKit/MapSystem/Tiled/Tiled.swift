@@ -74,8 +74,6 @@ class Tiled {
         let expected: XMLElementType
         let found: XMLElementType
     }
-
-    
     
     struct EditorSettings {}
     

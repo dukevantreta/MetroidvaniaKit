@@ -10,6 +10,7 @@ enum ImportError: Error {
     case malformedPath(String)
     case unsupportedMapType(Tiled.TileMap.Orientation)
     case noTileSetImageSource
+    case undefinedTileSize
     
     enum LayerDataErrorReason {
         case notFound

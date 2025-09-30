@@ -18,6 +18,8 @@ func setupScene (level: GDExtension.InitializationLevel) {
         register(type: TileSetImporter.self)
         register(type: TileMapImporter.self)
         register(type: WorldImporter.self)
+        // register(type: TileSetImportPlugin.self)
+        register(type: TileSetResource.self)
     case .scene:
         [
             GameController.self,
@@ -59,7 +61,8 @@ func setupScene (level: GDExtension.InitializationLevel) {
             Hookshot.self,
             SelfDestruct.self,
             Ammo.self,
-            FlameSprite.self
+            FlameSprite.self,
+            
         ].forEach { register(type: $0) }
     default:
         break

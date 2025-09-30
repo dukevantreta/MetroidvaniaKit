@@ -1,33 +1,100 @@
 import SwiftGodot
 import Dispatch
 
+protocol VerboseLogger {
+    var verbose: Bool { get set }
+    func logVerbose(_ message: String)
+}
+
+extension VerboseLogger where Self: RefCounted {
+    func logVerbose(_ message: String) {
+        if verbose {
+            log(message)
+        }
+    }
+}
+
+extension RefCounted: GodotLogger {}
+
 @Godot(.tool)
-class TileSetImporter: Node {
+class TileSetImporter: RefCounted, VerboseLogger {
     
     static let defaultImportPath = "res://maps/tileset.tres"
     let defaultOutputPath = "res://maps/"
     let defaultTileSetPath = "res://maps/tileset.tres"
+
+    static let defaultTileShape: TileSet.TileShape = .square
+    static let defaultTileSetName = "tileset"
+
+    var sourceFile = ""
+    var verbose = false
+
+    deinit {
+        logVerbose("Deinitializing importer for \(sourceFile)")
+    }
     
-//    @Callable
-//    func importResource(
-//        sourceFile: String,
-//        savePath: String,
-//        options: GDictionary,
-//        platformVariants: VariantCollection<String>,
-//        genFiles: VariantCollection<String>
-//    ) -> Int {
-//        TileSetImporter.importQueue.sync {
-//            let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
-//            return Int(error.rawValue)
-//        }
-//    }
+    @Callable
+    func importResource(
+        sourceFile: String,
+        savePath: String,
+        options: VariantDictionary,
+        platformVariants: TypedArray<String>,
+        genFiles: TypedArray<String>
+    ) -> Int {
+            let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
+            return Int(error.rawValue)
+    }
+    
+    private func `import`(
+        sourceFile: String,
+        savePath: String,
+        options: VariantDictionary
+    ) -> GodotError {
+        self.sourceFile = sourceFile
+        guard FileAccess.fileExists(path: sourceFile) else {
+            logError("Import file '\(sourceFile)' not found.")
+            return .errFileNotFound
+        }
+        
+        verbose = options["verbose"]?.to() ?? false
+
+        logVerbose("Importing tileset: '\(sourceFile)'...")
+        do {
+            let file = try File(path: sourceFile)
+            let xml = try XML.parse(file.path, with: XMLParser())
+            let tiledTileset = try Tiled.TileSet(from: xml.root)
+
+            guard let tileWidth = tiledTileset.tileWidth, let tileHeight = tiledTileset.tileHeight else {
+                throw ImportError.undefinedTileSize
+            }
+
+            let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(tileWidth), tileHeight: Int32(tileHeight))
+            // try importLazy(sourceFile: sourceFile, intoTileSet: godotTileset)
+            try importLazy(from: tiledTileset, intoTileSet: godotTileset, file: file)
+
+            let res = TileSetResource()
+            res.atlasName = file.name
+            try saveResource(res, path: "\(savePath).tres")
+            GD.print("Saved \(savePath).tres")
+            return .ok
+        } catch let error as XML.ParseError {
+            logError("Failed to parse .tsx file: \(error)")
+            return .errFileCantRead
+        } catch let error as Tiled.ParseError {
+            logError("Failed to parse tileset data: \(error)")
+            return .errInvalidData
+        } catch {
+            logError("Failed to import '\(sourceFile)' with error: \(error)")
+            return .errScriptFailed
+        }
+    }
     
     static func touchTileSet(tileWidth: Int32, tileHeight: Int32) throws -> TileSet {
         let gTileset: TileSet
         if !FileAccess.fileExists(path: defaultImportPath) {
             let newTileset = TileSet()
-            newTileset.resourceName = "tileset"
-            newTileset.tileShape = .square
+            newTileset.resourceName = Self.defaultTileSetName
+            newTileset.tileShape = Self.defaultTileShape
             newTileset.tileSize = Vector2i(
                 x: tileWidth,
                 y: tileHeight
@@ -37,18 +104,17 @@ class TileSetImporter: Node {
             gTileset = try loadResource(ofType: TileSet.self, at: defaultImportPath)
             // check for consistency (tile size, tile shape...)
         }
-        
         return gTileset
     }
     
-    func importLazy(sourceFile: String, toTileSet gTileset: TileSet) throws {
-        let file = try File(path: sourceFile)
-        let atlasName = file.name
-        
+    // func importLazy(sourceFile: String, intoTileSet gTileset: TileSet) throws {
+    func importLazy(from tiledTileset: Tiled.TileSet, intoTileSet gTileset: TileSet, file: File) throws {
+        // let file = try File(path: sourceFile)
+        // let atlasName = file.name
+        let atlasName = tiledTileset.name ?? ""
+
         if !gTileset.hasSource(named: atlasName) {
             log("Importing tileset atlas '\(atlasName)'...")
-            let xml = try XML.parse(file.path, with: XMLParser())
-            let tiledTileset = try Tiled.TileSet(from: xml.root)
             guard let imageSource = tiledTileset.image?.source else {
                 logError("No image source reference found for tileset: \(tiledTileset.name)")
                 throw ImportError.noTileSetImageSource
@@ -57,7 +123,7 @@ class TileSetImporter: Node {
             let spritesheetPath = [file.directory, imageSource].joined(separator: "/")
             let atlasTexture = try loadResource(ofType: Texture2D.self, at: spritesheetPath)
             
-            parseProperties(from: tiledTileset, toGodot: gTileset)
+            parseProperties(from: tiledTileset, intoGodot: gTileset)
             
             let atlasSource = TileSetAtlasSource()
             atlasSource.resourceName = atlasName
@@ -152,7 +218,7 @@ class TileSetImporter: Node {
     }
     
     // check for layer before adding?
-    func parseProperties(from tiledTileset: Tiled.TileSet, toGodot tileset: TileSet) {
+    func parseProperties(from tiledTileset: Tiled.TileSet, intoGodot tileset: TileSet) {
         for property in tiledTileset.properties {
             if property.name.hasPrefix("collision_layer_") {
                 if let layerIndex = Int32(property.name.components(separatedBy: "_").last ?? "") {
@@ -168,9 +234,5 @@ class TileSetImporter: Node {
                 }
             }
         }
-    }
-    
-    static func loadTileSet() throws -> TileSet {
-        try loadResource(ofType: TileSet.self, at: self.defaultImportPath)
     }
 }

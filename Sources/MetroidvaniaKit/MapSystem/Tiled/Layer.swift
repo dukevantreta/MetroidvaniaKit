@@ -13,7 +13,7 @@ extension Tiled {
                 case zstd
             }
             var text: String?
-            var encoding: String?
+            var encoding: Encoding?//String?
             var compression: String?
 //            var encoding: Encoding?
 //            var compression: Compression?
@@ -45,8 +45,8 @@ extension Tiled {
             guard let data else {
                 throw ImportError.layerData(.notFound)
             }
-            guard data.encoding == "csv" else {
-                throw ImportError.layerData(.formatNotSupported(data.encoding ?? "unknown"))
+            guard data.encoding == .csv else {
+                throw ImportError.layerData(.formatNotSupported(data.encoding?.rawValue ?? "unknown"))
             }
             guard let text = data.text, !text.isEmpty else {
                 throw ImportError.layerData(.empty)
@@ -93,7 +93,7 @@ extension Tiled.Layer.Data: XMLDecodable {
         let attributes = xml.attributes
         self.init(
             text: xml.text,
-            encoding: attributes?["encoding"],
+            encoding: attributes?["encoding"].map { Encoding(rawValue: $0) } ?? nil,
             compression: attributes?["compression"]
         )
     }

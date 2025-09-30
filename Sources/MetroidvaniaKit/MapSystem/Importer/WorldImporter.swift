@@ -6,31 +6,26 @@ class WorldImporter: Node {
     
     let mapsDir = "res://maps/"
     
+    deinit {
+        log("Deinit")
+    }
+
     @Callable
     func importResource(
         sourceFile: String,
         savePath: String,
-        options: GDictionary,
-        platformVariants: VariantCollection<String>,
-        genFiles: VariantCollection<String>
+        options: VariantDictionary,
+        platformVariants: TypedArray<String>,
+        genFiles: TypedArray<String>
     ) -> Int {
-//        let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
-        let error = importModular(sourceFile: sourceFile, savePath: savePath, options: options)
+        let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
         return Int(error.rawValue)
     }
     
     private func `import`(
         sourceFile: String,
         savePath: String,
-        options: GDictionary
-    ) -> GodotError {
-        return .ok
-    }
-    
-    private func importModular(
-        sourceFile: String,
-        savePath: String,
-        options: GDictionary
+        options: VariantDictionary
     ) -> GodotError {
         guard FileAccess.fileExists(path: sourceFile) else {
             logError("Import file '\(sourceFile)' not found.")
@@ -88,13 +83,6 @@ class WorldImporter: Node {
         
         return root
     }
-    
-//    func setOwner(_ owner: Node, to node: Node) {
-//        node.owner = owner
-//        for child in node.getChildren() {
-//            setOwner(owner, to: child)
-//        }
-//    }
     
     func processMapData(_ data: Minimap, map: World.Map, node: Node2D) {
         guard let tilemap = node.findChild(pattern: "collision-mask") as? TileMapLayer else {

@@ -1,10 +1,12 @@
-//typealias Int = Int32
-
+// TODO: Missing properties
 extension Tiled {
-    // TODO: Missing properties
+    
+    /// A representation of a Tiled's tileset data. When loaded from a .tsx file, it contains the properties that describes the tileset. When found inside a tile map's .tmx file, however, is contains only the `firstGID` and the `source` properties, poiting to an external tileset.
     struct TileSet {
+        /// The first global tile ID of this tileset (this global ID maps to the first tile in this tileset).
         let firstGID: String?
-        let source: String? // references a .tsx file, together w/ GID
+        /// If this tileset is stored in an external TSX (Tile Set XML) file, this attribute refers to that file. That TSX file has the same structure as the <tileset> element described here. (There is the firstgid attribute missing and this source attribute is also not there. These two attributes are kept in the TMX map, since they are map specific.)
+        let source: String?
         let name: String?
         let tileWidth: Int?
         let tileHeight: Int?

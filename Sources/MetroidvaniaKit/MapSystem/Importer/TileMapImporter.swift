@@ -13,30 +13,32 @@ class TileMapImporter: Node {
     
     var currentTileset: TileSet? // find a better solution
     var gidToNameDict: [UInt32: String] = [:]
+    var tilesetGIDs: [UInt32] = []
     
-    override func _enterTree() {
-        self.name = "TMX Importer"
+    deinit {
+        log("TileMap Importer deinit")
     }
 
     @Callable
     func importResource(
         sourceFile: String,
         savePath: String,
-        options: GDictionary,
-        platformVariants: VariantCollection<String>,
-        genFiles: VariantCollection<String>
+        options: VariantDictionary,
+        platformVariants: TypedArray<String>,
+        genFiles: TypedArray<String>
     ) -> Int {
-        // DispatchQueue.main.async {
-            // self.`import`(sourceFile: sourceFile, savePath: savePath, options: options)
-        // }
-        return Int(`import`(sourceFile: sourceFile, savePath: savePath, options: options).rawValue)
+        let error = `import`(sourceFile: sourceFile, savePath: savePath, options: options)
+        currentTileset = nil
+        gidToNameDict.removeAll()
+        tilesetGIDs.removeAll()
+        return Int(error.rawValue)
     }
     
     @discardableResult
     private func `import`(
         sourceFile: String,
         savePath: String,
-        options: GDictionary
+        options: VariantDictionary
     ) -> GodotError {
         guard FileAccess.fileExists(path: sourceFile) else {
             logError("Import file '\(sourceFile)' not found.")
@@ -52,12 +54,30 @@ class TileMapImporter: Node {
             
             let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
             
-            let tilesetImporter = TileSetImporter()
+            // let tilesetImporter = TileSetImporter()
+            // for tilesetRef in map.tilesets {
+            //     let tilesetSource = try tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID)
+            //     let tilesetSourceFile = [file.directory, tilesetSource].joined(separator: "/")
+            //     // try tilesetImporter.importLazy(sourceFile: tilesetSourceFile, intoTileSet: godotTileset)
+            //     // if godotTileset.
+            // }
+
+
+            currentTileset = godotTileset
+
             for tilesetRef in map.tilesets {
-                let tilesetSource = try tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID)
-                let tilesetSourceFile = [file.directory, tilesetSource].joined(separator: "/")
-                try tilesetImporter.importLazy(sourceFile: tilesetSourceFile, toTileSet: godotTileset)
+                if let gid = UInt32(tilesetRef.firstGID ?? "") {
+                    let name = try getFileName(from: tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID))
+                    if godotTileset.getSourceId(named: name) < 0 {
+                        throw ImportError.tileSetNotFound
+                    }
+                    gidToNameDict[gid] = name
+                    tilesetGIDs.append(gid)
+                }
             }
+            log("Creating map with TileSets: \(gidToNameDict)")
+            
+            // tilesetGIDs = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
             
             let tilemap = try createTileMap(map: map, using: godotTileset)
             
@@ -83,25 +103,24 @@ class TileMapImporter: Node {
     
     // Flipped tiles are clunky to setup, better use manual flipping
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
-        currentTileset = tileset
+        // currentTileset = tileset
         
-        for tilesetRef in map.tilesets {
-            if let gid = UInt32(tilesetRef.firstGID ?? "") {
-                let name = try getFileName(from: tilesetRef.source ?? "")
-                gidToNameDict[gid] = name
-            }
-        }
-        log("Creating map with TileSets: \(gidToNameDict)")
+        // for tilesetRef in map.tilesets {
+        //     if let gid = UInt32(tilesetRef.firstGID ?? "") {
+        //         let name = try getFileName(from: tilesetRef.source ?? "")
+        //         gidToNameDict[gid] = name
+        //     }
+        // }
+        // log("Creating map with TileSets: \(gidToNameDict)")
         
-        let gids = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
-        
-        let root = Node2D()
+        // tilesetGIDs = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
 
+        let root = Node2D()
         for layer in map.layers {
-            root.addChild(node: try transformLayer(layer, tilesetGIDs: gids))
+            root.addChild(node: try transformLayer(layer))
         }
         for group in map.groups {
-            root.addChild(node: transformGroup(group))
+            root.addChild(node: try transformGroup(group))
         }
         for group in map.objectGroups {
             root.addChild(node: transformObjectGroup(group))
@@ -124,8 +143,7 @@ class TileMapImporter: Node {
         }
     }
     
-    // Solve GIDs
-    func transformLayer(_ layer: Tiled.Layer, tilesetGIDs: [UInt32]) throws -> Node2D {
+    func transformLayer(_ layer: Tiled.Layer) throws -> Node2D {
         let tileset = try currentTileset ??? ImportError.tileSetNotFound
         let tilemap = TileMapLayer()
         tilemap.setName(layer.name)
@@ -192,19 +210,21 @@ class TileMapImporter: Node {
         return tilemap
     }
     
-    func transformGroup(_ group: Tiled.Group) -> Node2D {
+    func transformGroup(_ group: Tiled.Group) throws -> Node2D {
         let node = Node2D()
         node.name = StringName(group.name)
         node.position.x = Float(group.offsetX)
         node.position.y = Float(group.offsetY)
         node.visible = group.isVisible
-        // TODO: layers
+        for layer in group.layers {
+            node.addChild(node: try transformLayer(layer))
+        }
         for objectGroup in group.objectGroups {
             node.addChild(node: transformObjectGroup(objectGroup))
         }
         // TODO: image layers
         for subgroup in group.groups {
-            node.addChild(node: transformGroup(subgroup))
+            node.addChild(node: try transformGroup(subgroup))
         }
         return node
     }
@@ -219,7 +239,7 @@ class TileMapImporter: Node {
         node.visible = objectGroup.isVisible
         // TODO: handle properties
         for property in objectGroup.properties {
-
+            node.setMeta(name: StringName(property.name), value: Variant(property.value))
         }
 //        node.modulate -> use this for opacity and tint?
         for object in objectGroup.objects {
@@ -241,7 +261,6 @@ class TileMapImporter: Node {
             let flipVertically = flipBits & 1 << 30 != 0
             
             let sprite = Sprite2D()
-            // sprite.name = StringName("Sprite2D")
             node.addChild(node: sprite)
             
             guard let currentTileset else { fatalError() }
@@ -346,6 +365,7 @@ class TileMapImporter: Node {
         return body
     }
     
+    // func parseProperties(_ propertyArray: [Tiled.Property]) -> [String: Any] {
     func parseProperties(_ propertyArray: [Tiled.Property]) -> [String: Any] {
         var properties: [String: Any] = [:]
         for property in propertyArray {
