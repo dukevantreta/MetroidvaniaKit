@@ -1,22 +1,25 @@
 import SwiftGodot
-import Dispatch
 import Foundation
 
 @Godot(.tool)
-class TileMapImporter: RefCounted {
+class TileMapImporter: RefCounted, VerboseLogger {
     
     enum Error: Swift.Error {
         case missingTileSetSource(gid: String?)
     }
     
     let objectsPath = "res://objects/"
+
+    var sourceFile = ""
+    var tilesetResourcePath = ""
+    var verbose = false
     
     var currentTileset: TileSet? // find a better solution
     var gidToNameDict: [UInt32: String] = [:]
     var tilesetGIDs: [UInt32] = []
     
     deinit {
-        log("TileMap Importer deinit")
+        logVerbose("--> Finished import for '\(sourceFile)'")
     }
 
     @Callable
@@ -40,10 +43,15 @@ class TileMapImporter: RefCounted {
         savePath: String,
         options: VariantDictionary
     ) -> GodotError {
+        self.sourceFile = sourceFile
         guard FileAccess.fileExists(path: sourceFile) else {
             logError("Import file '\(sourceFile)' not found.")
             return .errFileNotFound
         }
+        tilesetResourcePath = options["tileset_resource"]?.to() ?? ""
+        verbose = options["verbose"]?.to() ?? false
+
+        logVerbose("Importing tile map: \"\(sourceFile)\"")
         do {
             let file = try File(path: sourceFile)
             let xml = try XML.parse(file.path, with: XMLParser())
@@ -53,7 +61,7 @@ class TileMapImporter: RefCounted {
             }
             
             // let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
-            let godotTileset = try loadResource(ofType: TileSet.self, at: TileSetImporter.defaultImportPath)
+            let godotTileset = try loadResource(ofType: TileSet.self, at: tilesetResourcePath)
 
             currentTileset = godotTileset
 
@@ -61,25 +69,27 @@ class TileMapImporter: RefCounted {
                 if let gid = UInt32(tilesetRef.firstGID ?? "") {
                     let name = try getFileName(from: tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID))
                     if godotTileset.getSourceId(named: name) < 0 {
+                        logError("Tileset source not found for '\(name)'.")
                         throw ImportError.tileSetNotFound
                     }
                     gidToNameDict[gid] = name
                     tilesetGIDs.append(gid)
                 }
             }
-            log("Creating map with TileSets: \(gidToNameDict)")
+            logVerbose("Creating map with TileSets: \(gidToNameDict)", level: 1)
             
             // tilesetGIDs = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
             
             let tilemap = try createTileMap(map: map, using: godotTileset)
             
-            let filename = try getFileName(from: sourceFile)
-            tilemap.name = StringName(filename)
+            // let filename = try getFileName(from: sourceFile)
+            // tilemap.name = StringName(filename)
+            tilemap.setName(try getFileName(from: sourceFile))
             
             let scene = PackedScene()
             scene.pack(path: tilemap)
             try saveResource(scene, path: "\(savePath).tscn")
-            log("Successfully imported '\(sourceFile)'.")
+            logVerbose("Successfully imported '\(sourceFile)'.", level: 1)
             return .ok
         } catch let error as XML.ParseError {
             logError("Failed to parse .tmx file: \(error)")
@@ -128,14 +138,13 @@ class TileMapImporter: RefCounted {
         let tilemap = TileMapLayer()
         tilemap.setName(layer.name)
         tilemap.tileSet = tileset
-        tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
-        if let colorString = layer.tintColor {
-            if let color = parseHexColor(colorString) {
-                tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
-            }
-        }
+        tilemap.position.x = Float(layer.offsetX ?? 0)
+        tilemap.position.y = Float(layer.offsetY ?? 0)
         tilemap.visible = layer.isVisible
-        
+        tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
+        if let colorString = layer.tintColor, let color = parseHexColor(colorString, format: .argb) {
+            tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+        }
         let cellArray = try layer.getTileData()
             .components(separatedBy: .whitespacesAndNewlines)
             .joined()
@@ -192,10 +201,15 @@ class TileMapImporter: RefCounted {
     
     func transformGroup(_ group: Tiled.Group) throws -> Node2D {
         let node = Node2D()
-        node.name = StringName(group.name)
+        node.setName(group.name)
         node.position.x = Float(group.offsetX)
         node.position.y = Float(group.offsetY)
         node.visible = group.isVisible
+        node.modulate = Color(r: 1, g: 1, b: 1, a: Float(group.opacity))
+        if let colorString = group.tintColor, let color = parseHexColor(colorString, format: .argb) {
+            node.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+        }
+        // TODO: handle parallax
         for layer in group.layers {
             node.addChild(node: try transformLayer(layer))
         }
@@ -211,16 +225,20 @@ class TileMapImporter: RefCounted {
     
     func transformObjectGroup(_ objectGroup: Tiled.ObjectGroup) -> Node2D {
         let node = Node2D()
-        node.name = StringName(objectGroup.name)
+        node.setName(objectGroup.name)
         node.position.x = Float(objectGroup.offsetX)
         node.position.y = Float(objectGroup.offsetY)
+        node.visible = objectGroup.isVisible
+        node.modulate = Color(r: 1, g: 1, b: 1, a: Float(objectGroup.opacity))
+        if let colorString = objectGroup.tintColor, let color = parseHexColor(colorString, format: .argb) {
+            node.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+        }
         // TODO: handle parallax
         // TODO: handle draw order
         node.visible = objectGroup.isVisible
         for property in objectGroup.properties {
             node.setMeta(name: StringName(property.name), value: Variant(property.value))
         }
-//        node.modulate -> use this for opacity and tint?
         for object in objectGroup.objects {
             node.addChild(node: transformObject(object))
         }
@@ -344,7 +362,6 @@ class TileMapImporter: RefCounted {
         return body
     }
     
-    // func parseProperties(_ propertyArray: [Tiled.Property]) -> [String: Any] {
     func parseProperties(_ propertyArray: [Tiled.Property]) -> [String: Any] {
         var properties: [String: Any] = [:]
         for property in propertyArray {
@@ -360,27 +377,6 @@ class TileMapImporter: RefCounted {
             properties[property.name] = value
         }
         return properties
-    }
-    
-    func parseHexColor(_ hex: String) -> (r: Float, g: Float, b: Float, a: Float)? {
-        var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if hexString.hasPrefix("#") {
-            hexString.removeFirst()
-        }
-        
-        let scanner = Scanner(string: hexString)
-        var hexNumber: UInt64 = 0
-        
-        guard scanner.scanHexInt64(&hexNumber) else {
-            return nil
-        }
-        
-        let r = Float((hexNumber & 0x00FF0000) >> 16) / 255.0
-        let g = Float((hexNumber & 0x0000FF00) >> 8) / 255.0
-        let b = Float(hexNumber & 0x000000FF) / 255.0
-        let a = hexString.count == 8 ? Float((hexNumber & 0xFF000000) >> 24) / 255.0 : 1.0
-        
-        return (r, g, b, a)
     }
     
     func instantiate(_ object: Tiled.Object) -> Node2D? {

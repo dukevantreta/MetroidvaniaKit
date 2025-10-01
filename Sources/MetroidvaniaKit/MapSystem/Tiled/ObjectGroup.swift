@@ -1,7 +1,15 @@
 extension Tiled {
+
     struct ObjectGroup {
+
+        enum DrawOrder: String {
+            case topdown
+            case index
+        }
+
         let id: Int
         let name: String
+        let `class`: String
         let color: String?
         let opacity: Double
         let isVisible: Bool
@@ -10,7 +18,7 @@ extension Tiled {
         let offsetY: Int
         let parallaxX: Double
         let parallaxY: Double
-        let drawOrder: String? // index, topdown
+        let drawOrder: DrawOrder
         var properties: [Property]
         var objects: [Object]
     }
@@ -23,6 +31,7 @@ extension Tiled.ObjectGroup: XMLDecodable {
         self.init(
             id: attributes?["id"]?.asInt() ?? 0,
             name: attributes?["name"] ?? "",
+            class: attributes?["class"] ?? "",
             color: attributes?["color"],
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
             isVisible: attributes?["visible"]?.asBool() ?? true,
@@ -31,7 +40,7 @@ extension Tiled.ObjectGroup: XMLDecodable {
             offsetY: attributes?["offsety"]?.asInt() ?? 0,
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0,
-            drawOrder: attributes?["draworder"],
+            drawOrder: DrawOrder(rawValue: attributes?["draworder"] ?? "") ?? .topdown,
             properties: [],
             objects: []
         )

@@ -8,6 +8,7 @@ extension Tiled {
         /// If this tileset is stored in an external TSX (Tile Set XML) file, this attribute refers to that file. That TSX file has the same structure as the <tileset> element described here. (There is the firstgid attribute missing and this source attribute is also not there. These two attributes are kept in the TMX map, since they are map specific.)
         let source: String?
         let name: String?
+        let `class`: String
         let tileWidth: Int?
         let tileHeight: Int?
         let spacing: Int32
@@ -38,6 +39,7 @@ extension Tiled.TileSet: XMLDecodable {
             firstGID: attributes?["firstgid"],
             source: attributes?["source"],
             name: attributes?["name"],
+            class: attributes?["class"] ?? "",
             tileWidth: attributes?["tilewidth"]?.asInt(),
             tileHeight: attributes?["tileheight"]?.asInt(),
             spacing: attributes?["spacing"]?.asInt32() ?? 0,

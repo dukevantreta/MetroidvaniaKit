@@ -23,6 +23,7 @@ extension Tiled {
         
         let id: Int
         let name: String
+        let `class`: String
         let width: Int32
         let height: Int32
         let opacity: Double
@@ -63,6 +64,7 @@ extension Tiled.Layer: XMLDecodable {
         self.init(
             id: attributes?["id"]?.asInt() ?? 0,
             name: attributes?["name"] ?? "",
+            class: attributes?["class"] ?? "",
             width: attributes?["width"]?.asInt32() ?? 0,
             height: attributes?["height"]?.asInt32() ?? 0,
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,

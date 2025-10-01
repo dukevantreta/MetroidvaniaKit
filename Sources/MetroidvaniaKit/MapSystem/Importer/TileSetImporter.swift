@@ -3,13 +3,15 @@ import Foundation
 
 protocol VerboseLogger {
     var verbose: Bool { get set }
-    func logVerbose(_ message: String)
+    func logVerbose(_ message: String, level: Int)
 }
 
 extension VerboseLogger where Self: RefCounted {
-    func logVerbose(_ message: String) {
-        if verbose {
-            log(message)
+    func logVerbose(_ message: String, level: Int = 0) {
+        if verbose { 
+            var padding = ""
+            for _ in (0..<level) { padding += "    " }
+            log(padding + message) 
         }
     }
 }
@@ -36,7 +38,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
     }
 
     deinit {
-        logVerbose("<<< Finished import for '\(sourceFile)' >>>")
+        logVerbose("--> Finished import for '\(sourceFile)'")
     }
     
     @Callable
@@ -58,7 +60,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
     ) -> GodotError {
         self.sourceFile = sourceFile
         guard FileAccess.fileExists(path: sourceFile) else {
-            logError("Import file '\(sourceFile)' not found.")
+            logError("Import file \"\(sourceFile)\" not found.")
             return .errFileNotFound
         }
         targetDirectory = options["target_directory"]?.to() ?? ""
@@ -66,7 +68,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
         verbose = options["verbose"]?.to() ?? false
         overrideAtlas = options["overrides_existing_atlas"]?.to() ?? false
 
-        logVerbose("--> Importing tileset: '\(sourceFile)'...")
+        logVerbose("Importing tileset: \"\(sourceFile)\"")
         do {
             let file = try File(path: sourceFile)
             let xml = try XML.parse(file.path, with: XMLParser())
@@ -82,7 +84,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
             let resource = TileSetResource()
             resource.atlasName = file.name
             try saveResource(resource, path: "\(savePath).tres")
-            logVerbose("Successfully imported \(file.name).tsx")
+            logVerbose("Successfully imported \"\(file.name).tsx\"", level: 1)
             return .ok
         } catch let error as XML.ParseError {
             logError("Failed to parse .tsx file: \(error)")
@@ -118,7 +120,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
         let atlasName = tiledTileset.name ?? ""
 
         if overrideAtlas && gTileset.hasSource(named: atlasName) {
-            logVerbose("Overriding atlas source, removing '\(atlasName)'")
+            logVerbose("Overriding atlas source, removing '\(atlasName)'...", level: 1)
             gTileset.removeSource(named: atlasName)
         }
 
@@ -130,6 +132,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
             
             parseProperties(from: tiledTileset, intoGodot: gTileset)
             
+            logVerbose("Creating atlas source for '\(atlasName)'...", level: 1)
             let spritesheetPath = [file.directory, imageSource].joined(separator: "/")
             let atlasSource = TileSetAtlasSource()
             atlasSource.resourceName = atlasName
@@ -137,12 +140,13 @@ class TileSetImporter: RefCounted, VerboseLogger {
             atlasSource.margins = Vector2i(x: tiledTileset.margin, y: tiledTileset.margin)
             atlasSource.separation = Vector2i(x: tiledTileset.spacing, y: tiledTileset.spacing)
 
-            gTileset.addSource(atlasSource) // NOTE: Seems that atlas need to be added BEFORE adding collision to tiles (collisions bugging on import)
+            // NOTE: atlas need to be added to tileset BEFORE adding collision to tiles (or else collisions bug on import)
+            gTileset.addSource(atlasSource)
             
             let columns = Int32(tiledTileset.columns ?? 0)
             let rows = Int32(tiledTileset.tileCount ?? 0) / columns
             
-            // create tiles
+            logVerbose("Creating tile data for \(tiledTileset.tileCount ?? 0) tiles...", level: 1)
             for row in 0..<rows {
                 for column in 0..<columns {
                     let atlasCoords = Vector2i(x: column, y: row)
@@ -214,26 +218,27 @@ class TileSetImporter: RefCounted, VerboseLogger {
 //                }
             }
             
-            logVerbose("Saving '\(atlasName)' atlas to '\(targetPath)'")
+            logVerbose("Saving '\(atlasName)' atlas to \"\(targetPath)\"", level: 1)
             try saveResource(gTileset, path: targetPath)
         } else {
-            log("Found tileset atlas '\(atlasName)'. Skipping import...")
+            logVerbose("Found tileset atlas '\(atlasName)'. Skipping import...", level: 1)
         }
     }
     
-    // check for layer before adding?
+    // FIXME
+    // check for layer before adding? / This code is assuming the layer properties are ordered, this can break on unordered
     func parseProperties(from tiledTileset: Tiled.TileSet, intoGodot tileset: TileSet) {
         for property in tiledTileset.properties {
             if property.name.hasPrefix("collision_layer_") {
                 if let layerIndex = Int32(property.name.components(separatedBy: "_").last ?? "") {
                     if layerIndex >= tileset.getPhysicsLayersCount() {
-                        logVerbose("ADDING PHYSICS LAYER: \(layerIndex)")
                         tileset.addPhysicsLayer(toPosition: layerIndex)
                         var layerMask: UInt32 = 0
                         for layer in property.value?.components(separatedBy: ",").compactMap { UInt32($0) } ?? [] {
                             layerMask |= 1 << (layer - 1)
                         }
                         tileset.setPhysicsLayerCollisionLayer(layerIndex: layerIndex, layer: layerMask)
+                        logVerbose("Adding physics layer to index \(layerIndex) with layer mask: 0b\(String(layerMask, radix: 2))", level: 2)
                     }
                 }
             }

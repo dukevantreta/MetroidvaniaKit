@@ -24,6 +24,7 @@ extension Tiled {
         
         let version: String
         let tiledVersion: String?
+        let `class`: String
         let orientation: Orientation
         let renderOrder: RenderOrder
         let width: Int
@@ -55,6 +56,7 @@ extension Tiled.TileMap: XMLDecodable {
         self.init(
             version: attributes!["version"]!,
             tiledVersion: attributes?["tiledversion"],
+            class: attributes?["class"] ?? "",
             orientation: Orientation(rawValue: attributes?["orientation"] ?? "") ?? .orthogonal,
             renderOrder: RenderOrder(rawValue: attributes?["renderorder"] ?? "") ?? .rightDown,
             width: attributes?["width"]?.asInt() ?? 0,
