@@ -1,16 +1,14 @@
 import SwiftGodot
 
-// TODO: Use another error type
-
-func loadResource<T>(ofType type: T.Type, at path: String) throws -> T where T: Resource {
+func loadResource<T>(ofType type: T.Type, at path: String) throws(GodotError) -> T where T: Resource {
     guard FileAccess.fileExists(path: path) else {
-        throw ImportError.godotError(.errFileNotFound)
+        throw .errFileNotFound
     }
     guard let resource = ResourceLoader.load(path: path) else {
-        throw ImportError.godotError(.errCantAcquireResource)
+        throw .errCantAcquireResource
     }
     guard let resolvedResource = resource as? T else {
-        throw ImportError.godotError(.errCantResolve)
+        throw .errCantResolve
     }
     return resolvedResource
 }

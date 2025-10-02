@@ -12,7 +12,7 @@ func printTree(_ xml: XML.Element, level: Int) {
     }
 }
 
-class XML {
+enum XML {
     
     enum ParseError: Error {
         case fileOpenError(Error)
@@ -24,7 +24,7 @@ class XML {
         let root: Element
     }
     
-    class Element {
+    final class Element {
         
         let name: String
         let attributes: [String: String]?
@@ -43,8 +43,6 @@ class XML {
             self.children = children
         }
     }
-    
-    private init() {}
     
     // this sh!t is a piece of art
     static func parse(_ sourceFile: String, with xmlParser: XMLParser) throws(XML.ParseError) -> XML.Tree {

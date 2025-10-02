@@ -1,4 +1,5 @@
 extension Tiled {
+    
     struct Group {
         let id: Int
         let name: String
@@ -10,13 +11,11 @@ extension Tiled {
         let opacity: Double
         let isVisible: Bool
         let tintColor: String?
-        
-        var properties: [Property]
-        
         var layers: [Layer]
+        var imageLayers: [ImageLayer]
         var objectGroups: [ObjectGroup]
-//        let imageLayers: []
         var groups: [Group]
+        var properties: [Property]
     }
 }
 
@@ -35,14 +34,17 @@ extension Tiled.Group: XMLDecodable {
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
             isVisible: attributes?["visible"]?.asBool() ?? true,
             tintColor: attributes?["tintcolor"],
-            properties: [],
             layers: [],
+            imageLayers: [],
             objectGroups: [],
-            groups: []
+            groups: [],
+            properties: []
         )
         for child in xml.children {
             if child.name == "layer" {
                 layers.append(try Tiled.Layer(from: child))
+            } else if child.name == "imagelayer" {
+                imageLayers.append(try Tiled.ImageLayer(from: child))
             } else if child.name == "objectgroup" {
                 objectGroups.append(try Tiled.ObjectGroup(from: child))
             } else if child.name == "group" {

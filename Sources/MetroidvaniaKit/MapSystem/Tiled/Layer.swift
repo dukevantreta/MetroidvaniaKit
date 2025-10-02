@@ -2,25 +2,6 @@ extension Tiled {
 
     struct Layer {
         
-        struct Data {
-            enum Encoding: String {
-                case csv
-                case base64
-            }
-            enum Compression: String {
-                case gzip
-                case zlib
-                case zstd
-            }
-            var text: String?
-            var encoding: Encoding?//String?
-            var compression: String?
-//            var encoding: Encoding?
-//            var compression: Compression?
-//            var tiles: [] // if no compression (is it even used?)
-//            var chunks: [] // for infinite maps
-        }
-        
         let id: Int
         let name: String
         let `class`: String
@@ -29,30 +10,15 @@ extension Tiled {
         let opacity: Double
         let visible: Int32
         let tintColor: String?
-        let offsetX: Int?
-        let offsetY: Int?
+        let offsetX: Double?
+        let offsetY: Double?
         let parallaxX: Double?
         let parallaxY: Double?
-//        let x: Int = 0
-//        let y: Int = 0
-        var properties: [Property]
         var data: Data?
+        var properties: [Property]
         
         var isVisible: Bool {
             visible != 0
-        }
-        
-        func getTileData() throws -> String {
-            guard let data else {
-                throw ImportError.layerData(.notFound)
-            }
-            guard data.encoding == .csv else {
-                throw ImportError.layerData(.formatNotSupported(data.encoding?.rawValue ?? "unknown"))
-            }
-            guard let text = data.text, !text.isEmpty else {
-                throw ImportError.layerData(.empty)
-            }
-            return text
         }
     }
 }
@@ -70,16 +36,16 @@ extension Tiled.Layer: XMLDecodable {
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
             visible: attributes?["visible"]?.asInt32() ?? 1,
             tintColor: attributes?["tintcolor"],
-            offsetX: attributes?["offsetx"]?.asInt() ?? 0,
-            offsetY: attributes?["offsety"]?.asInt() ?? 0,
+            offsetX: attributes?["offsetx"]?.asDouble() ?? 0.0,
+            offsetY: attributes?["offsety"]?.asDouble() ?? 0.0,
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0, 
-            properties: [],
-            data: nil
+            data: nil,
+            properties: []
         )
         for child in xml.children {
             if child.name == "data" {
-                self.data = try Data(from: child)
+                self.data = try Tiled.Data(from: child)
             } else if child.name == "properties" {
                 for subchild in child.children {
                     properties.append(try Tiled.Property(from: subchild))
@@ -89,14 +55,4 @@ extension Tiled.Layer: XMLDecodable {
     }
 }
 
-extension Tiled.Layer.Data: XMLDecodable {
-    init(from xml: XML.Element) throws {
-        try xml.assertType(.data)
-        let attributes = xml.attributes
-        self.init(
-            text: xml.text,
-            encoding: attributes?["encoding"].map { Encoding(rawValue: $0) } ?? nil,
-            compression: attributes?["compression"]
-        )
-    }
-}
+

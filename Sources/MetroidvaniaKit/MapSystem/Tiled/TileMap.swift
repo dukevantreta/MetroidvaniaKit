@@ -3,7 +3,6 @@ extension Tiled {
     // https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
 //    The tilesets used by the map should always be listed before the layers.
 //    Can contain at most one: <properties>, <editorsettings> (since 1.3)
-//    Can contain any number: <tileset>, <layer>, <objectgroup>, <imagelayer>, <group> (since 1.0)
     
     // TODO: hex map properties
     struct TileMap {
@@ -38,13 +37,12 @@ extension Tiled {
         let nextObjectID: Int
         let isInfinite: Bool
 //        var editorSettings: ? // not needed?
-        var properties: [Property]
-        
         var tilesets: [TileSet]
         var layers: [Layer]
-//        var imageLayers: []
+        var imageLayers: [ImageLayer]
         var objectGroups: [ObjectGroup]
         var groups: [Group]
+        var properties: [Property]
     }
 }
 
@@ -69,15 +67,18 @@ extension Tiled.TileMap: XMLDecodable {
             nextLayerID: attributes?["nextlayerid"]?.asInt() ?? 0,
             nextObjectID: attributes?["nextobjectid"]?.asInt() ?? 0,
             isInfinite: attributes?["infinite"] == "1",
-            properties: [],
             tilesets: [],
             layers: [],
+            imageLayers: [],
             objectGroups: [],
-            groups: []
+            groups: [],
+            properties: []
         )
         for child in xml.children {
             if child.name == "layer" {
                 layers.append(try Tiled.Layer(from: child))
+            } else if child.name == "imagelayer" {
+                imageLayers.append(try Tiled.ImageLayer(from: child))
             } else if child.name == "tileset" {
                 tilesets.append(try Tiled.TileSet(from: child))
             } else if child.name == "objectgroup" {

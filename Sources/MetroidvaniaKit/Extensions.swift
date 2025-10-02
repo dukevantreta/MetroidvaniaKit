@@ -2,7 +2,7 @@ import SwiftGodot
 
 infix operator ???
 
-public func ???<T>(optional: T?, error: @autoclosure () -> Error) throws -> T {
+public func ???<T,E>(optional: T?, error: @autoclosure () -> E) throws(E) -> T {
     guard let value = optional else {
         throw error()
     }

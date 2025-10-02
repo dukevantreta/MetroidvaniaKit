@@ -21,12 +21,16 @@ extension TypeDescribable {
 
 protocol GodotLogger: TypeDescribable {
     func log(_ message: String)
+    func logWarning(_ message: String)
     func logError(_ message: String)
 }
 
 extension GodotLogger {
     func log(_ message: String) {
         GD.print("[\(typeDescription)] \(message)")
+    }
+    func logWarning(_ message: String) {
+        GD.pushWarning("[\(typeDescription)] \(message)")
     }
     func logError(_ message: String) {
         GD.pushError("[\(typeDescription)] \(message)")

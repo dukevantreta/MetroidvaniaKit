@@ -1,8 +1,67 @@
 // TODO: Missing properties
 extension Tiled {
     
-    /// A representation of a Tiled's tileset data. When loaded from a .tsx file, it contains the properties that describes the tileset. When found inside a tile map's .tmx file, however, is contains only the `firstGID` and the `source` properties, poiting to an external tileset.
+    /** 
+    A representation of a Tiled's tileset data. When loaded from a `.tsx` file, it contains the 
+    properties that describes the tileset. When found inside a tile map's `.tmx` file, however, it 
+    contains only the `firstGID` and the `source` properties, poiting to an external tileset.
+    */
     struct TileSet {
+
+        /**
+        Controls the alignment for tile objects. The default value is unspecified, for compatibility reasons. 
+        When unspecified, tile objects use `bottomleft` in orthogonal mode and `bottom` in isometric mode.
+        */
+        enum ObjectAlignment: String {
+            case unspecified
+            case topleft
+            case top
+            case topright
+            case left
+            case center
+            case right
+            case bottomleft
+            case bottom
+            case bottonright
+        }
+
+        /**
+        The size to use when rendering tiles from this tileset on a tile layer. 
+        When set to grid, the tile is drawn at the tile grid size of the map.
+        */
+        enum RenderSize: String {
+            case tile
+            case grid
+        }
+
+        enum FillMode: String {
+            case stretch
+            case fit = "preserve-aspect-fit"
+        }
+
+        /**
+        This element is used to specify an offset in pixels, to be applied when drawing a 
+        tile from the related tileset. When not present, no offset is applied.
+        */
+        struct TileOffset {
+            let x: Int
+            let y: Int
+        }
+
+        /** 
+        This element is only used in case of isometric orientation, and determines 
+        how tile overlays for terrain and collision information are rendered.
+        */
+        struct Grid {
+            enum Orientation: String {
+                case orthogonal
+                case isometric
+            }
+            let orientation: Orientation
+            let width: Int
+            let height: Int
+        }
+
         /// The first global tile ID of this tileset (this global ID maps to the first tile in this tileset).
         let firstGID: String?
         /// If this tileset is stored in an external TSX (Tile Set XML) file, this attribute refers to that file. That TSX file has the same structure as the <tileset> element described here. (There is the firstgid attribute missing and this source attribute is also not there. These two attributes are kept in the TMX map, since they are map specific.)
@@ -15,12 +74,9 @@ extension Tiled {
         let margin: Int32
         let tileCount: Int?
         let columns: Int?
-        let objectAlignment: String? // Valid values are unspecified, topleft, top, topright, left, center, right, bottomleft, bottom and bottomright. The default value is unspecified, for compatibility reasons. When unspecified, tile objects use bottomleft in orthogonal mode and bottom in isometric mode. (since 1.4)
-        let tileRenderSize: String? // tile, grid
-        let fillMode: String?
-        
-        var properties: [Property]
-        // Can contain at most one: <image>, <tileoffset>, <grid> (since 1.0), <properties>, <terraintypes>, <wangsets> (since 1.1), <transformations> (since 1.5)
+        let objectAlignment: ObjectAlignment
+        let tileRenderSize: RenderSize
+        let fillMode: FillMode?
         var image: Image?
         var tileOffset: TileOffset?
         var grid: Grid?
@@ -28,6 +84,7 @@ extension Tiled {
 //        var wangSets: ?
 //        var transformations: ?
         var tiles: [Tile]
+        var properties: [Property]
     }
 }
 
@@ -46,14 +103,14 @@ extension Tiled.TileSet: XMLDecodable {
             margin: attributes?["margin"]?.asInt32() ?? 0,
             tileCount: attributes?["tilecount"]?.asInt(),
             columns: attributes?["columns"]?.asInt(),
-            objectAlignment: attributes?["objectalignment"],
-            tileRenderSize: attributes?["tilerendersize"],
-            fillMode: attributes?["fillmode"], 
-            properties: [],
+            objectAlignment: attributes?["objectalignment"].flatMap { ObjectAlignment(rawValue: $0) } ?? .unspecified,
+            tileRenderSize: attributes?["tilerendersize"].flatMap { RenderSize(rawValue: $0) } ?? .tile,
+            fillMode: attributes?["fillmode"].flatMap { FillMode(rawValue: $0) } ?? .stretch,
             image: nil,
             tileOffset: nil,
             grid: nil,
-            tiles: []
+            tiles: [],
+            properties: []
         )
         for child in xml.children {
             if child.name == "tile" {
@@ -73,13 +130,6 @@ extension Tiled.TileSet: XMLDecodable {
     }
 }
 
-extension Tiled.TileSet {
-    struct TileOffset {
-        let x: Int
-        let y: Int
-    }
-}
-
 extension Tiled.TileSet.TileOffset: XMLDecodable {
     init(from xml: XML.Element) throws {
         try xml.assertType(.tileoffset)
@@ -88,19 +138,6 @@ extension Tiled.TileSet.TileOffset: XMLDecodable {
             x: attributes?["x"]?.asInt() ?? 0,
             y: attributes?["y"]?.asInt() ?? 0
         )
-    }
-}
-
-extension Tiled.TileSet {
-    /// This element is only used in case of isometric orientation, and determines how tile overlays for terrain and collision information are rendered.
-    struct Grid {
-        enum Orientation: String {
-            case orthogonal
-            case isometric
-        }
-        let orientation: Orientation
-        let width: Int
-        let height: Int
     }
 }
 

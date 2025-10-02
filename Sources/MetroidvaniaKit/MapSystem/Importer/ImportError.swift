@@ -1,7 +1,7 @@
 import SwiftGodot
 
 enum ImportError: Error {
-    case unknown
+    case fatal
     case layerData(LayerDataErrorReason)
     case unhandledObject
     case failedToSaveFile(_ path: String, GodotError)

@@ -197,9 +197,9 @@ class TileSetImporter: RefCounted, VerboseLogger {
                             let origin = Vector2i(x: Int32(object.x) - tileSize.x >> 1, y: Int32(object.y) - tileSize.y >> 1)
                             let array = PackedVector2Array()
                             array.append(value: Vector2(x: origin.x, y: origin.y))
-                            array.append(value: Vector2(x: origin.x + object.width, y: origin.y))
-                            array.append(value: Vector2(x: origin.x + object.width, y: origin.y + object.height))
-                            array.append(value: Vector2(x: origin.x, y: origin.y + object.height))
+                            array.append(value: Vector2(x: origin.x + Int32(object.width), y: origin.y))
+                            array.append(value: Vector2(x: origin.x + Int32(object.width), y: origin.y + Int32(object.height)))
+                            array.append(value: Vector2(x: origin.x, y: origin.y + Int32(object.height)))
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         }

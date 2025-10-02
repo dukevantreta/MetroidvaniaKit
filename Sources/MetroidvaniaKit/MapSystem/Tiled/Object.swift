@@ -6,17 +6,17 @@ extension Tiled {
         let type: String
         let x: Double
         let y: Double
-        let width: Int32
-        let height: Int32
+        let width: Double
+        let height: Double
         let rotation: Double // degrees
         let gid: UInt32? // When the object has a gid set, then it is represented by the image of the tile with that global ID.
         let isVisible: Bool
 //        let template: ? // TODO
-        var properties: [Property]
         var isEllipse = false
         var isPoint = false
         var polygon: Polygon?
         var text: Text?
+        var properties: [Property]
     }
 }
 
@@ -28,12 +28,10 @@ extension Tiled.Object: XMLDecodable {
             id: attributes?["id"]?.asInt() ?? 0,
             name: attributes?["name"] ?? "",
             type: attributes?["type"] ?? "",
-//            x: attributes?["x"]?.asInt32() ?? 0,
-//            y: attributes?["y"]?.asInt32() ?? 0,
             x: attributes?["x"]?.asDouble() ?? 0,
             y: attributes?["y"]?.asDouble() ?? 0,
-            width: attributes?["width"]?.asInt32() ?? 0,
-            height: attributes?["height"]?.asInt32() ?? 0,
+            width: attributes?["width"]?.asDouble() ?? 0,
+            height: attributes?["height"]?.asDouble() ?? 0,
             rotation: attributes?["rotation"]?.asDouble() ?? 0.0,
             gid: attributes?["gid"]?.asUInt32(),
             isVisible: attributes?["visible"]?.asBool() ?? true,

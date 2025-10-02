@@ -1,5 +1,15 @@
 extension Tiled {
+
     struct Tile {
+
+        struct Animation {
+            struct Frame {
+                let tileID: Int
+                let duration: Int
+            }
+            var frames: [Frame]
+        }
+
         let id: Int
         let type: String
         let probability: Int
@@ -7,10 +17,10 @@ extension Tiled {
         let y: Int
         let width: Int?
         let height: Int?
-        var properties: [Property]
         var image: Image?
         var objectGroup: ObjectGroup?
         var animation: Animation?
+        var properties: [Property]
     }
 }
 
@@ -38,39 +48,23 @@ extension Tiled.Tile: XMLDecodable {
             } else if child.name == "objectgroup" {
                 objectGroup = try Tiled.ObjectGroup(from: child)
             } else if child.name == "animation" {
-                animation = try Tiled.Animation(from: child)
+                animation = try Tiled.Tile.Animation(from: child)
             }
         }
     }
 }
 
-extension Tiled {
-    
-    struct Animation {
-        struct Frame {
-            let tileID: Int
-            let duration: Int
-        }
-        var frames: [Frame]
-    }
-    
-    struct AnimationFrame {
-        let tileID: Int
-        let duration: Int
-    }
-}
-
-extension Tiled.Animation: XMLDecodable {
+extension Tiled.Tile.Animation: XMLDecodable {
     init(from xml: XML.Element) throws {
         try xml.assertType(.animation)
         self.init(frames: [])
         for child in xml.children {
-            frames.append(try Tiled.Animation.Frame(from: child))
+            frames.append(try Tiled.Tile.Animation.Frame(from: child))
         }
     }
 }
 
-extension Tiled.Animation.Frame: XMLDecodable {
+extension Tiled.Tile.Animation.Frame: XMLDecodable {
     init(from xml: XML.Element) throws {
         try xml.assertType(.frame)
         let attributes = xml.attributes

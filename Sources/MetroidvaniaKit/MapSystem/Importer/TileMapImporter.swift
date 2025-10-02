@@ -12,9 +12,11 @@ class TileMapImporter: RefCounted, VerboseLogger {
 
     var sourceFile = ""
     var tilesetResourcePath = ""
+    var isInfinite = false
     var verbose = false
-    
-    var currentTileset: TileSet? // find a better solution
+
+    var currentFile: File?
+    var currentTileset: TileSet?
     var gidToNameDict: [UInt32: String] = [:]
     var tilesetGIDs: [UInt32] = []
     
@@ -54,15 +56,17 @@ class TileMapImporter: RefCounted, VerboseLogger {
         logVerbose("Importing tile map: \"\(sourceFile)\"")
         do {
             let file = try File(path: sourceFile)
+            currentFile = file
             let xml = try XML.parse(file.path, with: XMLParser())
             let map = try Tiled.TileMap(from: xml.root)
             guard map.orientation == .orthogonal else {
                 return .errBug //
             }
-            
-            // let godotTileset = try TileSetImporter.touchTileSet(tileWidth: Int32(map.tileWidth), tileHeight: Int32(map.tileHeight))
-            let godotTileset = try loadResource(ofType: TileSet.self, at: tilesetResourcePath)
+            guard !map.isInfinite else {
+                throw ImportError.fatal
+            }
 
+            let godotTileset = try loadResource(ofType: TileSet.self, at: tilesetResourcePath)
             currentTileset = godotTileset
 
             for tilesetRef in map.tilesets {
@@ -78,12 +82,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             }
             logVerbose("Creating map with TileSets: \(gidToNameDict)", level: 1)
             
-            // tilesetGIDs = map.tilesets.compactMap { UInt32($0.firstGID ?? "") }
-            
             let tilemap = try createTileMap(map: map, using: godotTileset)
-            
-            // let filename = try getFileName(from: sourceFile)
-            // tilemap.name = StringName(filename)
             tilemap.setName(try getFileName(from: sourceFile))
             
             let scene = PackedScene()
@@ -109,6 +108,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
         for layer in map.layers {
             root.addChild(node: try transformLayer(layer))
         }
+        for layer in map.imageLayers {
+            root.addChild(node: try transformImageLayer(layer))
+        }
         for group in map.groups {
             root.addChild(node: try transformGroup(group))
         }
@@ -133,8 +135,8 @@ class TileMapImporter: RefCounted, VerboseLogger {
         }
     }
     
-    func transformLayer(_ layer: Tiled.Layer) throws -> Node2D {
-        let tileset = try currentTileset ??? ImportError.tileSetNotFound
+    func transformLayer(_ layer: Tiled.Layer) throws(ImportError) -> Node2D {
+        let tileset = try currentTileset ??? ImportError.fatal
         let tilemap = TileMapLayer()
         tilemap.setName(layer.name)
         tilemap.tileSet = tileset
@@ -145,12 +147,22 @@ class TileMapImporter: RefCounted, VerboseLogger {
         if let colorString = layer.tintColor, let color = parseHexColor(colorString, format: .argb) {
             tilemap.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
         }
-        let cellArray = try layer.getTileData()
+
+        guard let data = layer.data else {
+            throw .layerData(.notFound)
+        }
+        guard data.encoding == .csv else {
+            throw .layerData(.formatNotSupported(data.encoding?.rawValue ?? "unknown"))
+        }
+        guard let text = data.text, !text.isEmpty else {
+            throw .layerData(.empty)
+        }
+        let cellArray = text
             .components(separatedBy: .whitespacesAndNewlines)
             .joined()
             .components(separatedBy: ",")
             .compactMap { UInt32($0) }
-        for idx in 0..<cellArray.count {
+        for idx in 0..<cellArray.count  {
             let cellValue = cellArray[idx]
             if cellValue == 0 {
                 continue
@@ -198,6 +210,29 @@ class TileMapImporter: RefCounted, VerboseLogger {
 //            } else {
         return tilemap
     }
+
+    func transformImageLayer(_ layer: Tiled.ImageLayer) throws(ImportError) -> Node2D {
+        let file = try currentFile ??? ImportError.fatal
+        let sprite = Sprite2D()
+        guard let sourcePath = layer.image?.source else {
+            logWarning("<\(file.name)> Missing image source path for image layer '\(layer.name)'.")
+            return sprite
+        }
+        do {
+            sprite.texture = try loadResource(ofType: Texture2D.self, at: "\(file.directory)/\(sourcePath)")
+        } catch {
+            throw .godotError(error)
+        }
+        sprite.position = Vector2(x: layer.offsetX, y: layer.offsetY)
+        sprite.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
+        if let colorString = layer.tintColor, let color = parseHexColor(colorString, format: .argb) {
+            sprite.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+        }
+        if layer.repeatX || layer.repeatY {
+            sprite.textureRepeat = .enabled
+        }
+        return sprite
+    }
     
     func transformGroup(_ group: Tiled.Group) throws -> Node2D {
         let node = Node2D()
@@ -213,10 +248,12 @@ class TileMapImporter: RefCounted, VerboseLogger {
         for layer in group.layers {
             node.addChild(node: try transformLayer(layer))
         }
+        for imageLayer in group.imageLayers {
+            node.addChild(node: try transformImageLayer(imageLayer))
+        }
         for objectGroup in group.objectGroups {
             node.addChild(node: transformObjectGroup(objectGroup))
         }
-        // TODO: image layers
         for subgroup in group.groups {
             node.addChild(node: try transformGroup(subgroup))
         }
@@ -318,10 +355,10 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let body: CollisionObject2D
         if type == "area" || type == "area2d" {
             body = Area2D()
-            body.setName("Area2D")
+            body.setName("Area2D.\(object.id)")
         } else {
             body = StaticBody2D()
-            body.setName("StaticBody2D")
+            body.setName("StaticBody2D.\(object.id)")
         }
         let collision = CollisionPolygon2D()
         let array = PackedVector2Array()
@@ -343,16 +380,16 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let body: CollisionObject2D
         if type == "area" || type == "area2d" {
             body = Area2D()
-            body.setName("Area2D")
+            body.setName("Area2D.\(object.id)")
         } else {
             body = StaticBody2D()
-            body.setName("StaticBody2D")
+            body.setName("StaticBody2D.\(object.id)")
         }
         let shape = RectangleShape2D()
         shape.size = Vector2(x: object.width, y: object.height)
         let collision = CollisionShape2D()
         collision.shape = shape
-        collision.position = Vector2(x: object.width >> 1, y: object.height >> 1)
+        collision.position = Vector2(x: object.width * 0.5, y: object.height * 0.5)
         body.addChild(node: collision)
         let properties = parseProperties(object.properties)
         if let layer = properties["collision_layer"] as? Int32 {
