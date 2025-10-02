@@ -2,12 +2,18 @@ import SwiftGodot
 import Foundation
 
 @Godot(.tool)
-class WorldImporter: RefCounted {
+class WorldImporter: RefCounted, VerboseLogger {
     
     let mapsDir = "res://maps/"
     
+    var sourceFile = ""
+    var verbose = false
+
+    private var startTime: UInt = 0
+    
     deinit {
-        log("Deinit")
+        let secondsElapsed = TimeInterval(Time.getTicksMsec() - startTime) / 1000
+        logVerbose("--> Finished import for \"\(sourceFile)\" after \(String(format: "%.3f", secondsElapsed))s")
     }
 
     @Callable
@@ -27,6 +33,8 @@ class WorldImporter: RefCounted {
         savePath: String,
         options: VariantDictionary
     ) -> GodotError {
+        self.startTime = Time.getTicksMsec()
+        self.sourceFile = sourceFile
         guard FileAccess.fileExists(path: sourceFile) else {
             logError("Import file '\(sourceFile)' not found.")
             return .errFileNotFound
@@ -39,6 +47,8 @@ class WorldImporter: RefCounted {
             logError("Malformed filename: \(sourceFile).")
             return .errFileUnrecognized
         }
+        verbose = options["verbose"]?.to() ?? false
+        logVerbose("Importing world: \"\(sourceFile)\"")
         do {
             let root = try createWorld(named: worldName, from: worldData)
             let scene = PackedScene()
@@ -62,7 +72,7 @@ class WorldImporter: RefCounted {
         for map in world.maps {
             let path = "res://tiled/\(map.fileName)"
             if let mapScene = ResourceLoader.load(path: path) as? PackedScene, let mapNode = mapScene.instantiate() as? Node2D {
-                log("Processing map data for '\(path)'")
+                logVerbose("Processing map data for '\(path)'")
                 mapNode.position.x = Float(map.x)
                 mapNode.position.y = Float(map.y)
                 root.addChild(node: mapNode)

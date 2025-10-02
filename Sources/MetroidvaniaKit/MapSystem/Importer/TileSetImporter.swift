@@ -21,7 +21,6 @@ extension RefCounted: GodotLogger {}
 @Godot(.tool)
 class TileSetImporter: RefCounted, VerboseLogger {
     
-    static let defaultImportPath = "res://maps/tileset.tres"
     static let defaultTileShape: TileSet.TileShape = .square
 
     var sourceFile = ""
@@ -37,8 +36,11 @@ class TileSetImporter: RefCounted, VerboseLogger {
             .absoluteString ?? ""
     }
 
+    private var startTime: UInt = 0
+
     deinit {
-        logVerbose("--> Finished import for '\(sourceFile)'")
+        let secondsElapsed = TimeInterval(Time.getTicksMsec() - startTime) / 1000
+        logVerbose("--> Finished import for \"\(sourceFile)\" after \(String(format: "%.3f", secondsElapsed))s")
     }
     
     @Callable
@@ -58,6 +60,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
         savePath: String,
         options: VariantDictionary
     ) -> GodotError {
+        self.startTime = Time.getTicksMsec()
         self.sourceFile = sourceFile
         guard FileAccess.fileExists(path: sourceFile) else {
             logError("Import file \"\(sourceFile)\" not found.")

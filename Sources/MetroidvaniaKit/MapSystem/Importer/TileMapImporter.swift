@@ -1,6 +1,17 @@
 import SwiftGodot
 import Foundation
 
+extension Node {
+    func setOwnerRecursive(of node: Node?) {
+        if let node {
+            node.owner = self
+            for child in node.getChildren() {
+                self.setOwnerRecursive(of: child)
+            }
+        }
+    }
+}
+
 @Godot(.tool)
 class TileMapImporter: RefCounted, VerboseLogger {
     
@@ -19,9 +30,12 @@ class TileMapImporter: RefCounted, VerboseLogger {
     var currentTileset: TileSet?
     var gidToNameDict: [UInt32: String] = [:]
     var tilesetGIDs: [UInt32] = []
+
+    private var startTime: UInt = 0
     
     deinit {
-        logVerbose("--> Finished import for '\(sourceFile)'")
+        let secondsElapsed = TimeInterval(Time.getTicksMsec() - startTime) / 1000
+        logVerbose("--> Finished import for \"\(sourceFile)\" after \(String(format: "%.3f", secondsElapsed))s")
     }
 
     @Callable
@@ -45,6 +59,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         savePath: String,
         options: VariantDictionary
     ) -> GodotError {
+        self.startTime = Time.getTicksMsec()
         self.sourceFile = sourceFile
         guard FileAccess.fileExists(path: sourceFile) else {
             logError("Import file '\(sourceFile)' not found.")
@@ -62,7 +77,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
             guard map.orientation == .orthogonal else {
                 return .errBug //
             }
-            guard !map.isInfinite else {
+            isInfinite = map.isInfinite
+            guard !isInfinite else {
+                logError("Infinite maps are not supported yet.")
                 throw ImportError.fatal
             }
 
@@ -121,18 +138,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
             root.setMeta(name: StringName(property.name), value: Variant(property.value))
         }
         for child in root.getChildren() {
-            setOwner(root, to: child)
+            root.setOwnerRecursive(of: child)
         }
         return root
-    }
-    
-    func setOwner(_ owner: Node, to node: Node?) {
-        if let node {
-            node.owner = owner
-            for child in node.getChildren() {
-                setOwner(owner, to: child)
-            }
-        }
     }
     
     func transformLayer(_ layer: Tiled.Layer) throws(ImportError) -> Node2D {
