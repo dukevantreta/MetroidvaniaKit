@@ -16,7 +16,7 @@ extension VerboseLogger where Self: RefCounted {
     }
 }
 
-extension RefCounted: GodotLogger {}
+extension Object: GodotLogger {}
 
 @Godot(.tool)
 class TileSetImporter: RefCounted, VerboseLogger {

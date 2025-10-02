@@ -36,6 +36,3 @@ extension GodotLogger {
         GD.pushError("[\(typeDescription)] \(message)")
     }
 }
-
-extension Node: GodotLogger {}
-extension Resource: GodotLogger {}

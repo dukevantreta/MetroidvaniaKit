@@ -135,7 +135,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             root.addChild(node: transformObjectGroup(group))
         }
         for property in map.properties {
-            root.setMeta(name: StringName(property.name), value: Variant(property.value))
+            root.setMeta(name: property.name, value: property.value)
         }
         for child in root.getChildren() {
             root.setOwnerRecursive(of: child)
@@ -201,7 +201,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             tilemap.zIndex = zIndex
         }
         for property in layer.properties {
-            tilemap.setMeta(name: StringName(property.name), value: Variant(property.value))
+            tilemap.setMeta(name: property.name, value: property.value)
         }
         
         // Handle parallax layer (this is broken)
@@ -239,6 +239,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
         if layer.repeatX || layer.repeatY {
             sprite.textureRepeat = .enabled
         }
+        for property in layer.properties {
+            sprite.setMeta(name: property.name, value: property.value)
+        }
         return sprite
     }
     
@@ -265,6 +268,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
         for subgroup in group.groups {
             node.addChild(node: try transformGroup(subgroup))
         }
+        for property in group.properties {
+            node.setMeta(name: property.name, value: property.value)
+        }
         return node
     }
     
@@ -280,12 +286,11 @@ class TileMapImporter: RefCounted, VerboseLogger {
         }
         // TODO: handle parallax
         // TODO: handle draw order
-        node.visible = objectGroup.isVisible
-        for property in objectGroup.properties {
-            node.setMeta(name: StringName(property.name), value: Variant(property.value))
-        }
         for object in objectGroup.objects {
             node.addChild(node: transformObject(object))
+        }
+        for property in objectGroup.properties {
+            node.setMeta(name: property.name, value: property.value)
         }
         return node
     }
@@ -339,7 +344,6 @@ class TileMapImporter: RefCounted, VerboseLogger {
         } else if let polygon = object.polygon {
             let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)
-            
 //        } else if let text = object.text { // is text obj
 //        } else if let template = object.template { // TODO
         } else if object.isPoint {
@@ -353,7 +357,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
         for property in object.properties {
-            node.setMeta(name: StringName(property.name), value: Variant(property.value))
+            node.setMeta(name: property.name, value: property.value)
         }
         return node
     }
