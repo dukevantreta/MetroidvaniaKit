@@ -15,10 +15,6 @@ fileprivate extension Node {
 @Godot(.tool)
 class TileMapImporter: RefCounted, VerboseLogger {
     
-    enum Error: Swift.Error {
-        case missingTileSetSource(gid: String?)
-    }
-    
     let objectsPath = "res://objects/"
 
     var sourceFile = ""
@@ -77,34 +73,19 @@ class TileMapImporter: RefCounted, VerboseLogger {
             isInfinite = map.isInfinite
             guard !isInfinite else {
                 logError("Infinite maps are not supported yet.")
-                throw ImportError.fatal
+                return .errUnavailable
             }
 
-            let tilesetResourceFile = File(path: tilesetResourcePath)
-            let godotTileset = try tilesetResourceFile.loadResource(ofType: TileSet.self)
-            currentTileset = godotTileset
-
-            for tilesetRef in map.tilesets {
-                if let gid = UInt32(tilesetRef.firstGID ?? "") {
-                    let file = File(path: tilesetRef.source ?? "")
-                    // let name = try getFileName(from: tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID))
-                    if godotTileset.getSourceId(named: file.name) < 0 {
-                        logError("Tileset source not found for '\(file.name)'.")
-                        throw ImportError.tileSetNotFound
-                    }
-                    gidToNameDict[gid] = file.name
-                    tilesetGIDs.append(gid)
-                }
-            }
+            try loadTilesetAndReferences(for: map)
             logVerbose("Creating map with TileSets: \(gidToNameDict)", level: 1)
             
-            let root = try createTileMap(map: map, using: godotTileset)
+            let root = try createTileMap(from: map)
             root.setName(file.name)
             
             let scene = PackedScene()
             let error = scene.pack(path: root)
             guard error == .ok else {
-                logError("Failed to pack scene '\(root.name)' with error: \(error)")
+                logError("Failed to pack scene '\(root.name)'")
                 throw error
             }
             try saveResource(scene, path: "\(savePath).tscn")
@@ -122,11 +103,28 @@ class TileMapImporter: RefCounted, VerboseLogger {
         }
     }
 
-    // func loadTilesetReferences(for map: Tiled.TileMap) throws {
-    // }
-    
-    // Flipped tiles are clunky to setup, better use manual flipping
-    func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
+    func loadTilesetAndReferences(for map: Tiled.TileMap) throws(ImportError) {
+        let tilesetResourceFile = File(path: tilesetResourcePath)
+        let tileset: TileSet
+        do {
+            tileset = try tilesetResourceFile.loadResource(ofType: TileSet.self)
+        } catch {
+            throw .fileError(error)
+        }
+        for tilesetRef in map.tilesets {
+            if let gid = tilesetRef.firstGID.flatMap({ UInt32($0) }) {
+                let file = File(path: tilesetRef.source ?? "")
+                if tileset.getSourceId(named: file.name) < 0 {
+                    throw .tileSetNotFound(file.name)
+                }
+                gidToNameDict[gid] = file.name
+                tilesetGIDs.append(gid)
+            }
+        }
+        currentTileset = tileset
+    }
+
+    func createTileMap(from map: Tiled.TileMap) throws -> Node2D {
         let root = Node2D()
         for layer in map.layers {
             root.addChild(node: try transformLayer(layer))
@@ -138,7 +136,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             root.addChild(node: try transformGroup(group))
         }
         for group in map.objectGroups {
-            root.addChild(node: transformObjectGroup(group))
+            root.addChild(node: try transformObjectGroup(group))
         }
         for property in map.properties {
             root.setMeta(name: property.name, value: property.value)
@@ -182,12 +180,14 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 continue
             }
             let trueGID: UInt32 = UInt32(cellValue) & 0x0FFF_FFFF
-//                let flipBits: UInt32 = UInt32(cellValue) & 0xF000_0000
-//                let flipHorizontally = flipBits & 1 << 31 != 0
-//                let flipVertically = flipBits & 1 << 30 != 0
+            let flipBits: UInt32 = UInt32(cellValue) & 0xF000_0000
+            let flipHorizontally = flipBits & 1 << 31 != 0 ? TileSetAtlasSource.transformFlipH : 0
+            let flipVertically = flipBits & 1 << 30 != 0 ? TileSetAtlasSource.transformFlipV : 0
+            let flipDiagonally = flipBits & 1 << 29 != 0 ? TileSetAtlasSource.transformTranspose : 0
+            let altFlags = Int32(flipHorizontally | flipVertically | flipDiagonally)
             
             let tilesetGID = tilesetGIDs.filter { $0 <= trueGID }.max() ?? 0
-            let tileIndex = cellValue - tilesetGID
+            let tileIndex = trueGID - tilesetGID
             
             let resourceName = gidToNameDict[tilesetGID] ?? ""
             let sourceID = tileset.getSourceId(named: resourceName)
@@ -197,10 +197,10 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 x: Int32(idx) % layer.width,
                 y: Int32(idx) / layer.width)
             let tileCoords = Vector2i(
-                x: Int32(tileIndex % UInt32(tilesetColumns)),
-                y: Int32(tileIndex / UInt32(tilesetColumns))
+                x: Int32(tileIndex) % tilesetColumns,
+                y: Int32(tileIndex) / tilesetColumns
             )
-            tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: 0)
+            tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: altFlags)
         }
         let properties = parseProperties(layer.properties)
         if let zIndex = properties["z_index"] as? Int32 {
@@ -269,7 +269,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             node.addChild(node: try transformImageLayer(imageLayer))
         }
         for objectGroup in group.objectGroups {
-            node.addChild(node: transformObjectGroup(objectGroup))
+            node.addChild(node: try transformObjectGroup(objectGroup))
         }
         for subgroup in group.groups {
             node.addChild(node: try transformGroup(subgroup))
@@ -280,7 +280,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         return node
     }
     
-    func transformObjectGroup(_ objectGroup: Tiled.ObjectGroup) -> Node2D {
+    func transformObjectGroup(_ objectGroup: Tiled.ObjectGroup) throws -> Node2D {
         let node = Node2D()
         node.setName(objectGroup.name)
         node.position.x = Float(objectGroup.offsetX)
@@ -293,7 +293,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         // TODO: handle parallax
         // TODO: handle draw order
         for object in objectGroup.objects {
-            node.addChild(node: transformObject(object))
+            node.addChild(node: try transformObject(object))
         }
         for property in objectGroup.properties {
             node.setMeta(name: property.name, value: property.value)
@@ -301,30 +301,24 @@ class TileMapImporter: RefCounted, VerboseLogger {
         return node
     }
     
-    func transformObject(_ object: Tiled.Object) -> Node2D {
+    func transformObject(_ object: Tiled.Object) throws(ImportError) -> Node2D {
         let node: Node2D = if !object.type.isEmpty, let overrideObject = instantiate(object) {
             overrideObject
         } else {
             Node2D()
         }
-        if let gid = object.gid { // is tile
+        if let gid = object.gid { // object is a tile
+            guard let currentTileset else { throw .fatal }
+
             let trueGID: UInt32 = UInt32(gid) & 0x0FFF_FFFF
             let flipBits: UInt32 = UInt32(gid) & 0xF000_0000
             let flipHorizontally = flipBits & 1 << 31 != 0
             let flipVertically = flipBits & 1 << 30 != 0
             
-            let sprite = Sprite2D()
-            node.addChild(node: sprite)
-            
-            guard let currentTileset else { fatalError() }
-            
-            let gids: [UInt32] = Array(gidToNameDict.keys)
-            let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
-            
+            let tilesetGID = tilesetGIDs.filter { $0 <= trueGID }.max() ?? 0
             let atlasName = gidToNameDict[UInt32(tilesetGID)] ?? ""
             guard let atlas = currentTileset.getSource(named: atlasName) else {
-                logError("Failed to retrieve tileset atlas source for: \(atlasName)")
-                return node
+                throw .tileSetNotFound(atlasName)
             }
             
             let tileIndex = trueGID - tilesetGID
@@ -332,21 +326,20 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let sourceID = currentTileset.getSourceId(named: atlasName)
             let tilesetColumns = currentTileset.getColumnCount(sourceId: sourceID)
             let tileCoords = Vector2i(
-                x: Int32(tileIndex % UInt32(tilesetColumns)),
-                y: Int32(tileIndex / UInt32(tilesetColumns)))
-            
+                x: Int32(tileIndex) % tilesetColumns,
+                y: Int32(tileIndex) / tilesetColumns)
             let texRegion = atlas.getTileTextureRegion(atlasCoords: tileCoords)
             
+            let sprite = Sprite2D()
             sprite.texture = atlas.texture
             sprite.regionEnabled = true
             sprite.regionRect = Rect2(from: texRegion)
-            
             sprite.offset.x = Float(currentTileset.tileSize.x >> 1)
             sprite.offset.y = Float(currentTileset.tileSize.y >> 1)
-            
             sprite.flipH = flipHorizontally
             sprite.flipV = flipVertically
-            
+            sprite.rotation = object.rotation * .pi / 180
+            node.addChild(node: sprite)
         } else if let polygon = object.polygon {
             let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)

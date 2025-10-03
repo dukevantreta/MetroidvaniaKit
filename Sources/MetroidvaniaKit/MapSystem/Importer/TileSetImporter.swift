@@ -110,15 +110,12 @@ class TileSetImporter: RefCounted, VerboseLogger {
             logVerbose("Found tileset atlas '\(atlasName)'. Skipping import...", level: 1)
             return
         }
-        guard let imageSource = tiledTileset.image?.source else {
-            logError("No image source reference found for tileset: \(atlasName)")
-            throw ImportError.noTileSetImageSource
-        }
         
         parseProperties(from: tiledTileset, intoGodot: gTileset)
         
         logVerbose("Creating atlas source for '\(atlasName)'...", level: 1)
-        let spritesheetPath = [file.directory, imageSource].joined(separator: "/")
+        let spritesheetName = tiledTileset.image?.source ?? ""
+        let spritesheetPath = [file.directory, spritesheetName].joined(separator: "/")
         let atlasSource = TileSetAtlasSource()
         atlasSource.resourceName = atlasName
         atlasSource.texture = try File(path: spritesheetPath).loadResource(ofType: Texture2D.self)

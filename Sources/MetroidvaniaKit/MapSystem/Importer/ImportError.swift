@@ -1,17 +1,13 @@
 import SwiftGodot
 
 enum ImportError: Error {
-    case fatal
+    case fatal // should never happen, is a programmer error
     case fileError(File.Error)
     case layerData(LayerDataErrorReason)
-    case unhandledObject
-    case failedToSaveFile(_ path: String, GodotError)
-    case tileSetNotFound
-    case godotError(GodotError)
-    case malformedPath(String)
-    case unsupportedMapType(Tiled.TileMap.Orientation)
-    case noTileSetImageSource
     case undefinedTileSize
+    case tileSetNotFound(String)
+    case failedToSaveFile(_ path: String, GodotError)
+    case godotError(GodotError)
     
     enum LayerDataErrorReason {
         case notFound

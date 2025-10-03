@@ -12,8 +12,8 @@ extension Tiled {
         let tintColor: String?
         let offsetX: Double
         let offsetY: Double
-        let parallaxX: Double?
-        let parallaxY: Double?
+        let parallaxX: Double
+        let parallaxY: Double
         var data: Data?
         var properties: [Property]
         
