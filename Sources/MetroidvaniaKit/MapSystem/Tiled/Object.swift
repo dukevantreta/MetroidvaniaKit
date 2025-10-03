@@ -1,5 +1,5 @@
 extension Tiled {
-    
+
     struct Object {
         let id: Int
         let name: String
@@ -11,7 +11,7 @@ extension Tiled {
         let rotation: Double // degrees
         let gid: UInt32? // When the object has a gid set, then it is represented by the image of the tile with that global ID.
         let isVisible: Bool
-//        let template: ? // TODO
+        let template: String?
         var isEllipse = false
         var isPoint = false
         var polygon: Polygon?
@@ -35,6 +35,7 @@ extension Tiled.Object: XMLDecodable {
             rotation: attributes?["rotation"]?.asDouble() ?? 0.0,
             gid: attributes?["gid"]?.asUInt32(),
             isVisible: attributes?["visible"]?.asBool() ?? true,
+            template: attributes?["template"],
             properties: []
         )
         for child in xml.children {

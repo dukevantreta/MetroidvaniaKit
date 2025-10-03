@@ -1,23 +1,6 @@
 import SwiftGodot
 import Foundation
 
-protocol VerboseLogger {
-    var verbose: Bool { get set }
-    func logVerbose(_ message: String, level: Int)
-}
-
-extension VerboseLogger where Self: RefCounted {
-    func logVerbose(_ message: String, level: Int = 0) {
-        if verbose { 
-            var padding = ""
-            for _ in (0..<level) { padding += "    " }
-            log(padding + message) 
-        }
-    }
-}
-
-extension Object: GodotLogger {}
-
 @Godot(.tool)
 class TileSetImporter: RefCounted, VerboseLogger {
     

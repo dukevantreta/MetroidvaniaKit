@@ -1,15 +1,7 @@
 import SwiftGodot
 
-// print on console to help debug
-func printTree(_ xml: XML.Element, level: Int) {
-    var pad = ""
-    for _ in 0..<level {
-        pad += "    "
-    }
-    GD.print("\(pad)\(xml)")
-    for child in xml.children {
-        printTree(child, level: level + 1)
-    }
+protocol XMLDecodable {
+    init(from xml: XML.Element) throws
 }
 
 enum XML {
@@ -94,6 +86,20 @@ enum XML {
 
 extension XML.Element: CustomStringConvertible {
     var description: String {
-        "[XML] \(name) | Text: \(text ?? "nil") | Attributes: \(attributes)"
+        "<[XML] \(name) | Text: \(text ?? "nil") | Attributes: \(attributes ?? [:])>"
+    }
+}
+
+extension XML.Element {
+    /// Recursively prints the XML tree to the console, to help debugging.
+    func printTree(level: Int = 0) {
+        var pad = ""
+        for _ in 0..<level {
+            pad += "    "
+        }
+        GD.print("\(pad)\(self)")
+        for child in children {
+            child.printTree(level: level + 1)
+        }
     }
 }

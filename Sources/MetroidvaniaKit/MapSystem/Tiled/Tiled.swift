@@ -1,5 +1,38 @@
-protocol XMLDecodable {
-    init(from xml: XML.Element) throws
+/*
+ All documentation is copied from Tiled map editor's reference docs.
+ 
+ TMX Map Format documentation can be found at: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
+ */
+enum Tiled {
+    
+    enum XMLElementType: String {
+        case map
+        case tileset
+        case layer
+        case data
+        case chunk
+        case object
+        case objectgroup
+        case group
+        case property
+        case tileoffset
+        case grid
+        case image
+        case tile
+        case polygon
+        case text
+        case animation
+        case frame
+        case imagelayer
+        case unknown
+    }
+    
+    struct ParseError: Error {
+        let expected: XMLElementType
+        let found: XMLElementType
+    }
+    
+    struct EditorSettings {}
 }
 
 extension XML.Element {
@@ -39,43 +72,4 @@ extension String {
         }
         return nil
     }
-}
-
-//typealias TInt = Int32
-
-/*
- All documentation is copied from Tiled map editor reference docs.
- 
- TMX Map Format documentation can be found at: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
- */
-enum Tiled {
-    
-    enum XMLElementType: String {
-        case map
-        case tileset
-        case layer
-        case data
-        case chunk
-        case object
-        case objectgroup
-        case group
-        case property
-        case tileoffset
-        case grid
-        case image
-        case tile
-        case polygon
-        case text
-        case animation
-        case frame
-        case imagelayer
-        case unknown
-    }
-    
-    struct ParseError: Error {
-        let expected: XMLElementType
-        let found: XMLElementType
-    }
-    
-    struct EditorSettings {}
 }

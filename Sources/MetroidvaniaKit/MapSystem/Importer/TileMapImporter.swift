@@ -1,7 +1,7 @@
 import SwiftGodot
 import Foundation
 
-extension Node {
+fileprivate extension Node {
     func setOwnerRecursive(of node: Node?) {
         if let node {
             node.owner = self
@@ -344,11 +344,14 @@ class TileMapImporter: RefCounted, VerboseLogger {
         } else if let polygon = object.polygon {
             let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)
-//        } else if let text = object.text { // is text obj
-//        } else if let template = object.template { // TODO
+        } else if let text = object.text {
+            logError("Text objects are not supported yet.")
+        } else if let template = object.template {
+            logError("Templates are not supported yet.")
         } else if object.isPoint {
-//            node = Node2D()
-//        } else if object.isEllipse {
+            // do nothing
+        } else if object.isEllipse {
+            logError("Ellipses are not supported yet.")
         } else { // treat as a rectangle
             let body = parseRectangle(from: object)
             node.addChild(node: body)
