@@ -99,11 +99,15 @@ class TileMapImporter: RefCounted, VerboseLogger {
             }
             logVerbose("Creating map with TileSets: \(gidToNameDict)", level: 1)
             
-            let tilemap = try createTileMap(map: map, using: godotTileset)
-            tilemap.setName(try getFileName(from: sourceFile))
+            let root = try createTileMap(map: map, using: godotTileset)
+            root.setName(try getFileName(from: sourceFile))
             
             let scene = PackedScene()
-            scene.pack(path: tilemap)
+            let error = scene.pack(path: root)
+            guard error == .ok else {
+                logError("Failed to pack scene '\(root.name)' with error: \(error)")
+                throw error
+            }
             try saveResource(scene, path: "\(savePath).tscn")
             logVerbose("Successfully imported '\(sourceFile)'.", level: 1)
             return .ok
@@ -148,8 +152,8 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let tilemap = TileMapLayer()
         tilemap.setName(layer.name)
         tilemap.tileSet = tileset
-        tilemap.position.x = Float(layer.offsetX ?? 0)
-        tilemap.position.y = Float(layer.offsetY ?? 0)
+        tilemap.position.x = Float(layer.offsetX)
+        tilemap.position.y = Float(layer.offsetY)
         tilemap.visible = layer.isVisible
         tilemap.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
         if let colorString = layer.tintColor, let color = parseHexColor(colorString, format: .argb) {
@@ -316,8 +320,8 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let tilesetGID = gids.filter { $0 <= trueGID }.max() ?? 0
             
             let atlasName = gidToNameDict[UInt32(tilesetGID)] ?? ""
-            guard let atlas = currentTileset.getSource(named: atlasName) as? TileSetAtlasSource else {
-                GD.print("ERROR GETTING ATLAS SOURCE")
+            guard let atlas = currentTileset.getSource(named: atlasName) else {
+                logError("Failed to retrieve tileset atlas source for: \(atlasName)")
                 return node
             }
             
@@ -344,9 +348,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
         } else if let polygon = object.polygon {
             let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)
-        } else if let text = object.text {
+        } else if let _ = object.text {
             logWarning("Text objects are not supported yet.")
-        } else if let template = object.template {
+        } else if let _ = object.template {
             logWarning("Templates are not supported yet.")
         } else if object.isPoint {
             // do nothing
@@ -378,7 +382,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let collision = CollisionPolygon2D()
         let array = PackedVector2Array()
         for point in polygon.points {
-            array.append(value: Vector2(x: point.x, y: point.y))
+            array.append(Vector2(x: point.x, y: point.y))
         }
         collision.polygon = array
         body.addChild(node: collision)
@@ -419,9 +423,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
         for property in propertyArray {
             let value: Any = switch property.type {
             case "string": String(property.value ?? "")
-            case "int": Int32(property.value ?? "0")
-            case "float": Float(property.value ?? "0")
-            case "bool": Bool(property.value ?? "false")
+            case "int": Int32(property.value ?? "0") as Any
+            case "float": Float(property.value ?? "0") as Any
+            case "bool": Bool(property.value ?? "false") as Any
             case "color": String(property.value ?? "#00000000")
             case "file": String(property.value ?? ".")
             default: String(property.value ?? "")

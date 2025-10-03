@@ -74,7 +74,7 @@ enum XML {
                 if name != parseStack.last?.name {
                     throw .dataCorruped
                 }
-                parseStack.popLast()
+                _ = parseStack.popLast()
             }
         }
         guard let root else {

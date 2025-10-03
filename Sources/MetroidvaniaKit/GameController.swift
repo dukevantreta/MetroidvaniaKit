@@ -35,8 +35,6 @@ class GameController: Node {
     override func _ready() {
         self.processMode = .always
         
-        log("Player: \(player)")
-        
         let worldFile = "res://tiled/\(worldToLoad).world"
         do {
             self.world = try World.load(from: worldFile)
@@ -87,9 +85,9 @@ class GameController: Node {
         pauseMenu?.visible = true
         getTree()?.paused = true
         
-        let tween = getTree()?.createTween()
-        tween?.setPauseMode(.process)
-        tween?.tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)
+        _ = getTree()?.createTween()?
+            .setPauseMode(.process)?
+            .tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)
     }
     
     func unpause() {
@@ -97,9 +95,9 @@ class GameController: Node {
 //        getTree()?.paused = false
 //        pauseMenu?.visible = false
         
-        let tween = getTree()?.createTween()
-        tween?.setPauseMode(.process)
-        tween?.tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.transparent), duration: 0.4)
+        let tween = getTree()?.createTween()?
+            .setPauseMode(.process)?
+            .tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.transparent), duration: 0.4)
         tween?.finished.connect { [weak self] in
             self?.isPaused = false
             self?.getTree()?.paused = false
@@ -187,19 +185,18 @@ class GameController: Node {
             let sceneTree = getTree()
             sceneTree?.paused = true
             
-            let overlayTween = getTree()?.createTween()
-            overlayTween?.setPauseMode(.process)
-            overlayTween?.tweenProperty(object: bgOverlay, property: "self_modulate", finalVal: Variant(Color.black), duration: 0.15)
+            let overlayTween = getTree()?.createTween()?
+                .setPauseMode(.process)?
+                .tweenProperty(object: bgOverlay, property: "self_modulate", finalVal: Variant(Color.black), duration: 0.15)
             overlayTween?.finished.connect { [weak self] in
                 let newRoom = self?.instantiateRoom(map)
                 self?.getParent()?.addChild(node: newRoom)
                 
-                let tween = self?.getTree()?.createTween()
-                tween?.setPauseMode(.process)
-                
                 let offset = Vector2(x: TILE_SIZE * ROOM_WIDTH * moveDelta.x, y: TILE_SIZE * ROOM_HEIGHT * moveDelta.y)
-                tween?.tweenProperty(object: camera, property: "offset", finalVal: Variant(offset), duration: 0.7)
-                tween?.tweenProperty(object: self?.bgOverlay, property: "self_modulate", finalVal: Variant(Color.transparent), duration: 0.15)
+                let tween = self?.getTree()?.createTween()?
+                    .setPauseMode(.process)
+                _ = tween?.tweenProperty(object: camera, property: "offset", finalVal: Variant(offset), duration: 0.7)
+                _ = tween?.tweenProperty(object: self?.bgOverlay, property: "self_modulate", finalVal: Variant(Color.transparent), duration: 0.15)
                 
                 tween?.finished.connect { [weak self] in
                     camera.offset = .zero

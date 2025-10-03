@@ -52,7 +52,11 @@ class WorldImporter: RefCounted, VerboseLogger {
         do {
             let root = try createWorld(named: worldName, from: worldData)
             let scene = PackedScene()
-            scene.pack(path: root)
+            let error = scene.pack(path: root)
+            guard error == .ok else {
+                logError("Failed to pack scene '\(root.name)' with error: \(error)")
+                throw error
+            }
             try saveResource(scene, path: "\(savePath).tscn")
             return .ok
         } catch {
@@ -88,7 +92,10 @@ class WorldImporter: RefCounted, VerboseLogger {
         
         let dataString = try mapData.encode()
         let fileHandle = FileAccess.open(path: "res://maps/\(name).map", flags: .write)
-        fileHandle?.storeString(dataString)
+        guard fileHandle?.storeString(dataString) == true else {
+            logError("Failed to save world data to file.")
+            throw ImportError.fatal //
+        }
         fileHandle?.close()
         
         return root

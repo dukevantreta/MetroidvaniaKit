@@ -112,7 +112,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
 
         if !gTileset.hasSource(named: atlasName) {
             guard let imageSource = tiledTileset.image?.source else {
-                logError("No image source reference found for tileset: \(tiledTileset.name)")
+                logError("No image source reference found for tileset: \(atlasName)")
                 throw ImportError.noTileSetImageSource
             }
             
@@ -127,7 +127,9 @@ class TileSetImporter: RefCounted, VerboseLogger {
             atlasSource.separation = Vector2i(x: tiledTileset.spacing, y: tiledTileset.spacing)
 
             // NOTE: atlas need to be added to tileset BEFORE adding collision to tiles (or else collisions bug on import)
-            gTileset.addSource(atlasSource)
+            guard gTileset.addSource(atlasSource) != -1 else {
+                throw ImportError.fatal
+            }
             
             let columns = Int32(tiledTileset.columns ?? 0)
             let rows = Int32(tiledTileset.tileCount ?? 0) / columns
@@ -172,7 +174,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
                             let origin = Vector2i(x: Int32(object.x), y: Int32(object.y))
                             let array = PackedVector2Array()
                             for point in polygon.points {
-                                array.append(value: Vector2(
+                                array.append(Vector2(
                                     x: origin.x + Int32(point.x) - halfTile.x,
                                     y: origin.y + Int32(point.y) - halfTile.y
                                 ))
@@ -182,10 +184,10 @@ class TileSetImporter: RefCounted, VerboseLogger {
                         } else { // rectangle
                             let origin = Vector2i(x: Int32(object.x) - tileSize.x >> 1, y: Int32(object.y) - tileSize.y >> 1)
                             let array = PackedVector2Array()
-                            array.append(value: Vector2(x: origin.x, y: origin.y))
-                            array.append(value: Vector2(x: origin.x + Int32(object.width), y: origin.y))
-                            array.append(value: Vector2(x: origin.x + Int32(object.width), y: origin.y + Int32(object.height)))
-                            array.append(value: Vector2(x: origin.x, y: origin.y + Int32(object.height)))
+                            array.append(Vector2(x: origin.x, y: origin.y))
+                            array.append(Vector2(x: origin.x + Int32(object.width), y: origin.y))
+                            array.append(Vector2(x: origin.x + Int32(object.width), y: origin.y + Int32(object.height)))
+                            array.append(Vector2(x: origin.x, y: origin.y + Int32(object.height)))
                             tileData.addCollisionPolygon(layerId: physicsLayerIdx)
                             tileData.setCollisionPolygonPoints(layerId: physicsLayerIdx, polygonIndex: 0, polygon: array)
                         }
@@ -220,7 +222,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
                     if layerIndex >= tileset.getPhysicsLayersCount() {
                         tileset.addPhysicsLayer(toPosition: layerIndex)
                         var layerMask: UInt32 = 0
-                        for layer in property.value?.components(separatedBy: ",").compactMap { UInt32($0) } ?? [] {
+                        for layer in property.value?.components(separatedBy: ",").compactMap({ UInt32($0) }) ?? [] {
                             layerMask |= 1 << (layer - 1)
                         }
                         tileset.setPhysicsLayerCollisionLayer(layerIndex: layerIndex, layer: layerMask)
