@@ -9,6 +9,7 @@ struct File {
         case noData
         case cannotAcquireResource(String)
         case failedToResolveResource(String)
+        case failedToSave(String, GodotError)
     }
     
     let path: String
@@ -52,14 +53,11 @@ struct File {
         }
         return resolvedResource
     }
-}
 
-// func getFileName(from path: String) throws -> String {
-//     guard let name = path
-//         .components(separatedBy: "/").last?
-//         .components(separatedBy: ".").first
-//     else {
-//         throw ImportError.malformedPath(path)
-//     }
-//     return name
-// }
+    func saveResource(_ resource: Resource) throws(Error) {
+        let errorCode = ResourceSaver.save(resource: resource, path: path)
+        if errorCode != .ok {
+            throw .failedToSave(path, errorCode)
+        }
+    }
+}

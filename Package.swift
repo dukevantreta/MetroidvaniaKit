@@ -36,7 +36,7 @@ let package = Package(
                 .product(name: "Numerics", package: "swift-numerics"),
             ],
             swiftSettings: [
-                // .unsafeFlags(["-suppress-warnings"])
+                .unsafeFlags(["-suppress-warnings"])
             ]
         ), 
         .testTarget(

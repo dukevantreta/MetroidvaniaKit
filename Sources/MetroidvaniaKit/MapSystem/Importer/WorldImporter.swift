@@ -48,7 +48,7 @@ class WorldImporter: RefCounted, VerboseLogger {
                 logError("Failed to pack scene '\(root.name)'")
                 throw error
             }
-            try saveResource(scene, path: "\(savePath).tscn")
+            try File(path: "\(savePath).tscn").saveResource(scene)
             return .ok
         } catch {
             logError("Failed to create world with error: \(error)")

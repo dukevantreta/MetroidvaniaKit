@@ -4,7 +4,9 @@ import Foundation
 fileprivate extension Node {
     func setOwnerRecursive(of node: Node?) {
         if let node {
-            node.owner = self
+            if node.owner == nil {
+                node.owner = self
+            }
             for child in node.getChildren() {
                 self.setOwnerRecursive(of: child)
             }
@@ -88,7 +90,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 logError("Failed to pack scene '\(root.name)'")
                 throw error
             }
-            try saveResource(scene, path: "\(savePath).tscn")
+            try File(path: "\(savePath).tscn").saveResource(scene)
             logVerbose("Successfully imported '\(sourceFile)'.", level: 1)
             return .ok
         } catch let error as XML.ParseError {
@@ -228,6 +230,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
     func transformImageLayer(_ layer: Tiled.ImageLayer) throws(ImportError) -> Node2D {
         let file = try currentFile ??? ImportError.fatal
         let sprite = Sprite2D()
+        sprite.setName(layer.name)
         guard let sourcePath = layer.image?.source else {
             logWarning("<\(file.name)> Missing image source path for image layer '\(layer.name)'.")
             return sprite
@@ -331,6 +334,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let texRegion = atlas.getTileTextureRegion(atlasCoords: tileCoords)
             
             let sprite = Sprite2D()
+            sprite.setName("Sprite2D")
             sprite.texture = atlas.texture
             sprite.regionEnabled = true
             sprite.regionRect = Rect2(from: texRegion)
@@ -355,7 +359,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let body = parseRectangle(from: object)
             node.addChild(node: body)
         }
-        node.setName(object.name.isEmpty ? "\(object.id)" : object.name)
+        node.setName("\(object.name)-\(object.id)")
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
         for property in object.properties {
@@ -369,10 +373,10 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let body: CollisionObject2D
         if type == "area" || type == "area2d" {
             body = Area2D()
-            body.setName("Area2D.\(object.id)")
+            body.setName("Area2D")
         } else {
             body = StaticBody2D()
-            body.setName("StaticBody2D.\(object.id)")
+            body.setName("StaticBody2D")
         }
         let collision = CollisionPolygon2D()
         let array = PackedVector2Array()
@@ -394,10 +398,10 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let body: CollisionObject2D
         if type == "area" || type == "area2d" {
             body = Area2D()
-            body.setName("Area2D.\(object.id)")
+            body.setName("Area2D")
         } else {
             body = StaticBody2D()
-            body.setName("StaticBody2D.\(object.id)")
+            body.setName("StaticBody2D")
         }
         let shape = RectangleShape2D()
         shape.size = Vector2(x: object.width, y: object.height)

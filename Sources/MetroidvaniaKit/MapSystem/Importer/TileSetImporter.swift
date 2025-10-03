@@ -61,7 +61,7 @@ class TileSetImporter: RefCounted, VerboseLogger {
 
             let resource = TileSetResource()
             resource.atlasName = file.name
-            try saveResource(resource, path: "\(savePath).tres")
+            try File(path: "\(savePath).tres").saveResource(resource)
             logVerbose("Successfully imported \"\(file.name).tsx\"", level: 1)
             return .ok
         } catch let error as XML.ParseError {
@@ -201,9 +201,8 @@ class TileSetImporter: RefCounted, VerboseLogger {
 //                    }
 //                }
         }
-        
         logVerbose("Saving '\(atlasName)' atlas to \"\(targetPath)\"", level: 1)
-        try saveResource(gTileset, path: targetPath)
+        try File(path: targetPath).saveResource(gTileset)
     }
     
     // FIXME
