@@ -61,21 +61,18 @@ class TileMapImporter: RefCounted, VerboseLogger {
     ) -> GodotError {
         self.startTime = Time.getTicksMsec()
         self.sourceFile = sourceFile
-        guard FileAccess.fileExists(path: sourceFile) else {
-            logError("Import file '\(sourceFile)' not found.")
-            return .errFileNotFound
-        }
         tilesetResourcePath = options["tileset_resource"]?.to() ?? ""
         verbose = options["verbose"]?.to() ?? false
 
         logVerbose("Importing tile map: \"\(sourceFile)\"")
         do {
-            let file = try File(path: sourceFile)
+            let file = File(path: sourceFile)
             currentFile = file
             let xml = try XML.parse(file.path, with: XMLParser())
             let map = try Tiled.TileMap(from: xml.root)
             guard map.orientation == .orthogonal else {
-                return .errBug //
+                logError("Unsupported map orientation: \(map.orientation)")
+                return .errUnavailable
             }
             isInfinite = map.isInfinite
             guard !isInfinite else {
@@ -83,24 +80,26 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 throw ImportError.fatal
             }
 
-            let godotTileset = try loadResource(ofType: TileSet.self, at: tilesetResourcePath)
+            let tilesetResourceFile = File(path: tilesetResourcePath)
+            let godotTileset = try tilesetResourceFile.loadResource(ofType: TileSet.self)
             currentTileset = godotTileset
 
             for tilesetRef in map.tilesets {
                 if let gid = UInt32(tilesetRef.firstGID ?? "") {
-                    let name = try getFileName(from: tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID))
-                    if godotTileset.getSourceId(named: name) < 0 {
-                        logError("Tileset source not found for '\(name)'.")
+                    let file = File(path: tilesetRef.source ?? "")
+                    // let name = try getFileName(from: tilesetRef.source ??? Error.missingTileSetSource(gid: tilesetRef.firstGID))
+                    if godotTileset.getSourceId(named: file.name) < 0 {
+                        logError("Tileset source not found for '\(file.name)'.")
                         throw ImportError.tileSetNotFound
                     }
-                    gidToNameDict[gid] = name
+                    gidToNameDict[gid] = file.name
                     tilesetGIDs.append(gid)
                 }
             }
             logVerbose("Creating map with TileSets: \(gidToNameDict)", level: 1)
             
             let root = try createTileMap(map: map, using: godotTileset)
-            root.setName(try getFileName(from: sourceFile))
+            root.setName(file.name)
             
             let scene = PackedScene()
             let error = scene.pack(path: root)
@@ -122,6 +121,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
             return .errScriptFailed
         }
     }
+
+    // func loadTilesetReferences(for map: Tiled.TileMap) throws {
+    // }
     
     // Flipped tiles are clunky to setup, better use manual flipping
     func createTileMap(map: Tiled.TileMap, using tileset: TileSet) throws -> Node2D {
@@ -231,9 +233,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
             return sprite
         }
         do {
-            sprite.texture = try loadResource(ofType: Texture2D.self, at: "\(file.directory)/\(sourcePath)")
+            sprite.texture = try File(path: "\(file.directory)/\(sourcePath)").loadResource(ofType: Texture2D.self)
         } catch {
-            throw .godotError(error)
+            throw .fileError(error)
         }
         sprite.position = Vector2(x: layer.offsetX, y: layer.offsetY)
         sprite.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))

@@ -2,6 +2,7 @@ import SwiftGodot
 
 enum ImportError: Error {
     case fatal
+    case fileError(File.Error)
     case layerData(LayerDataErrorReason)
     case unhandledObject
     case failedToSaveFile(_ path: String, GodotError)

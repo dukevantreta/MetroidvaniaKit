@@ -49,7 +49,7 @@ class GameController: Node {
         
         if roomToLoad != "" {
             for map in world.maps {
-                if let name = try? getFileName(from: map.fileName), name == roomToLoad {
+                if File(path: map.fileName).name == roomToLoad {
                     player.position.x = Float(map.x)
                     player.position.y = Float(map.y)
                 }
@@ -158,7 +158,7 @@ class GameController: Node {
                 Int32(playerPosition.x) >= map.x && Int32(playerPosition.x) < map.x + map.width &&
                 Int32(playerPosition.y) >= map.y && Int32(playerPosition.y) < map.y + map.height
             {
-                if let roomName = try? getFileName(from: map.fileName), StringName(roomName) != currentRoom?.name {
+                if StringName(File(path: map.fileName).name) != currentRoom?.name {
                     onRoomTransition(to: map, moveDelta: moveDelta)
                 }
             }

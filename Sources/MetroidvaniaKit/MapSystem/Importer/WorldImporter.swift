@@ -35,26 +35,17 @@ class WorldImporter: RefCounted, VerboseLogger {
     ) -> GodotError {
         self.startTime = Time.getTicksMsec()
         self.sourceFile = sourceFile
-        guard FileAccess.fileExists(path: sourceFile) else {
-            logError("Import file '\(sourceFile)' not found.")
-            return .errFileNotFound
-        }
-        guard let worldData = FileAccess.getFileAsString(path: sourceFile).data(using: .utf8) else {
-            logError("Failed to read world data from '\(sourceFile)'.")
-            return .errInvalidData
-        }
-        guard let worldName = sourceFile.components(separatedBy: "/").last?.components(separatedBy: ".").first else {
-            logError("Malformed filename: \(sourceFile).")
-            return .errFileUnrecognized
-        }
         verbose = options["verbose"]?.to() ?? false
+        
         logVerbose("Importing world: \"\(sourceFile)\"")
         do {
-            let root = try createWorld(named: worldName, from: worldData)
+            let file = File(path: sourceFile)
+            let data = try file.getData(.ascii)
+            let root = try createWorld(named: file.name, from: data)
             let scene = PackedScene()
             let error = scene.pack(path: root)
             guard error == .ok else {
-                logError("Failed to pack scene '\(root.name)' with error: \(error)")
+                logError("Failed to pack scene '\(root.name)'")
                 throw error
             }
             try saveResource(scene, path: "\(savePath).tscn")
