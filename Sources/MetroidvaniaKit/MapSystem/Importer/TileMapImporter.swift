@@ -345,13 +345,13 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)
         } else if let text = object.text {
-            logError("Text objects are not supported yet.")
+            logWarning("Text objects are not supported yet.")
         } else if let template = object.template {
-            logError("Templates are not supported yet.")
+            logWarning("Templates are not supported yet.")
         } else if object.isPoint {
             // do nothing
         } else if object.isEllipse {
-            logError("Ellipses are not supported yet.")
+            logWarning("Ellipses are not supported yet.")
         } else { // treat as a rectangle
             let body = parseRectangle(from: object)
             node.addChild(node: body)

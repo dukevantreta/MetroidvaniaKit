@@ -1,7 +1,7 @@
 extension Tiled {
 
     struct Object {
-        let id: Int
+        let id: IntType
         let name: String
         let type: String
         let x: Double

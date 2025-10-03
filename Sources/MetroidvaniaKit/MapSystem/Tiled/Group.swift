@@ -1,11 +1,11 @@
 extension Tiled {
-    
+
     struct Group {
-        let id: Int
+        let id: IntType
         let name: String
         let `class`: String
-        let offsetX: Int
-        let offsetY: Int
+        let offsetX: Double
+        let offsetY: Double
         let parallaxX: Double
         let parallaxY: Double
         let opacity: Double
@@ -27,8 +27,8 @@ extension Tiled.Group: XMLDecodable {
             id: attributes?["id"]?.asInt() ?? 0,
             name: attributes?["name"] ?? "",
             class: attributes?["class"] ?? "",
-            offsetX: attributes?["offsetx"]?.asInt() ?? 0,
-            offsetY: attributes?["offsety"]?.asInt() ?? 0,
+            offsetX: attributes?["offsetx"]?.asDouble() ?? 0,
+            offsetY: attributes?["offsety"]?.asDouble() ?? 0,
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0,
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,

@@ -2,16 +2,16 @@ extension Tiled {
 
     struct Layer {
         
-        let id: Int
+        let id: IntType
         let name: String
         let `class`: String
-        let width: Int32
-        let height: Int32
+        let width: IntType
+        let height: IntType
         let opacity: Double
-        let visible: Int32
+        let visible: IntType
         let tintColor: String?
-        let offsetX: Double?
-        let offsetY: Double?
+        let offsetX: Double
+        let offsetY: Double
         let parallaxX: Double?
         let parallaxY: Double?
         var data: Data?

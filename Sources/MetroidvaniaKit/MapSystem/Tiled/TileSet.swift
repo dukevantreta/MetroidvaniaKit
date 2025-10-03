@@ -44,8 +44,8 @@ extension Tiled {
         tile from the related tileset. When not present, no offset is applied.
         */
         struct TileOffset {
-            let x: Int
-            let y: Int
+            let x: IntType
+            let y: IntType
         }
 
         /** 
@@ -58,8 +58,8 @@ extension Tiled {
                 case isometric
             }
             let orientation: Orientation
-            let width: Int
-            let height: Int
+            let width: IntType
+            let height: IntType
         }
 
         /// The first global tile ID of this tileset (this global ID maps to the first tile in this tileset).
@@ -68,12 +68,12 @@ extension Tiled {
         let source: String?
         let name: String?
         let `class`: String
-        let tileWidth: Int?
-        let tileHeight: Int?
-        let spacing: Int32
-        let margin: Int32
-        let tileCount: Int?
-        let columns: Int?
+        let tileWidth: IntType?
+        let tileHeight: IntType?
+        let spacing: IntType
+        let margin: IntType
+        let tileCount: IntType?
+        let columns: IntType?
         let objectAlignment: ObjectAlignment
         let tileRenderSize: RenderSize
         let fillMode: FillMode?

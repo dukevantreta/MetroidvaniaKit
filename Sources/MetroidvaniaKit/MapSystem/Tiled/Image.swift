@@ -3,8 +3,8 @@ extension Tiled {
     struct Image {
         let format: String?
         let source: String?
-        let width: Int?
-        let height: Int?
+        let width: IntType?
+        let height: IntType?
         let transparentColor: String?
         var data: Data?
     }

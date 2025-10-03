@@ -18,10 +18,10 @@ extension Tiled {
         }
 
         struct Chunk {
-            let x: Int
-            let y: Int
-            let width: Int
-            let height: Int
+            let x: IntType
+            let y: IntType
+            let width: IntType
+            let height: IntType
             var text: String?
         }
 

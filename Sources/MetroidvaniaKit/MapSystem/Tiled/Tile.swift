@@ -4,19 +4,19 @@ extension Tiled {
 
         struct Animation {
             struct Frame {
-                let tileID: Int
-                let duration: Int
+                let tileID: IntType
+                let duration: IntType
             }
             var frames: [Frame]
         }
 
-        let id: Int
+        let id: IntType
         let type: String
-        let probability: Int
-        let x: Int
-        let y: Int
-        let width: Int?
-        let height: Int?
+        let probability: Double
+        let x: IntType
+        let y: IntType
+        let width: IntType?
+        let height: IntType?
         var image: Image?
         var objectGroup: ObjectGroup?
         var animation: Animation?
@@ -31,7 +31,7 @@ extension Tiled.Tile: XMLDecodable {
         self.init(
             id: attributes?["id"]?.asInt() ?? 0,
             type: attributes?["type"] ?? "",
-            probability: attributes?["probability"]?.asInt() ?? 0,
+            probability: attributes?["probability"]?.asDouble() ?? 0.0,
             x: attributes?["x"]?.asInt() ?? 0,
             y: attributes?["y"]?.asInt() ?? 0,
             width: attributes?["width"]?.asInt(),

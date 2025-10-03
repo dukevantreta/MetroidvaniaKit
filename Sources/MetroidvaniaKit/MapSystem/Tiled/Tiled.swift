@@ -1,3 +1,5 @@
+typealias IntType = Int32
+
 /*
  All documentation is copied from Tiled map editor's reference docs.
  
@@ -48,8 +50,8 @@ extension XML.Element {
 }
 
 extension String {
-    func asInt() -> Int? {
-        Int(self)
+    func asInt() -> IntType? {
+        IntType(self)
     }
     
     func asInt32() -> Int32? {

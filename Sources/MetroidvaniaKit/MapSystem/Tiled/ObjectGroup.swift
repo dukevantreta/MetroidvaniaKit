@@ -7,15 +7,15 @@ extension Tiled {
             case index
         }
 
-        let id: Int
+        let id: IntType
         let name: String
         let `class`: String
         let color: String?
         let opacity: Double
         let isVisible: Bool
         let tintColor: String?
-        let offsetX: Int
-        let offsetY: Int
+        let offsetX: Double
+        let offsetY: Double
         let parallaxX: Double
         let parallaxY: Double
         let drawOrder: DrawOrder
@@ -36,8 +36,8 @@ extension Tiled.ObjectGroup: XMLDecodable {
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
             isVisible: attributes?["visible"]?.asBool() ?? true,
             tintColor: attributes?["tintcolor"],
-            offsetX: attributes?["offsetx"]?.asInt() ?? 0,
-            offsetY: attributes?["offsety"]?.asInt() ?? 0,
+            offsetX: attributes?["offsetx"]?.asDouble() ?? 0.0,
+            offsetY: attributes?["offsety"]?.asDouble() ?? 0.0,
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0,
             drawOrder: DrawOrder(rawValue: attributes?["draworder"] ?? "") ?? .topdown,

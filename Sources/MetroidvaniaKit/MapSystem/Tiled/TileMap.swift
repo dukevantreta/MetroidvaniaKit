@@ -26,15 +26,15 @@ extension Tiled {
         let `class`: String
         let orientation: Orientation
         let renderOrder: RenderOrder
-        let width: Int
-        let height: Int
-        let tileWidth: Int
-        let tileHeight: Int
-        let parallaxOriginX: Int
-        let parallaxOriginY: Int
+        let width: IntType
+        let height: IntType
+        let tileWidth: IntType
+        let tileHeight: IntType
+        let parallaxOriginX: IntType
+        let parallaxOriginY: IntType
         let backgroundColor: String?
-        let nextLayerID: Int
-        let nextObjectID: Int
+        let nextLayerID: IntType
+        let nextObjectID: IntType
         let isInfinite: Bool
 //        var editorSettings: ? // not needed?
         var tilesets: [TileSet]

@@ -35,7 +35,9 @@ let package = Package(
                 "SwiftGodot",
                 .product(name: "Numerics", package: "swift-numerics"),
             ],
-            swiftSettings: [.unsafeFlags(["-suppress-warnings"])]
+            swiftSettings: [
+                // .unsafeFlags(["-suppress-warnings"])
+            ]
         ), 
         .testTarget(
             name: "MetroidvaniaKitTests",

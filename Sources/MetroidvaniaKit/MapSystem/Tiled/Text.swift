@@ -12,7 +12,7 @@ extension Tiled {
             case bottom
         }
         let fontFamily: String
-        let pixelSize: Int
+        let pixelSize: IntType
         let wrap: Bool
         let color: String
         let isBold: Bool
