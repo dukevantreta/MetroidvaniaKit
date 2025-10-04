@@ -231,6 +231,13 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let file = try currentFile ??? ImportError.fatal
         let sprite = Sprite2D()
         sprite.setName(layer.name)
+        sprite.centered = false
+        sprite.position = Vector2(x: layer.offsetX, y: layer.offsetY)
+        sprite.visible = layer.isVisible
+        sprite.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
+        if let colorString = layer.tintColor, let color = parseHexColor(colorString, format: .argb) {
+            sprite.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
+        }
         guard let sourcePath = layer.image?.source else {
             logWarning("<\(file.name)> Missing image source path for image layer '\(layer.name)'.")
             return sprite
@@ -240,12 +247,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         } catch {
             throw .fileError(error)
         }
-        sprite.position = Vector2(x: layer.offsetX, y: layer.offsetY)
-        sprite.modulate = Color(r: 1, g: 1, b: 1, a: Float(layer.opacity))
-        if let colorString = layer.tintColor, let color = parseHexColor(colorString, format: .argb) {
-            sprite.selfModulate = Color(r: color.r, g: color.g, b: color.b, a: color.a)
-        }
-        if layer.repeatX || layer.repeatY {
+        if layer.repeatX != 0 || layer.repeatY != 0 {
             sprite.textureRepeat = .enabled
         }
         for property in layer.properties {
@@ -379,6 +381,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             body.setName("StaticBody2D")
         }
         let collision = CollisionPolygon2D()
+        collision.setName("CollisionPolygon2D")
         let array = PackedVector2Array()
         for point in polygon.points {
             array.append(Vector2(x: point.x, y: point.y))
@@ -406,6 +409,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         let shape = RectangleShape2D()
         shape.size = Vector2(x: object.width, y: object.height)
         let collision = CollisionShape2D()
+        collision.setName("CollisionShape2D")
         collision.shape = shape
         collision.position = Vector2(x: object.width * 0.5, y: object.height * 0.5)
         body.addChild(node: collision)

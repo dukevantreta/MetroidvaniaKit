@@ -13,15 +13,34 @@ extension Tiled {
         }
         let fontFamily: String
         let pixelSize: IntType
-        let wrap: Bool
+        let wrap: IntType
         let color: String
-        let isBold: Bool
-        let isItalic: Bool
-        let hasUnderline: Bool
-        let hasStrikeout: Bool
-        let useKerning: Bool
+        let bold: IntType
+        let italic: IntType
+        let underline: IntType
+        let strikeout: IntType
+        let kerning: IntType
         let horizontalAlignment: HorizontalAlignment
         let verticalAlignment: VerticalAlignment
+
+        var shouldWrap: Bool {
+            wrap != 0
+        }
+        var isBold: Bool {
+            bold != 0
+        }
+        var isItalic: Bool {
+            italic != 0
+        }
+        var hasUnderline: Bool {
+            underline != 0
+        }
+        var hasStrikeout: Bool {
+            strikeout != 0
+        }
+        var useKerning: Bool {
+            kerning != 0
+        }
     }
 }
 
@@ -32,15 +51,15 @@ extension Tiled.Text: XMLDecodable {
         self.init(
             fontFamily: attributes?["fontfamily"] ?? "sans-serif",
             pixelSize: attributes?["pixelsize"]?.asInt() ?? 16,
-            wrap: attributes?["wrap"]?.asBool() ?? false,
+            wrap: attributes?["wrap"]?.asInt() ?? 0,
             color: attributes?["color"] ?? "#000000",
-            isBold: attributes?["bold"]?.asBool() ?? false,
-            isItalic: attributes?["italic"]?.asBool() ?? false,
-            hasUnderline: attributes?["underline"]?.asBool() ?? false,
-            hasStrikeout: attributes?["strikeout"]?.asBool() ?? false,
-            useKerning: attributes?["kerning"]?.asBool() ?? true,
-            horizontalAlignment: HorizontalAlignment(rawValue: attributes?["halign"] ?? "") ?? .left,
-            verticalAlignment: VerticalAlignment(rawValue: attributes?["valign"] ?? "") ?? .top
+            bold: attributes?["bold"]?.asInt() ?? 0,
+            italic: attributes?["italic"]?.asInt() ?? 0,
+            underline: attributes?["underline"]?.asInt() ?? 0,
+            strikeout: attributes?["strikeout"]?.asInt() ?? 0,
+            kerning: attributes?["kerning"]?.asInt() ?? 1,
+            horizontalAlignment: attributes?["halign"].flatMap { HorizontalAlignment(rawValue: $0) } ?? .left,
+            verticalAlignment: attributes?["valign"].flatMap { VerticalAlignment(rawValue: $0) } ?? .top
         )
     }
 }

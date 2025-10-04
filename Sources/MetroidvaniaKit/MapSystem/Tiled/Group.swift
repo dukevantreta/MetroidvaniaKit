@@ -9,13 +9,17 @@ extension Tiled {
         let parallaxX: Double
         let parallaxY: Double
         let opacity: Double
-        let isVisible: Bool
+        let visible: IntType
         let tintColor: String?
         var layers: [Layer]
         var imageLayers: [ImageLayer]
         var objectGroups: [ObjectGroup]
         var groups: [Group]
         var properties: [Property]
+
+        var isVisible: Bool {
+            visible != 0
+        }
     }
 }
 
@@ -32,7 +36,7 @@ extension Tiled.Group: XMLDecodable {
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0,
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
-            isVisible: attributes?["visible"]?.asBool() ?? true,
+            visible: attributes?["visible"]?.asInt() ?? 1,
             tintColor: attributes?["tintcolor"],
             layers: [],
             imageLayers: [],

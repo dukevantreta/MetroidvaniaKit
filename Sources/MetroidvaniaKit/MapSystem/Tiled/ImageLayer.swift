@@ -9,12 +9,16 @@ extension Tiled {
         let parallaxX: Double
         let parallaxY: Double
         let opacity: Double
-        let isVisible: Bool
+        let visible: IntType
         let tintColor: String?
-        let repeatX: Bool
-        let repeatY: Bool
+        let repeatX: IntType
+        let repeatY: IntType
         var image: Image?
         var properties: [Property]
+
+        var isVisible: Bool {
+            visible != 0
+        }
     }
 }
 
@@ -31,10 +35,10 @@ extension Tiled.ImageLayer: XMLDecodable {
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0,
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
-            isVisible: attributes?["visible"]?.asBool() ?? true,
+            visible: attributes?["visible"]?.asInt() ?? 1,
             tintColor: attributes?["tintcolor"],
-            repeatX: attributes?["repeatx"]?.asBool() ?? false,
-            repeatY: attributes?["repeaty"]?.asBool() ?? false,
+            repeatX: attributes?["repeatx"]?.asInt() ?? 0,
+            repeatY: attributes?["repeaty"]?.asInt() ?? 0,
             image: nil,
             properties: []
         )

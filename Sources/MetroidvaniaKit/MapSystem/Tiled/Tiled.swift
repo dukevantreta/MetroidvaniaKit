@@ -50,28 +50,12 @@ extension XML.Element {
 }
 
 extension String {
+
     func asInt() -> IntType? {
         IntType(self)
     }
     
-    func asInt32() -> Int32? {
-        Int32(self)
-    }
-    
-    func asUInt32() -> UInt32? {
-        UInt32(self)
-    }
-    
     func asDouble() -> Double? {
         Double(self)
-    }
-    
-    func asBool() -> Bool? {
-        if self == "true" {
-            return true
-        } else if self == "false" {
-            return false
-        }
-        return nil
     }
 }

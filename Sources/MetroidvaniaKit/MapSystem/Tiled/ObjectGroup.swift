@@ -12,7 +12,7 @@ extension Tiled {
         let `class`: String
         let color: String?
         let opacity: Double
-        let isVisible: Bool
+        let visible: IntType
         let tintColor: String?
         let offsetX: Double
         let offsetY: Double
@@ -21,6 +21,10 @@ extension Tiled {
         let drawOrder: DrawOrder
         var objects: [Object]
         var properties: [Property]
+
+        var isVisible: Bool {
+            visible != 0
+        }
     }
 }
 
@@ -34,13 +38,13 @@ extension Tiled.ObjectGroup: XMLDecodable {
             class: attributes?["class"] ?? "",
             color: attributes?["color"],
             opacity: attributes?["opacity"]?.asDouble() ?? 1.0,
-            isVisible: attributes?["visible"]?.asBool() ?? true,
+            visible: attributes?["visible"]?.asInt() ?? 1,
             tintColor: attributes?["tintcolor"],
             offsetX: attributes?["offsetx"]?.asDouble() ?? 0.0,
             offsetY: attributes?["offsety"]?.asDouble() ?? 0.0,
             parallaxX: attributes?["parallaxx"]?.asDouble() ?? 1.0,
             parallaxY: attributes?["parallaxy"]?.asDouble() ?? 1.0,
-            drawOrder: DrawOrder(rawValue: attributes?["draworder"] ?? "") ?? .topdown,
+            drawOrder: attributes?["draworder"].flatMap { DrawOrder(rawValue: $0) } ?? .topdown,
             objects: [],
             properties: []
         )
