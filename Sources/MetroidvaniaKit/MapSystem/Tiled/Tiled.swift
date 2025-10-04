@@ -22,6 +22,7 @@ enum Tiled {
         case image
         case tile
         case polygon
+        case polyline
         case text
         case animation
         case frame

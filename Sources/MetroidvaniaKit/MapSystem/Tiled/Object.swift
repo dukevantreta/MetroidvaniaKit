@@ -15,6 +15,7 @@ extension Tiled {
         var isEllipse = false
         var isPoint = false
         var polygon: Polygon?
+        var polyline: Polyline?
         var text: Text?
         var properties: [Property]
 
@@ -50,7 +51,7 @@ extension Tiled.Object: XMLDecodable {
             } else if child.name == "polygon" {
                 polygon = try Tiled.Polygon(from: child)
             } else if child.name == "polyline" {
-                polygon = try Tiled.Polygon(from: child) // treat polyline the same as a polygon
+                polyline = try Tiled.Polyline(from: child)
             } else if child.name == "text" {
                 text = try Tiled.Text(from: child)
             } else if child.name == "properties" {
@@ -69,6 +70,22 @@ extension Tiled {
         
         init(from xml: XML.Element) throws {
             try xml.assertType(.polygon)
+            let pointString = xml.attributes?["points"] ?? ""
+            points = pointString.components(separatedBy: " ").map {
+                let xy = $0.components(separatedBy: ",")
+                return (Double(xy[0]) ?? 0.0, Double(xy[1]) ?? 0.0)
+            }
+        }
+    }
+}
+
+extension Tiled {
+    struct Polyline: XMLDecodable {
+        
+        let points: [(x: Double, y: Double)]
+        
+        init(from xml: XML.Element) throws {
+            try xml.assertType(.polyline)
             let pointString = xml.attributes?["points"] ?? ""
             points = pointString.components(separatedBy: " ").map {
                 let xy = $0.components(separatedBy: ",")

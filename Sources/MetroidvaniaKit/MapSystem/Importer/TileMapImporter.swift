@@ -349,6 +349,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
         } else if let polygon = object.polygon {
             let body = parsePolygon(polygon, from: object)
             node.addChild(node: body)
+        } else if let polyline = object.polyline {
+            let body = parsePolyline(polyline, from: object)
+            node.addChild(node: body)
         } else if let _ = object.text {
             logWarning("Text objects are not supported yet.")
         } else if let _ = object.template {
@@ -394,6 +397,18 @@ class TileMapImporter: RefCounted, VerboseLogger {
             body.setCollisionLayerValue(layerNumber: layer, value: true)
         }
         return body
+    }
+
+    // TODO: collision lines
+    func parsePolyline(_ polyline: Tiled.Polyline, from object: Tiled.Object) -> Node2D {
+        let type = object.type.lowercased()
+        let line = Line2D()
+        let array = PackedVector2Array()
+        for point in polyline.points {
+            array.append(Vector2(x: point.x, y: point.y))
+        }
+        line.points = array
+        return line
     }
     
     func parseRectangle(from object: Tiled.Object) -> Node2D {
