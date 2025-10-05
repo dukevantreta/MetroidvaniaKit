@@ -204,13 +204,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             )
             tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: altFlags)
         }
-        let properties = parseProperties(layer.properties)
-        if let zIndex = properties["z_index"] as? Int32 {
-            tilemap.zIndex = zIndex
-        }
-        for property in layer.properties {
-            tilemap.setMeta(name: property.name, value: property.value)
-        }
+        parseProperties(layer.properties, for: tilemap)
         
         // Handle parallax layer (this is broken)
 //            if let xParallax = layer.parallaxX, let yParallax = layer.parallaxY, (xParallax != 1.0 || yParallax != 1.0) {
@@ -250,9 +244,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         if layer.repeatX != 0 || layer.repeatY != 0 {
             sprite.textureRepeat = .enabled
         }
-        for property in layer.properties {
-            sprite.setMeta(name: property.name, value: property.value)
-        }
+        parseProperties(layer.properties, for: sprite)
         return sprite
     }
     
@@ -279,9 +271,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         for subgroup in group.groups {
             node.addChild(node: try transformGroup(subgroup))
         }
-        for property in group.properties {
-            node.setMeta(name: property.name, value: property.value)
-        }
+        parseProperties(group.properties, for: node)
         return node
     }
     
@@ -300,18 +290,12 @@ class TileMapImporter: RefCounted, VerboseLogger {
         for object in objectGroup.objects {
             node.addChild(node: try transformObject(object))
         }
-        for property in objectGroup.properties {
-            node.setMeta(name: property.name, value: property.value)
-        }
+        parseProperties(objectGroup.properties, for: node)
         return node
     }
     
     func transformObject(_ object: Tiled.Object) throws(ImportError) -> Node2D {
-        let node: Node2D = if !object.type.isEmpty, let overrideObject = instantiate(object) {
-            overrideObject
-        } else {
-            Node2D()
-        }
+        var node: Node2D
         if let gid = object.gid { // object is a tile
             guard let currentTileset else { throw .fatal }
 
@@ -345,34 +329,36 @@ class TileMapImporter: RefCounted, VerboseLogger {
             sprite.flipH = flipHorizontally
             sprite.flipV = flipVertically
             sprite.rotation = object.rotation * .pi / 180
-            node.addChild(node: sprite)
+            node = sprite
         } else if let polygon = object.polygon {
-            let body = parsePolygon(polygon, from: object)
-            node.addChild(node: body)
+            node = parsePolygon(polygon, from: object)
         } else if let polyline = object.polyline {
-            let body = parsePolyline(polyline, from: object)
-            node.addChild(node: body)
+            node = parsePolyline(polyline, from: object)
         } else if let _ = object.text {
             logWarning("Text objects are not supported yet.")
+            node = Node2D()
         } else if let _ = object.template {
             logWarning("Templates are not supported yet.")
+            node = Node2D()
         } else if object.isPoint {
-            // do nothing
+            node = Node2D()
         } else if object.isEllipse {
             logWarning("Ellipses are not supported yet.")
+            node = Node2D()
         } else { // treat as a rectangle
-            let body = parseRectangle(from: object)
-            node.addChild(node: body)
+            node = parseRectangle(from: object)
+        }
+        if !object.type.isEmpty, let overrideObject = instantiate(object) {
+            overrideObject.addChild(node: node)
+            node = overrideObject
         }
         node.setName("\(object.name)-\(object.id)")
         node.position = Vector2(x: object.x, y: object.y)
         node.visible = object.isVisible
-        for property in object.properties {
-            node.setMeta(name: property.name, value: property.value)
-        }
+        parseProperties(object.properties, for: node)
         return node
     }
-    
+
     func parsePolygon(_ polygon: Tiled.Polygon, from object: Tiled.Object) -> Node2D {
         let type = object.type.lowercased()
         let body: CollisionObject2D
@@ -391,15 +377,10 @@ class TileMapImporter: RefCounted, VerboseLogger {
         }
         collision.polygon = array
         body.addChild(node: collision)
-        let properties = parseProperties(object.properties)
-        if let layer = properties["collision_layer"] as? Int32 {
-            body.collisionLayer = 0
-            body.setCollisionLayerValue(layerNumber: layer, value: true)
-        }
         return body
     }
 
-    // TODO: collision lines
+    // TODO: collision lines (use SegmentShape2D)
     func parsePolyline(_ polyline: Tiled.Polyline, from object: Tiled.Object) -> Node2D {
         let type = object.type.lowercased()
         let line = Line2D()
@@ -428,29 +409,23 @@ class TileMapImporter: RefCounted, VerboseLogger {
         collision.shape = shape
         collision.position = Vector2(x: object.width * 0.5, y: object.height * 0.5)
         body.addChild(node: collision)
-        let properties = parseProperties(object.properties)
-        if let layer = properties["collision_layer"] as? Int32 {
-            body.collisionLayer = 0
-            body.setCollisionLayerValue(layerNumber: layer, value: true)
-        }
         return body
     }
-    
-    func parseProperties(_ propertyArray: [Tiled.Property]) -> [String: Any] {
-        var properties: [String: Any] = [:]
-        for property in propertyArray {
-            let value: Any = switch property.type {
-            case "string": String(property.value ?? "")
-            case "int": Int32(property.value ?? "0") as Any
-            case "float": Float(property.value ?? "0") as Any
-            case "bool": Bool(property.value ?? "false") as Any
-            case "color": String(property.value ?? "#00000000")
-            case "file": String(property.value ?? ".")
-            default: String(property.value ?? "")
-            }
-            properties[property.name] = value
+
+    func parseProperties(_ properties: [Tiled.Property], for node: Node2D) {
+        let propDict = properties.reduce(into: [String: Tiled.Property]()) { 
+            node.setMeta(name: $1.name, value: $1.value)
+            $0[$1.name] = $1 
         }
-        return properties
+        if let z = propDict["z_index"]?.value, let zIndex = Int32(z) {
+            node.zIndex = zIndex
+        }
+        if let layer = propDict["collision_layer"]?.value, let collisionLayer = Int32(layer) {
+            if let body = node as? CollisionObject2D {
+                body.collisionLayer = 0
+                body.setCollisionLayerValue(layerNumber: collisionLayer, value: true)
+            }
+        }
     }
     
     func instantiate(_ object: Tiled.Object) -> Node2D? {
