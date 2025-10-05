@@ -7,6 +7,8 @@ typealias IntType = Int32
  */
 enum Tiled {
     
+    protocol Layer {}
+
     enum XMLElementType: String {
         case map
         case tileset
@@ -34,8 +36,6 @@ enum Tiled {
         let expected: XMLElementType
         let found: XMLElementType
     }
-    
-    struct EditorSettings {}
 }
 
 extension XML.Element {

@@ -1,6 +1,6 @@
 extension Tiled {
 
-    struct ImageLayer {
+    struct ImageLayer: Layer {
         let id: IntType
         let name: String
         let `class`: String

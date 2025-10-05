@@ -129,16 +129,15 @@ class TileMapImporter: RefCounted, VerboseLogger {
     func createTileMap(from map: Tiled.TileMap) throws -> Node2D {
         let root = Node2D()
         for layer in map.layers {
-            root.addChild(node: try transformLayer(layer))
-        }
-        for layer in map.imageLayers {
-            root.addChild(node: try transformImageLayer(layer))
-        }
-        for group in map.groups {
-            root.addChild(node: try transformGroup(group))
-        }
-        for group in map.objectGroups {
-            root.addChild(node: try transformObjectGroup(group))
+            if let tileLayer = layer as? Tiled.TileLayer {
+                root.addChild(node: try transformTileLayer(tileLayer))
+            } else if let imageLayer = layer as? Tiled.ImageLayer {
+                root.addChild(node: try transformImageLayer(imageLayer))
+            } else if let group = layer as? Tiled.Group {
+                root.addChild(node: try transformGroup(group))
+            } else if let objectGroup = layer as? Tiled.ObjectGroup {
+                root.addChild(node: try transformObjectGroup(objectGroup))
+            }
         }
         for property in map.properties {
             root.setMeta(name: property.name, value: property.value)
@@ -149,7 +148,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
         return root
     }
     
-    func transformLayer(_ layer: Tiled.Layer) throws(ImportError) -> Node2D {
+    func transformTileLayer(_ layer: Tiled.TileLayer) throws(ImportError) -> Node2D {
         let tileset = try currentTileset ??? ImportError.fatal
         let tilemap = TileMapLayer()
         tilemap.setName(layer.name)
@@ -260,16 +259,15 @@ class TileMapImporter: RefCounted, VerboseLogger {
         }
         // TODO: handle parallax
         for layer in group.layers {
-            node.addChild(node: try transformLayer(layer))
-        }
-        for imageLayer in group.imageLayers {
-            node.addChild(node: try transformImageLayer(imageLayer))
-        }
-        for objectGroup in group.objectGroups {
-            node.addChild(node: try transformObjectGroup(objectGroup))
-        }
-        for subgroup in group.groups {
-            node.addChild(node: try transformGroup(subgroup))
+            if let tileLayer = layer as? Tiled.TileLayer {
+                node.addChild(node: try transformTileLayer(tileLayer))
+            } else if let imageLayer = layer as? Tiled.ImageLayer {
+                node.addChild(node: try transformImageLayer(imageLayer))
+            } else if let group = layer as? Tiled.Group {
+                node.addChild(node: try transformGroup(group))
+            } else if let objectGroup = layer as? Tiled.ObjectGroup {
+                node.addChild(node: try transformObjectGroup(objectGroup))
+            }
         }
         parseProperties(group.properties, for: node)
         return node

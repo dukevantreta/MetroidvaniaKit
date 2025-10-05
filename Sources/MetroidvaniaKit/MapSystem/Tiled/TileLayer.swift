@@ -1,6 +1,6 @@
 extension Tiled {
 
-    struct Layer {
+    struct TileLayer: Layer {
         
         let id: IntType
         let name: String
@@ -23,7 +23,7 @@ extension Tiled {
     }
 }
 
-extension Tiled.Layer: XMLDecodable {
+extension Tiled.TileLayer: XMLDecodable {
     init(from xml: XML.Element) throws {
         try xml.assertType(.layer)
         let attributes = xml.attributes

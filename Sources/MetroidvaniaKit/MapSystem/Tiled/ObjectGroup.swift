@@ -1,6 +1,6 @@
 extension Tiled {
 
-    struct ObjectGroup {
+    struct ObjectGroup: Layer {
 
         enum DrawOrder: String {
             case topdown

@@ -1,10 +1,5 @@
 extension Tiled {
-    
-    // https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
-//    The tilesets used by the map should always be listed before the layers.
-//    Can contain at most one: <properties>, <editorsettings> (since 1.3)
-    
-    // TODO: hex map properties
+
     struct TileMap {
         
         enum Orientation: String {
@@ -36,12 +31,8 @@ extension Tiled {
         let nextLayerID: IntType
         let nextObjectID: IntType
         let isInfinite: Bool
-//        var editorSettings: ? // not needed?
         var tilesets: [TileSet]
         var layers: [Layer]
-        var imageLayers: [ImageLayer]
-        var objectGroups: [ObjectGroup]
-        var groups: [Group]
         var properties: [Property]
     }
 }
@@ -50,9 +41,8 @@ extension Tiled.TileMap: XMLDecodable {
     init(from xml: XML.Element) throws {
         try xml.assertType(.map)
         let attributes = xml.attributes
-        // FIXME: check required properties instead of force-unwrapping
         self.init(
-            version: attributes!["version"]!,
+            version: attributes?["version"] ?? "",
             tiledVersion: attributes?["tiledversion"],
             class: attributes?["class"] ?? "",
             orientation: Orientation(rawValue: attributes?["orientation"] ?? "") ?? .orthogonal,
@@ -69,22 +59,19 @@ extension Tiled.TileMap: XMLDecodable {
             isInfinite: attributes?["infinite"] == "1",
             tilesets: [],
             layers: [],
-            imageLayers: [],
-            objectGroups: [],
-            groups: [],
             properties: []
         )
         for child in xml.children {
             if child.name == "layer" {
-                layers.append(try Tiled.Layer(from: child))
+                layers.append(try Tiled.TileLayer(from: child))
             } else if child.name == "imagelayer" {
-                imageLayers.append(try Tiled.ImageLayer(from: child))
+                layers.append(try Tiled.ImageLayer(from: child))
+            } else if child.name == "objectgroup" {
+                layers.append(try Tiled.ObjectGroup(from: child))
+            } else if child.name == "group" {
+                layers.append(try Tiled.Group(from: child))
             } else if child.name == "tileset" {
                 tilesets.append(try Tiled.TileSet(from: child))
-            } else if child.name == "objectgroup" {
-                objectGroups.append(try Tiled.ObjectGroup(from: child))
-            } else if child.name == "group" {
-                groups.append(try Tiled.Group(from: child))
             } else if child.name == "properties" {
                 for subchild in child.children {
                     properties.append(try Tiled.Property(from: subchild))
