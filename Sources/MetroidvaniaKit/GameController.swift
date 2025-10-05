@@ -176,7 +176,7 @@ class GameController: Node {
             camera?.limitBottom = map.y + map.height
             currentRoom = newRoom
             
-            if let spawn = newRoom?.findChild(pattern: "spawn-point", recursive: true) as? Node2D {
+            if let spawn = getTree()?.getNodesInGroup("player_spawn").compactMap { $0 }.first as? Node2D {
                 player?.globalPosition.x = spawn.globalPosition.x
                 player?.globalPosition.y = spawn.globalPosition.y
             }

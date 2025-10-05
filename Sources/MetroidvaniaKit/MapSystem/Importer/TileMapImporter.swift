@@ -417,6 +417,9 @@ class TileMapImporter: RefCounted, VerboseLogger {
             node.setMeta(name: $1.name, value: $1.value)
             $0[$1.name] = $1 
         }
+        if let group = propDict["group"]?.value {
+            node.addToGroup(StringName(group), persistent: true)
+        }
         if let z = propDict["z_index"]?.value, let zIndex = Int32(z) {
             node.zIndex = zIndex
         }
