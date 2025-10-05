@@ -97,7 +97,7 @@ final class Minimap {
     }
     
     static func load(at path: String) throws -> Minimap {
-        let fileData = FileAccess.getFileAsString(path: path).data(using: .utf8)! // FIX
+        let fileData = FileAccess.getFileAsString(path: path).data(using: .ascii)! // FIX
         let cellData = try JSONDecoder().decode([CellData].self, from: fileData)
         
         let map = Minimap()

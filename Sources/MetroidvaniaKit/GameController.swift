@@ -14,7 +14,7 @@ class GameController: Node {
     @Node("../SubViewport") var subViewport: SubViewport?
     
     @Node("../CanvasLayer/HUD") var hud: HUD?
-    @Node("../CanvasLayer/PauseMenu") var pauseMenu: Control?
+    @Node("../CanvasLayer/PauseMenu") var pauseMenu: PauseMenu?
     @Node("../CanvasLayer/PauseMenu/Overlay") var canvasOverlay: ColorRect?
     
     @Node("../Parallax2D") var parallaxLayer: Parallax2D?
@@ -81,10 +81,13 @@ class GameController: Node {
     }
     
     func pause() {
+        if let map = hud?.minimap?.minimap { 
+            pauseMenu?.minimap?.minimap = map
+        }
         isPaused = true
         pauseMenu?.visible = true
         getTree()?.paused = true
-        
+
         _ = getTree()?.createTween()?
             .setPauseMode(.process)?
             .tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)

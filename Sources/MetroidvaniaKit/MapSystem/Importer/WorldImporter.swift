@@ -7,6 +7,10 @@ class WorldImporter: RefCounted, VerboseLogger {
     let mapsDir = "res://maps/"
     
     var sourceFile = ""
+    var outputDirectory = ""
+    var tileSize: Int32 = 0
+    var roomWidth: Int32 = 0
+    var roomHeight: Int32 = 0
     var verbose = false
 
     private var startTime: UInt = 0
@@ -35,13 +39,17 @@ class WorldImporter: RefCounted, VerboseLogger {
     ) -> GodotError {
         self.startTime = Time.getTicksMsec()
         self.sourceFile = sourceFile
+        outputDirectory = options["map_data_output"]?.to() ?? ""
+        tileSize = options["tile_size_in_pixels"].to() ?? 1
+        roomWidth = options["room_width_in_tiles"].to() ?? 1
+        roomHeight = options["room_height_in_tiles"].to() ?? 1
         verbose = options["verbose"]?.to() ?? false
         
         logVerbose("Importing world: \"\(sourceFile)\"")
         do {
             let file = File(path: sourceFile)
             let data = try file.getData(.ascii)
-            let root = try createWorld(named: file.name, from: data)
+            let root = try createWorld(from: file, from: data)
             let scene = PackedScene()
             let error = scene.pack(path: root)
             guard error == .ok else {
@@ -56,55 +64,52 @@ class WorldImporter: RefCounted, VerboseLogger {
         }
     }
     
-    func createWorld(named name: String, from data: Data) throws -> Node2D {
+    func createWorld(from file: File, from data: Data) throws -> Node2D {
         let world = try JSONDecoder().decode(World.self, from: data)
-        
-        let root = Node2D()
-        root.name = StringName(name)
-        
         let mapData = Minimap()
+
+        let root = Node2D()
+        root.setName(file.name)
         
         for map in world.maps {
-            let path = "res://tiled/\(map.fileName)"
-            if let mapScene = ResourceLoader.load(path: path) as? PackedScene, let mapNode = mapScene.instantiate() as? Node2D {
-                logVerbose("Processing map data for '\(path)'")
-                mapNode.position.x = Float(map.x)
-                mapNode.position.y = Float(map.y)
-                root.addChild(node: mapNode)
-                
-                processMapData(mapData, map: map, node: mapNode)
-            } else {
-                logError("MISSING SCENE NODE: '\(path)'")
-            }
+            let mapFile = File(path: "\(file.directory)/\(map.fileName)")
+            let mapNode: Node2D = try mapFile.loadResource(ofType: PackedScene.self).instantiate()
+            mapNode.position.x = Float(map.x)
+            mapNode.position.y = Float(map.y)
+            root.addChild(node: mapNode)
+
+            logVerbose("Processing map data for \"\(file.path)\"")
+            processMapData(mapData, map: map, node: mapNode)
         }
         for child in root.getChildren() {
             child?.owner = root
         }
         
         let dataString = try mapData.encode()
-        let fileHandle = FileAccess.open(path: "res://maps/\(name).map", flags: .write)
-        guard fileHandle?.storeString(dataString) == true else {
-            logError("Failed to save world data to file.")
-            throw ImportError.fatal //
+        let outputFile = "\(outputDirectory)/\(file.name).json"
+        guard let fileHandle = FileAccess.open(path: outputFile, flags: .write) else {
+            throw ImportError.failedToSaveFile(file.name, FileAccess.getOpenError())
         }
-        fileHandle?.close()
-        
+        if fileHandle.storeString(dataString) == false {
+            logError("Failed to save world data to file.")
+        }
+        fileHandle.close()
         return root
     }
     
     func processMapData(_ data: Minimap, map: World.Map, node: Node2D) {
         guard let tilemap = node.findChild(pattern: "collision-mask") as? TileMapLayer else {
-            logError("CANT GET COLLISION MASK FROM SCENE NODE")
+            logError("Collision mask not found for scene: \(node)")
             return
         }
-        let viewportSize = Vector2i(x: ROOM_WIDTH, y: ROOM_HEIGHT) // Can be exposed to the editor via plugin options
-        let tileSize = Vector2i(x: TILE_SIZE, y: TILE_SIZE)
+        let moduleSize = Vector2i(x: roomWidth, y: roomHeight)
+        let tileSize = Vector2i(x: tileSize, y: tileSize)
         
         let roomMatrix = Rect2i(
-            x: (map.x / tileSize.x) / viewportSize.x,
-            y: (map.y / tileSize.y) / viewportSize.y,
-            width: (map.width / tileSize.x) / viewportSize.x,
-            height: (map.height / tileSize.y) / viewportSize.y
+            x: (map.x / tileSize.x) / moduleSize.x,
+            y: (map.y / tileSize.y) / moduleSize.y,
+            width: (map.width / tileSize.x) / moduleSize.x,
+            height: (map.height / tileSize.y) / moduleSize.y
         )
         let zLayer: Int32 = 0
         
@@ -114,16 +119,16 @@ class WorldImporter: RefCounted, VerboseLogger {
             for yCell in 0..<roomMatrix.size.y {
                 var borders: [BorderType] = [.empty, .empty, .empty, .empty]
                 
-                let minX = xCell * viewportSize.x
-                let maxX = (xCell + 1) * viewportSize.x - 1
+                let minX = xCell * moduleSize.x
+                let maxX = (xCell + 1) * moduleSize.x - 1
                 
-                let minY = yCell * viewportSize.y
-                let maxY = (yCell + 1) * viewportSize.y - 1
+                let minY = yCell * moduleSize.y
+                let maxY = (yCell + 1) * moduleSize.y - 1
                 
                 // left & right
                 var leftCount = 0
                 var rightCount = 0
-                for i in 0..<viewportSize.y {
+                for i in 0..<moduleSize.y {
                     let leftTileCoords = Vector2i(x: minX, y: minY + i)
                     if tilemap.getCellTileData(coords: leftTileCoords) != nil {
                         leftCount += 1
@@ -133,21 +138,21 @@ class WorldImporter: RefCounted, VerboseLogger {
                         rightCount += 1
                     }
                 }
-                if rightCount == viewportSize.y {
+                if rightCount == moduleSize.y {
                     borders[0] = .wall
-                } else if rightCount >= viewportSize.y - 5 {
+                } else if rightCount >= moduleSize.y - 5 {
                     borders[0] = .passage
                 }
-                if leftCount == viewportSize.y {
+                if leftCount == moduleSize.y {
                     borders[2] = .wall
-                } else if leftCount >= viewportSize.y - 5 {
+                } else if leftCount >= moduleSize.y - 5 {
                     borders[2] = .passage
                 }
                 
                 // up & down
                 var upCount = 0
                 var downCount = 0
-                for i in 0..<viewportSize.x {
+                for i in 0..<moduleSize.x {
                     let upTileCoords = Vector2i(x: minX + i, y: minY)
                     if tilemap.getCellTileData(coords: upTileCoords) != nil {
                         upCount += 1
@@ -157,14 +162,14 @@ class WorldImporter: RefCounted, VerboseLogger {
                         downCount += 1
                     }
                 }
-                if upCount == viewportSize.x {
+                if upCount == moduleSize.x {
                     borders[3] = .wall
-                } else if upCount >= viewportSize.x - 5 {
+                } else if upCount >= moduleSize.x - 5 {
                     borders[3] = .passage
                 }
-                if downCount == viewportSize.x {
+                if downCount == moduleSize.x {
                     borders[1] = .wall
-                } else if downCount >= viewportSize.x - 5 {
+                } else if downCount >= moduleSize.x - 5 {
                     borders[1] = .passage
                 }
                 

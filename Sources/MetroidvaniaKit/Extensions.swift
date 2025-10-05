@@ -18,6 +18,7 @@ extension Vector2 {
 enum GameError: Error {
     case failedToLoadScene
     case typeMismatch
+    case godotError(GodotError)
 }
 
 // Using this prevents node memory leak in case of errors
