@@ -5,6 +5,12 @@ class MiniMapHUD: Control {
     
     var minimap: Minimap = Minimap()
 
+    @Export var mapConfig: MapConfiguration! {
+        didSet {
+            MapDrawer.shared.reloadConfiguration(mapConfig)
+        }
+    }
+
     @Export var mapName: String = ""
     
     @Export var trackPosition: Bool = true
@@ -35,9 +41,9 @@ class MiniMapHUD: Control {
         
         // setup listen to mapUpdated event
 
-        for cell in minimap.cells {
-            cell.value.state = .mapped
-        }
+        // for cell in minimap.cells {
+        //     cell.value.state = .mapped
+        // }
     }
     
     func onCellChanged(newOffset: Vector2i) {

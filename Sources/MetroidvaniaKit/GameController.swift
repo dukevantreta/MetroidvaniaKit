@@ -15,7 +15,6 @@ class GameController: Node {
     
     @Node("../CanvasLayer/HUD") var hud: HUD?
     @Node("../CanvasLayer/PauseMenu") var pauseMenu: PauseMenu?
-    @Node("../CanvasLayer/PauseMenu/Overlay") var canvasOverlay: ColorRect?
     
     @Node("../Parallax2D") var parallaxLayer: Parallax2D?
     
@@ -90,7 +89,7 @@ class GameController: Node {
 
         _ = getTree()?.createTween()?
             .setPauseMode(.process)?
-            .tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)
+            .tweenProperty(object: pauseMenu, property: "modulate", finalVal: Variant(Color.white), duration: 0.4)
     }
     
     func unpause() {
@@ -100,7 +99,7 @@ class GameController: Node {
         
         let tween = getTree()?.createTween()?
             .setPauseMode(.process)?
-            .tweenProperty(object: canvasOverlay, property: "modulate", finalVal: Variant(Color.transparent), duration: 0.4)
+            .tweenProperty(object: pauseMenu, property: "modulate", finalVal: Variant(Color.transparent), duration: 0.4)
         tween?.finished.connect { [weak self] in
             self?.isPaused = false
             self?.getTree()?.paused = false

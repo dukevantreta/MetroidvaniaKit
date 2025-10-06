@@ -17,7 +17,7 @@ struct World: Codable {
 extension World {
     
     static func load(from file: String) throws -> World {
-        guard let worldData = FileAccess.getFileAsString(path: file).data(using: .utf8) else {
+        guard let worldData = FileAccess.getFileAsString(path: file).data(using: .ascii) else {
             throw GameError.godotError(.errFileCantRead)
         }
         let world = try JSONDecoder().decode(World.self, from: worldData)

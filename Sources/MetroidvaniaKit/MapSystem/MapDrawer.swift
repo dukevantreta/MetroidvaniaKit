@@ -1,6 +1,6 @@
 import SwiftGodot
 
-class TextureMaker {
+final class TextureMaker {
     static func makeGridTexture(size: Vector2i, margin: Int32, bgColor: Color, fgColor: Color) -> Texture2D? {
         let image = Image.create(width: size.x, height: size.y, useMipmaps: false, format: .rgba8)
         for x in 0..<size.x {
@@ -42,21 +42,24 @@ class TextureMaker {
     }
 }
 
-class MapDrawer {
+final class MapDrawer {
     
-    private(set) var cellSize: Vector2i
-    private(set) var bgColor: Color
-    private(set) var fgColor: Color
-    private(set) var unexploredColor: Color
-    private(set) var exploredColor: Color
+    private(set) var cellSize: Vector2i = .zero
+    private(set) var bgColor: Color = .black
+    private(set) var fgColor: Color = .black
+    private(set) var unexploredColor: Color = .black
+    private(set) var exploredColor: Color = .black
+
+    private var mapConfig: MapConfiguration?
+    private var emptyTexture: Texture2D?
+    private var fillTexture: Texture2D?
+    private var cornerTexture: Texture2D?
+    private var vWallTexture: Texture2D?
+    private var vPassageTexture: Texture2D?
     
     static let shared = MapDrawer()
-    private init() {
-        let configPath = "res://maps/map_config.tres"
-        guard let mapConfig = ResourceLoader.load(path: configPath) as? MapConfiguration else {
-            GD.pushError("[MapDrawer] Map configuration not found!")
-            fatalError()
-        }
+
+    func reloadConfiguration(_ mapConfig: MapConfiguration) {
         self.mapConfig = mapConfig
         self.cellSize = mapConfig.cellSize
         self.bgColor = mapConfig.gridBackgroundColor
@@ -66,29 +69,13 @@ class MapDrawer {
         reloadTextureCache()
     }
     
-    func setCellSize(_ size: Vector2i) {
-        self.cellSize = size
-        reloadTextureCache()
-    }
-    
-    private var mapConfig: MapConfiguration
-    
-    private var emptyTexture: Texture2D?
-    private var fillTexture: Texture2D?
-    private var cornerTexture: Texture2D?
-    private var vWallTexture: Texture2D?
-    private var vPassageTexture: Texture2D?
-//    private var hWallTexture: Texture2D?
-//    private var hPassageTexture: Texture2D?
-    
-    private func reloadTextureCache() {
+    func reloadTextureCache() {
+        guard let mapConfig else { return }
         emptyTexture = TextureMaker.makeGridTexture(
             size: cellSize,
             margin: cellSize.x/8,
             bgColor: bgColor,
             fgColor: fgColor)
-//            bgColor: Color(r: 33/255, g: 33/255, b: 74/255),
-//            fgColor: Color(r: 0, g: 0, b: 148/255))
         fillTexture = TextureMaker.makeBoxTexture(size: cellSize)
         vWallTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y))
         cornerTexture = TextureMaker.makeBoxTexture(size: Vector2i(x: cellSize.x / 8, y: cellSize.y / 8))
