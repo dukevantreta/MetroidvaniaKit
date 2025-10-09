@@ -197,9 +197,14 @@ class TileSetImporter: RefCounted, VerboseLogger {
                 }
             }
 
-            // store animation data for tile
+            // store animation data for tile by using some string fuckery
             if let animationFrames = tile.animation?.frames {
                 var text = ""
+                for property in tile.properties {
+                    if property.name == "random" && property.value == "true" {
+                        text += "?"
+                    }
+                }
                 for i in 0..<animationFrames.count {
                     if i != 0 { text += "-" }
                     text += "\(animationFrames[i].tileID),\(animationFrames[i].duration)"

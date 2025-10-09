@@ -202,7 +202,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 y: Int32(tileIndex) / tilesetColumns
             )
             
-            // Add animators to tilemap. This is sketchy as hell, but it works
+            // Add animators to tilemap. This is sketchy as f***, but it works
             if
                 let source = currentTileset?.getSource(named: resourceName),
                 let tileData = source.getTileData(atlasCoords: atlasCoords, alternativeTile: altFlags),
@@ -218,8 +218,14 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 animator.sourceID = sourceID
                 animator.altFlags = altFlags
 
-                let framesText = text.split(separator: "-")
-                for frame in framesText {
+                var framesText = text
+                if framesText.first == "?" {
+                    framesText.removeFirst()
+                    animator.isRandom = true
+                }
+
+                let frames = framesText.split(separator: "-")
+                for frame in frames {
                     let split = frame.split(separator: ",")
                     let frameID = Int32(split[0]) ?? 0
                     let duration = Int32(split[1]) ?? 0
