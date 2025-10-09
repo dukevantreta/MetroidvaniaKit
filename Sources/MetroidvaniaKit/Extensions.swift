@@ -52,7 +52,7 @@ extension Vector2 {
     }
 }
 
-extension Node2D {
+extension Node {
     func setName(_ name: String) {
         self.name = StringName(name)
     }

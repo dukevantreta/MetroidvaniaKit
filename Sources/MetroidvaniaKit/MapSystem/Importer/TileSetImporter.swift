@@ -137,6 +137,13 @@ class TileSetImporter: RefCounted, VerboseLogger {
                 atlasSource.createTile(atlasCoords: atlasCoords)
             }
         }
+
+        // prepare custom data layer to hold animation data as string
+        if !gTileset.hasCustomDataLayerByName(layerName: "animation") {
+            gTileset.addCustomDataLayer(toPosition: 0)
+            gTileset.setCustomDataLayerName(layerIndex: 0, layerName: "animation")
+            gTileset.setCustomDataLayerType(layerIndex: 0, layerType: .string)
+        }
         
         for tile in tiledTileset.tiles {
             let atlasCoords = Vector2i(
@@ -189,17 +196,17 @@ class TileSetImporter: RefCounted, VerboseLogger {
                     }
                 }
             }
-            
-            // tile animation support is too limited
-//                if let animationFrames = tile.animation?.frames {
-//                    atlasSource.setTileAnimationFramesCount(atlasCoords: atlasCoords, framesCount: Int32(animationFrames.count))
-//                    let uniqueFrames = Array(Set(animationFrames.map { $0.tileID }))
-//                    atlasSource.setTileAnimationColumns(atlasCoords: atlasCoords, frameColumns: Int32(animationFrames.count))
-//                    for i in 0..<animationFrames.count {
-//                        let frameDuration = Double(animationFrames[i].duration) / 1000
-//                        atlasSource.setTileAnimationFrameDuration(atlasCoords: atlasCoords, frameIndex: Int32(i), duration: frameDuration)
-//                    }
-//                }
+
+            // store animation data for tile
+            if let animationFrames = tile.animation?.frames {
+                var text = ""
+                for i in 0..<animationFrames.count {
+                    if i != 0 { text += "-" }
+                    text += "\(animationFrames[i].tileID),\(animationFrames[i].duration)"
+                }
+                logVerbose("Setting tile \(tile.id) animation data to: \(text)", level: 2)
+                tileData.setCustomData(layerName: "animation", value: text.toVariant())
+            }
         }
         logVerbose("Saving '\(atlasName)' atlas to \"\(targetPath)\"", level: 1)
         try File(path: targetPath).saveResource(gTileset)

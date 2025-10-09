@@ -197,11 +197,42 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let mapCoords = Vector2i(
                 x: Int32(idx) % layer.width,
                 y: Int32(idx) / layer.width)
-            let tileCoords = Vector2i(
+            let atlasCoords = Vector2i(
                 x: Int32(tileIndex) % tilesetColumns,
                 y: Int32(tileIndex) / tilesetColumns
             )
-            tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: tileCoords, alternativeTile: altFlags)
+            
+            // Add animators to tilemap. This is sketchy as hell, but it works
+            if
+                let source = currentTileset?.getSource(named: resourceName),
+                let tileData = source.getTileData(atlasCoords: atlasCoords, alternativeTile: altFlags),
+                tileData.hasCustomData(layerName: "animation"),
+                let variant = tileData.getCustomData(layerName: "animation"),
+                let text = variant.to(String.self),
+                !text.isEmpty
+            {
+                logVerbose("Processing tile \(mapCoords) animation data: \(text)", level: 2)
+                let animator = TileAnimator()
+                animator.setName("TileAnimator-\(mapCoords.x),\(mapCoords.y)")
+                animator.mapCoords = mapCoords
+                animator.sourceID = sourceID
+                animator.altFlags = altFlags
+
+                let framesText = text.split(separator: "-")
+                for frame in framesText {
+                    let split = frame.split(separator: ",")
+                    let frameID = Int32(split[0]) ?? 0
+                    let duration = Int32(split[1]) ?? 0
+                    let frameCoords = Vector2i(
+                        x: frameID % tilesetColumns, 
+                        y: frameID / tilesetColumns)
+                    animator.frameCoords.append(frameCoords)
+                    animator.frameDurations.append(Double(duration) / 1000)
+                }
+                animator.tilemap = tilemap
+                tilemap.addChild(node: animator)
+            }
+            tilemap.setCell(coords: mapCoords, sourceId: sourceID, atlasCoords: atlasCoords, alternativeTile: altFlags)
         }
         parseProperties(layer.properties, for: tilemap)
         

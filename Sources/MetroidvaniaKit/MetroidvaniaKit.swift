@@ -62,7 +62,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             SelfDestruct.self,
             Ammo.self,
             FlameSprite.self,
-            
+            TileAnimator.self,
         ].forEach { register(type: $0) }
     default:
         break
