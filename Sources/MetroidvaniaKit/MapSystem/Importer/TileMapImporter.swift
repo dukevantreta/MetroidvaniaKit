@@ -338,6 +338,7 @@ class TileMapImporter: RefCounted, VerboseLogger {
             let flipBits: UInt32 = UInt32(gid) & 0xF000_0000
             let flipHorizontally = flipBits & 1 << 31 != 0
             let flipVertically = flipBits & 1 << 30 != 0
+            let altFlags = Int32((flipHorizontally ? TileSetAtlasSource.transformFlipH : 0) | (flipVertically ? TileSetAtlasSource.transformFlipV : 0))
             
             let tilesetGID = tilesetGIDs.filter { $0 <= trueGID }.max() ?? 0
             let atlasName = gidToNameDict[UInt32(tilesetGID)] ?? ""
@@ -354,16 +355,42 @@ class TileMapImporter: RefCounted, VerboseLogger {
                 y: Int32(tileIndex) / tilesetColumns)
             let texRegion = atlas.getTileTextureRegion(atlasCoords: tileCoords)
             
-            let sprite = Sprite2D()
-            sprite.setName("Sprite2D")
+            let sprite = TileSprite2D()
+            sprite.setName("TileSprite2D")
             sprite.texture = atlas.texture
             sprite.regionEnabled = true
             sprite.regionRect = Rect2(from: texRegion)
-            sprite.offset.x = Float(currentTileset.tileSize.x >> 1)
-            sprite.offset.y = Float(currentTileset.tileSize.y >> 1)
+            sprite.centered = false
             sprite.flipH = flipHorizontally
             sprite.flipV = flipVertically
             sprite.rotation = object.rotation * .pi / 180
+
+            if 
+                let tileData = atlas.getTileData(atlasCoords: tileCoords, alternativeTile: altFlags),
+                tileData.hasCustomData(layerName: "animation"),
+                let variant = tileData.getCustomData(layerName: "animation"),
+                let text = variant.to(String.self),
+                !text.isEmpty
+            {
+                var framesText = text
+                if framesText.first == "?" {
+                    framesText.removeFirst()
+                    sprite.isRandom = true
+                }
+
+                let frames = framesText.split(separator: "-")
+                for frame in frames {
+                    let split = frame.split(separator: ",")
+                    let frameID = Int32(split[0]) ?? 0
+                    let duration = Int32(split[1]) ?? 0
+                    let frameCoords = Vector2i(
+                        x: frameID % tilesetColumns, 
+                        y: frameID / tilesetColumns)
+                    let frameRegion = atlas.getTileTextureRegion(atlasCoords: frameCoords)
+                    sprite.frameRegions.append(Rect2(from: frameRegion))
+                    sprite.frameDurations.append(Double(duration) / 1000)
+                }
+            }
             node = sprite
         } else if let polygon = object.polygon {
             node = parsePolygon(polygon, from: object)
