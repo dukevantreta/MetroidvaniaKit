@@ -1,8 +1,13 @@
 import SwiftGodot
 
-enum Upgrade {
-    case doubleJump
-    case wallGrab
+@Godot
+class PlayerData: Node {
+
+    private(set) var upgrades: Upgrades = []
+
+    func addUpgrade(_ upgrade: Upgrades) {
+        upgrades.insert(upgrade)
+    }
 }
 
 @Godot

@@ -110,14 +110,20 @@ class GameController: Node {
     func instantiateRoom(_ map: World.Map) -> Node2D? {
         let mapPath = "res://tiled/\(map.fileName)"
         let roomScene = ResourceLoader.load(path: mapPath) as? PackedScene
-        let room = roomScene?.instantiate() as? Node2D
-        room?.position = Vector2(x: Float(map.x), y: Float(map.y))
+        let roomRoot = roomScene?.instantiate() as? Node2D
+        let room = Room()
+        room.name = roomRoot?.name ?? ""
+        room.width = map.width
+        room.height = map.height
+        room.position = Vector2(x: Float(map.x), y: Float(map.y))
+
+        // roomRoot?.position = Vector2(x: Float(map.x), y: Float(map.y))
         
         if let parallaxLayer {
             for child in parallaxLayer.getChildren() {
                 child?.queueFree()
             }
-            if let parallax = room?.findChild(pattern: "parallax") as? Node2D {
+            if let parallax = roomRoot?.findChild(pattern: "parallax") as? Node2D {
                 parallax.owner = nil
                 parallax.reparent(newParent: parallaxLayer, keepGlobalTransform: false)
 
@@ -129,6 +135,13 @@ class GameController: Node {
                 }
             }
         }
+
+        guard let children = roomRoot?.getChildren() else { return nil }
+        for child in children {
+            child?.owner = nil
+            child?.reparent(newParent: room, keepGlobalTransform: false)
+        }
+        roomRoot?.queueFree()
         
         // proof of concept for x-ray collisions
 //        if let collisionLayer = room?.findChild(pattern: "collision-mask") as? Node2D {

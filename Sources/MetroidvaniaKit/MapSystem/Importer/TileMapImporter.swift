@@ -365,7 +365,8 @@ class TileMapImporter: RefCounted, VerboseLogger {
             sprite.flipV = flipVertically
             sprite.rotation = object.rotation * .pi / 180
 
-            if 
+            // again with the string shenanigans (for animations)
+            if
                 let tileData = atlas.getTileData(atlasCoords: tileCoords, alternativeTile: altFlags),
                 tileData.hasCustomData(layerName: "animation"),
                 let variant = tileData.getCustomData(layerName: "animation"),
