@@ -43,7 +43,10 @@ class PlayerNode: CharacterBody2D {
     @Node("Weapons/Flamethrower") var flamethrower: Flamethrower?
     
     @Node("Hookshot") var hookshot: Hookshot?
+    @Node("Health") var hp: Health?
     @Node("Ammo") var ammo: Ammo?
+
+    @Node("data") let data: PlayerData
     
     @BindNode var stats: PlayerStats
     @BindNode var input: InputController
@@ -183,6 +186,15 @@ class PlayerNode: CharacterBody2D {
             flamethrower,
         ].compactMap {$0}.forEach { $0.ammo = ammo } 
 
+        // ammo?.restore(ammo?.maxValue ?? 0)
+        let maxAmmo = data.baseAmmo + data.ammoPerExpansion * data.ammoExpansions
+        ammo?.maxValue = maxAmmo
+        ammo?.restore(maxAmmo)
+
+        let maxHp = data.baseHP + data.hpPerExpansion * data.hpExpansions
+        hp?.maxValue = maxHp
+        hp?.heal(maxHp)
+
         switchWeapons(weaponLevel)
         switchSubweapon(.flamethrower) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
@@ -225,6 +237,20 @@ class PlayerNode: CharacterBody2D {
             hookshot?.direction = shotDirection
             hookshot?.activate()
         }
+    }
+
+    func expandHealth() {
+        data.hpExpansions += 1
+        let maxHp = data.baseHP + data.hpPerExpansion * data.hpExpansions
+        hp?.maxValue = maxHp
+        hp?.heal(maxHp)
+    }
+
+    func expandAmmo() {
+        data.ammoExpansions += 1
+        let maxAmmo = data.baseAmmo + data.ammoPerExpansion * data.ammoExpansions
+        ammo?.maxValue = maxAmmo
+        ammo?.restore(data.ammoPerExpansion)
     }
     
     func hookHitHook() {

@@ -1,7 +1,7 @@
 import SwiftGodot
 
 @Godot
-class Ammo: Node {
+class Health: Node {
 
     @Signal var didChange: SignalWithArguments<Int>
 
@@ -17,15 +17,14 @@ class Ammo: Node {
         }
     }
 
-    func consume(_ amount: Int) -> Bool {
-        if amount <= value {
-            value -= amount
-            return true
+    func damage(_ amount: Int) {
+        value -= amount
+        if value <= 0 {
+            // TODO: kill
         }
-        return false
     }
 
-    func restore(_ amount: Int) {
+    func heal(_ amount: Int) {
         value = min(value + amount, maxValue)
     }
-}
+ }

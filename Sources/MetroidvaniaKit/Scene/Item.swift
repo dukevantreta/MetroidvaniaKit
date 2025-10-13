@@ -35,24 +35,22 @@ class Item: Area2D {
 
     func collect(player: PlayerNode) {
         guard let key, let type else { return }
-        log("Collecting item: \(key)")
 
         switch type {
-            case .hp:
-                break
-            case .ammo:
-                break
-            case .rocket:
-                // player.stats.
-                break
-            case .overclock:
-                player.stats.hasSpeedBooster = true
-                SaveData.shared.itemsCollected[key] = true
-
-                if let controller = getTree()?.getNodesInGroup("game-controller").first as? GameController {
-                    controller.showGetItem(title: "up.overclock.name", description: "up.overclock.description")
-                }
+        case .hp:
+            player.expandHealth()
+        case .ammo:
+            player.expandAmmo()
+        default:
+            if let upgrade = Upgrades.lookup[type] {
+                player.data.addUpgrade(upgrade)
+            }
         }
+        SaveData.shared.itemsCollected[key] = true
+        if let controller = getTree()?.getNodesInGroup("game-controller").first as? GameController {
+            controller.showGetItem(title: "up.\(type.rawValue).name", description: "up.\(type.rawValue).description")
+        }
+
         getParent()?.queueFree() // fuk da polise
     }
 }

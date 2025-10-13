@@ -7,14 +7,14 @@ class HUD: Control {
     @Node("AmmoLabel") weak var ammoLabel: Label?
     @Node("MiniMapHUD") var minimap: MiniMapHUD?
     
-    func setPlayerNode(_ playerStats: PlayerNode) {
-        updateHealth(playerStats.stats.hp)
-        updateAmmo(playerStats.ammo?.value ?? 0)
-        playerStats.stats.hpChanged.connect { [weak self] hp in
-            self?.updateHealth(hp)
+    func setPlayerNode(_ player: PlayerNode) {
+        updateHealth(player.stats.hp)
+        updateAmmo(player.ammo?.value ?? 0)
+        player.hp?.didChange.connect { [weak self] in
+            self?.updateHealth($0)
         }
-        playerStats.ammo?.didChange.connect { [weak self] ammo in
-            self?.updateAmmo(ammo)
+        player.ammo?.didChange.connect { [weak self] in
+            self?.updateAmmo($0)
         }
     }
     

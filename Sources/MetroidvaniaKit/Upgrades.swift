@@ -19,4 +19,9 @@ struct Upgrades: OptionSet {
     static let flamethrower     = Upgrades(rawValue: 1 << 14)
     static let granade          = Upgrades(rawValue: 1 << 15)
     static let smartBomb        = Upgrades(rawValue: 1 << 16)
+
+    static let lookup: [ItemType: Upgrades] = [
+        .overclock: .overclock,
+        .rocket: .rocket,
+    ]
 }
