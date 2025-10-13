@@ -15,6 +15,7 @@ class GameController: Node {
     
     @Node("../CanvasLayer/HUD") var hud: HUD?
     @Node("../CanvasLayer/PauseMenu") var pauseMenu: PauseMenu?
+    @Node("../CanvasLayer/ItemCollectView") var itemCollectView: ItemCollectView?
     
     @Node("../Parallax2D") var parallaxLayer: Parallax2D?
     
@@ -32,7 +33,9 @@ class GameController: Node {
     var isPaused = false
     
     override func _ready() {
+        self.addToGroup("game-controller")
         self.processMode = .always
+        itemCollectView?.processMode = .always
         
         let worldFile = "res://tiled/\(worldToLoad).world"
         do {
@@ -106,7 +109,26 @@ class GameController: Node {
             self?.pauseMenu?.visible = false
         }
     }
+
+    func showGetItem(title: String, description: String) {
+        isPaused = true
+        getTree()?.paused = true
+        itemCollectView?.visible = true
+        itemCollectView?.titleLabel?.text = title
+        itemCollectView?.descLabel?.text = description
+        itemCollectView?.onContinue = { [weak self] in 
+            self?.hideGetItem()
+        }
+    }
     
+    func hideGetItem() {
+        itemCollectView?.visible = false
+        itemCollectView?.titleLabel?.text = ""
+        itemCollectView?.descLabel?.text = ""
+        isPaused = false
+        getTree()?.paused = false
+    }
+
     func instantiateRoom(_ map: World.Map) -> Node2D? {
         let mapPath = "res://tiled/\(map.fileName)"
         let roomScene = ResourceLoader.load(path: mapPath) as? PackedScene

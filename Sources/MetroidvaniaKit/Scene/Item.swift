@@ -35,6 +35,7 @@ class Item: Area2D {
 
     func collect(player: PlayerNode) {
         guard let key, let type else { return }
+        log("Collecting item: \(key)")
 
         switch type {
             case .hp:
@@ -47,6 +48,10 @@ class Item: Area2D {
             case .overclock:
                 player.stats.hasSpeedBooster = true
                 SaveData.shared.itemsCollected[key] = true
+
+                if let controller = getTree()?.getNodesInGroup("game-controller").first as? GameController {
+                    controller.showGetItem(title: "up.overclock.name", description: "up.overclock.description")
+                }
         }
         getParent()?.queueFree() // fuk da polise
     }

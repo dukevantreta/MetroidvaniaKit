@@ -22,6 +22,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
         register(type: TileSetResource.self)
     case .scene:
         [
+            DebugGrid.self,
             GameController.self,
             InputController.self,
             SidescrollerCamera.self,
@@ -66,6 +67,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             TileSprite2D.self,
             Room.self,
             Item.self,
+            ItemCollectView.self,
         ].forEach { register(type: $0) }
     default:
         break
