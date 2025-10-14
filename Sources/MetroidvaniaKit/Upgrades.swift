@@ -1,3 +1,5 @@
+import SwiftGodot
+
 struct Upgrades: OptionSet {
     
     let rawValue: UInt32
@@ -24,4 +26,31 @@ struct Upgrades: OptionSet {
         .overclock: .overclock,
         .rocket: .rocket,
     ]
+
+    static let editorNames: [String] = [
+        "High Jump",
+        "Double Jump",
+        "Overclock",
+        "Air Dash",
+        "Wall Grab",
+        "Advanced Wall Grab",
+        "Morph",
+        "Water Walking",
+        "Water Movement",
+        "Hookshot",
+        "Rocket Launcher",
+        "Normal Beam",
+        "Wave Beam",
+        "Plasma Beam",
+        "Flamethrower",
+        "Granade Launcher",
+        "Smart Bomb"
+    ]
+
+    static let hintString = editorNames.joined(separator: ",")
+}
+
+// This is needed to circumvent type support. Allows exposing this type to the editor as @Export property.
+extension Upgrades: CaseIterable {
+    static let allCases: [Upgrades] = [] // Only needed for conformance. Fill if needs to be used.
 }

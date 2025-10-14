@@ -3,16 +3,19 @@ import SwiftGodot
 @Godot
 class PlayerData: Node {
 
+    #exportGroup("Health")
     @Export var baseHP: Int = 99
     @Export var hpPerExpansion: Int = 50
     @Export var hpExpansions = 0
 
+    #exportGroup("Ammo")
     @Export var baseAmmo: Int = 10
     @Export var ammoPerExpansion: Int = 5
     @Export var ammoExpansions = 0
 
-    private(set) var upgrades: Upgrades = []
-
+    #exportGroup("Upgrades")
+    @Export(.flags, Upgrades.hintString) var upgrades: Upgrades = [] 
+    
     func addUpgrade(_ upgrade: Upgrades) {
         upgrades.insert(upgrade)
     }
