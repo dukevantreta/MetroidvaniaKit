@@ -8,7 +8,7 @@ class RunningState: PlayerState {
     var lastActionTimestamp: UInt = 0
     
     func enter(_ player: PlayerNode) {
-        player.canDoubleJump = true
+        // player.canDoubleJump = true
         startRunningTimestamp = Time.getTicksMsec()
         lastActionTimestamp = Time.getTicksMsec()
         
@@ -65,7 +65,7 @@ class RunningState: PlayerState {
         }
         
         // Speed booster turn on
-        if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.data.upgrades.contains(.overclock) {
+        if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.hasUpgrade(.overclock) {
             player.isSpeedBoosting = true
         }
         if player.isSpeedBoosting {

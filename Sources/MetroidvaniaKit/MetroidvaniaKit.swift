@@ -37,7 +37,6 @@ func setupScene (level: GDExtension.InitializationLevel) {
             FallAI.self,
             PlayerNode.self,
             PlayerData.self,
-            PlayerStats.self,
             TriggerArea2D.self,
             PlayerHitbox.self,
             HookHitbox.self,

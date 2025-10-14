@@ -108,10 +108,10 @@ class PlayerHitbox: Area2D {
     }
 
     func restoreHealth(_ amount: Int) {
-        player?.stats.restoreHealth(amount)
+        player?.hp?.heal(amount)
     }
 
     func restoreAmmo(_ amount: Int) {
-        player?.stats.restoreAmmo(amount)
+        player?.ammo?.restore(amount)
     }
 }

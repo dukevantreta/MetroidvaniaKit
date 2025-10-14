@@ -4,8 +4,12 @@ class JumpingState: PlayerState {
     
     var jumpTimestamp: UInt = 0
     var hasShotDuringJump = false
+    var canDoubleJump = false // consumable double jump flag
+    var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
     
     func enter(_ player: PlayerNode) {
+        canDoubleJump = true
+        allowsDoubleJump = false
         jumpTimestamp = Time.getTicksMsec()
         player.sprite?.play(name: "jump-begin")
         
@@ -17,7 +21,7 @@ class JumpingState: PlayerState {
     
     func processInput(_ player: PlayerNode) -> PlayerNode.State? {
         
-        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.xDirection) && player.stats.hasWallGrab {
+        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.xDirection) && player.hasUpgrade(.wallGrab) {
             return .wallGrab
         }
         
@@ -30,6 +34,9 @@ class JumpingState: PlayerState {
                 return .charge
             }
             return .dash
+        }
+        if player.input.isActionJustReleased(.actionDown) {
+            allowsDoubleJump = true
         }
         return nil
     }
@@ -80,11 +87,15 @@ class JumpingState: PlayerState {
             }
         }
         
+
+        if player.input.isActionJustPressed(.actionDown) {
+            GD.print("CAN DOUBLE JUMP? \(canDoubleJump) --- HAS UPGRADE? \(player.hasUpgrade(.doubleJump))")
+        }
         // Mid-air jump
-        if player.input.isActionJustPressed(.actionDown) && player.canDoubleJump && player.stats.hasDoubleJump {
+        if player.input.isActionJustPressed(.actionDown) && canDoubleJump && allowsDoubleJump && player.hasUpgrade(.doubleJump) {
             player.velocity.y = Float(-player.getJumpspeed())
             jumpTimestamp = Time.getTicksMsec()
-            player.canDoubleJump = false
+            canDoubleJump = false
             hasShotDuringJump = false
         }
         

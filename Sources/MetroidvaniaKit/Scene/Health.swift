@@ -21,6 +21,7 @@ class Health: Node {
         value -= amount
         if value <= 0 {
             // TODO: kill
+            log("DEAD")
         }
     }
 

@@ -48,7 +48,6 @@ class PlayerNode: CharacterBody2D {
 
     @Node("data") let data: PlayerData
     
-    @BindNode var stats: PlayerStats
     @BindNode var input: InputController
     
     @Export(.range, "0,4,") var weaponLevel: Int = 0 {
@@ -74,7 +73,7 @@ class PlayerNode: CharacterBody2D {
     
     /// Height up to where gravity is ignored if the player holds the jump button
     var linearHeight: Double {
-        stats.hasSuperJump ? 52 : 20
+        hasUpgrade(.highJump) ? 52 : 20
     }
     
     /// Jump height affected by gravity, after ignore range. Total jump height is the sum of both.
@@ -85,7 +84,7 @@ class PlayerNode: CharacterBody2D {
     @Export var airTime: Double = 0
     
     var wallJumpThresholdMsec: Int {
-        stats.hasWallGrabUpgrade ? 100 : 500
+        hasUpgrade(.betterWallGrab) ? 100 : 500
     }
     
     @Export var speedBoostThreshold: Int = 3000
@@ -124,8 +123,6 @@ class PlayerNode: CharacterBody2D {
     
     var facingDirection: Int = 1
     
-    var canDoubleJump = true
-    
     var wallJumpTimestamp: UInt = 0
     
     var lastShotTimestamp: UInt = 0
@@ -135,7 +132,7 @@ class PlayerNode: CharacterBody2D {
     var isInWater = false
     
     var isAffectedByWater: Bool {
-        isInWater && !stats.hasWaterMovement
+        isInWater && !hasUpgrade(.waterMovement)
     }
     
     var isSpeedBoosting = false {
@@ -187,11 +184,11 @@ class PlayerNode: CharacterBody2D {
         ].compactMap {$0}.forEach { $0.ammo = ammo } 
 
         // ammo?.restore(ammo?.maxValue ?? 0)
-        let maxAmmo = data.baseAmmo + data.ammoPerExpansion * data.ammoExpansions
+        let maxAmmo = data.maxAmmo
         ammo?.maxValue = maxAmmo
         ammo?.restore(maxAmmo)
 
-        let maxHp = data.baseHP + data.hpPerExpansion * data.hpExpansions
+        let maxHp = data.maxHp
         hp?.maxValue = maxHp
         hp?.heal(maxHp)
 
@@ -217,7 +214,7 @@ class PlayerNode: CharacterBody2D {
             sprite?.flipH = facingDirection < 0
         }
         
-        if input.isActionPressed(.rightShoulder) && !isInWater && stats.hasWaterWalking {
+        if input.isActionPressed(.rightShoulder) && !isInWater && hasUpgrade(.waterWalking) {
             collisionMask |= 0b0100
         } else {
             collisionMask = 0b1011
@@ -239,17 +236,20 @@ class PlayerNode: CharacterBody2D {
         }
     }
 
+    func hasUpgrade(_ upgrade: Upgrades) -> Bool {
+        data.upgrades.contains(upgrade)
+    }
+
     func expandHealth() {
         data.hpExpansions += 1
-        let maxHp = data.baseHP + data.hpPerExpansion * data.hpExpansions
+        let maxHp = data.maxHp
         hp?.maxValue = maxHp
         hp?.heal(maxHp)
     }
 
     func expandAmmo() {
         data.ammoExpansions += 1
-        let maxAmmo = data.baseAmmo + data.ammoPerExpansion * data.ammoExpansions
-        ammo?.maxValue = maxAmmo
+        ammo?.maxValue = data.maxAmmo
         ammo?.restore(data.ammoPerExpansion)
     }
     
@@ -276,10 +276,7 @@ class PlayerNode: CharacterBody2D {
     
     func takeDamage(_ amount: Int, xDirection: Float) {
         velocity.x = xDirection * damageSpeed * (isOnFloor() ? 1.0 : 0.7)
-        stats.hp -= amount
-        if stats.hp <= 0 {
-            log("GAME OVER") // try to use hp change signal to trigger game over
-        }
+        hp?.damage(amount)
     }
     
     func enterWater() {

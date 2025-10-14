@@ -8,7 +8,7 @@ class HUD: Control {
     @Node("MiniMapHUD") var minimap: MiniMapHUD?
     
     func setPlayerNode(_ player: PlayerNode) {
-        updateHealth(player.stats.hp)
+        updateHealth(player.hp?.value ?? 0)
         updateAmmo(player.ammo?.value ?? 0)
         player.hp?.didChange.connect { [weak self] in
             self?.updateHealth($0)
