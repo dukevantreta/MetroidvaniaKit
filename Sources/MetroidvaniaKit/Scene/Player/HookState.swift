@@ -10,14 +10,14 @@ class HookState: PlayerState {
     
     var shouldEnd = false
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         targetPosition = player.position + (player.hookshot?.position ?? .zero)
         direction = player.hookshot?.direction ?? .zero
         frameCount = 0
         shouldEnd = false
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         
         if shouldEnd {
             if direction.y.isZero {
@@ -50,7 +50,7 @@ class HookState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
 //        let deltaMove = Vector2(
 //            x: abs(direction.x * 500 * Float(dt)),

@@ -3,7 +3,7 @@ import SwiftGodot
 @Godot
 class PlayerHitbox: Area2D {
     
-    @Node("..") weak var player: PlayerNode?
+    @Node("..") weak var player: Player?
     @Node("../Hitbox") weak var hitbox: Hitbox?
     
     private let hitTimer = Timer()

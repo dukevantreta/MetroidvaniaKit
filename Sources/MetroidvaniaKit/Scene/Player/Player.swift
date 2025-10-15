@@ -16,7 +16,7 @@ enum WeaponType: Int {
 }
 
 @Godot
-class PlayerNode: CharacterBody2D {
+class Player: CharacterBody2D {
     
     enum State {
         case idle

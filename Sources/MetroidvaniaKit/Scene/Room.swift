@@ -18,7 +18,6 @@ class Room: Node2D {
                 } else {
                     // make item
                     let itemNode = Item()
-                    // let key: String = item?.getMeta(name: "key", default: "") ?? ""
                     itemNode.key = id
                     let type: String = item?.getMeta(name: "type", default: "") ?? ""
                     itemNode.type = ItemType(rawValue: type)

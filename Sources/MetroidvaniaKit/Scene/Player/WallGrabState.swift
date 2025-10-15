@@ -4,7 +4,7 @@ class WallGrabState: PlayerState {
     
     private var lastFacingDirection: Int = 0
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         player.velocity.x = 0
         player.velocity.y = 0
         player.isSpeedBoosting = false
@@ -16,7 +16,7 @@ class WallGrabState: PlayerState {
         }
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = Float(-player.getJumpspeed())
             player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
@@ -28,7 +28,7 @@ class WallGrabState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
 //        let yDirection = player.input.getVerticalAxis()
 //        let xDirection = player.input.getHorizontalAxis()

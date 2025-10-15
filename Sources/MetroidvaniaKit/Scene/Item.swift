@@ -26,14 +26,14 @@ class Item: Area2D {
         areaEntered.connect { [weak self] other in
             guard let self, let other else { return }
             if let hitbox = other as? Hitbox {
-                if let player = hitbox.getParent() as? PlayerNode {
+                if let player = hitbox.getParent() as? Player {
                     self.collect(player: player)
                 }
             }
         }
     }
 
-    func collect(player: PlayerNode) {
+    func collect(player: Player) {
         guard let key, let type else { return }
 
         switch type {

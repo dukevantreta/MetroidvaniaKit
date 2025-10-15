@@ -7,7 +7,7 @@ class RunningState: PlayerState {
     
     var lastActionTimestamp: UInt = 0
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         // player.canDoubleJump = true
         startRunningTimestamp = Time.getTicksMsec()
         lastActionTimestamp = Time.getTicksMsec()
@@ -18,7 +18,7 @@ class RunningState: PlayerState {
         }
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         if !player.isOnFloor() {
             return .jump
         }
@@ -56,7 +56,7 @@ class RunningState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
         var targetSpeed = player.speed * player.xDirection
         

@@ -8,7 +8,7 @@ class ShinesparkState: PlayerState {
     private var collided = false
     private var chainShinespark = false
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         collisionTime = 0.0
         collided = false
         chainShinespark = false
@@ -18,7 +18,7 @@ class ShinesparkState: PlayerState {
         player.sprite?.play(name: "dash")
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         if chainShinespark {
             player.sprite?.modulate = .white
             player.velocity.x = Float(player.speed * player.xDirection * 2)
@@ -32,7 +32,7 @@ class ShinesparkState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         if !collided {
             player.velocity.x = direction.sign().x * 500
             player.velocity.y = -direction.sign().y * 500

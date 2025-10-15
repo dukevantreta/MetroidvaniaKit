@@ -4,7 +4,7 @@ class MorphState: PlayerState {
     
     var jumpTimestamp: UInt = 0
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 14)
             player.hitbox?.position = Vector2(x: 0, y: -7)
@@ -16,7 +16,7 @@ class MorphState: PlayerState {
         player.sprite?.play(name: "cube")
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         // Unmorph
         if player.input.isActionJustPressed(.up) && player.isOnFloor() {
             if !player.raycastForUnmorph() {
@@ -30,7 +30,7 @@ class MorphState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
         let xDirection = player.input.getHorizontalAxis()
         

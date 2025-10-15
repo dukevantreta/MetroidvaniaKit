@@ -1,14 +1,14 @@
 import SwiftGodot
 
 protocol PlayerState {
-    func enter(_ player: PlayerNode)
-    func processInput(_ player: PlayerNode) -> PlayerNode.State?
-    func processPhysics(_ player: PlayerNode, dt: Double)
+    func enter(_ player: Player)
+    func processInput(_ player: Player) -> Player.State?
+    func processPhysics(_ player: Player, dt: Double)
 }
 
 class IdleState: PlayerState {
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         player.sprite?.play(name: "idle-1")
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -17,7 +17,7 @@ class IdleState: PlayerState {
         }
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         
         if !player.xDirection.isZero {
             return .run
@@ -32,7 +32,7 @@ class IdleState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
         player.fire()
         player.fireSubweapon()

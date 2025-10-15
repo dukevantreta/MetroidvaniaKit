@@ -35,7 +35,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PatrolAI.self,
             CrawlerAI.self,
             FallAI.self,
-            PlayerNode.self,
+            Player.self,
             PlayerData.self,
             TriggerArea2D.self,
             PlayerHitbox.self,

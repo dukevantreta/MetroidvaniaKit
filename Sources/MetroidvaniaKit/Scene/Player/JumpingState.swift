@@ -7,7 +7,7 @@ class JumpingState: PlayerState {
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         canDoubleJump = true
         allowsDoubleJump = false
         jumpTimestamp = Time.getTicksMsec()
@@ -19,7 +19,7 @@ class JumpingState: PlayerState {
         }
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         
         if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.xDirection) && player.hasUpgrade(.wallGrab) {
             return .wallGrab
@@ -41,7 +41,7 @@ class JumpingState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
         var targetSpeed = player.speed * player.xDirection
         

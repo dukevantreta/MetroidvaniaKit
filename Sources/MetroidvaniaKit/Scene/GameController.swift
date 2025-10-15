@@ -8,7 +8,7 @@ let ROOM_HEIGHT: Int32 = 15
 @Godot
 class GameController: Node {
     
-    @Node("../PlayerNode") var player: PlayerNode?
+    @Node("../Player") var player: Player?
     @Node("../SidescrollerCamera") var camera: SidescrollerCamera?
     @Node("../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
     @Node("../SubViewport") var subViewport: SubViewport?

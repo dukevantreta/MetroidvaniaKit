@@ -2,7 +2,7 @@ import SwiftGodot
 
 class CrouchState: PlayerState {
     
-    func enter(_ player: PlayerNode) {
+    func enter(_ player: Player) {
         player.velocity.x = 0
         player.velocity.y = 0
         player.isSpeedBoosting = false
@@ -13,7 +13,7 @@ class CrouchState: PlayerState {
         }
     }
     
-    func processInput(_ player: PlayerNode) -> PlayerNode.State? {
+    func processInput(_ player: Player) -> Player.State? {
         // Jump
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = Float(-player.getJumpspeed())
@@ -38,7 +38,7 @@ class CrouchState: PlayerState {
         return nil
     }
     
-    func processPhysics(_ player: PlayerNode, dt: Double) {
+    func processPhysics(_ player: Player, dt: Double) {
         
 //        let yDirection = player.input.getVerticalAxis()
 //        let xDirection = player.input.getHorizontalAxis()
