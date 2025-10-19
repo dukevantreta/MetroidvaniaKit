@@ -13,7 +13,7 @@ class MorphState: PlayerState {
             collisionRect.size = Vector2(x: 14, y: 14)
             player.collisionShape?.position = Vector2(x: 0, y: -7)
         }
-        player.sprite?.play(name: "cube")
+        player.sprite?.play(name: "mini-idle-1")
     }
     
     func processInput(_ player: Player) -> Player.State? {
@@ -81,5 +81,20 @@ class MorphState: PlayerState {
         }
         
         player.moveAndSlide()
+
+        // handle animations
+        if player.isOnFloor() {
+            if abs(player.getRealVelocity().x) > 0 {
+                player.sprite?.play(name: "mini-run")
+            } else {
+                player.sprite?.play(name: "mini-idle-2")
+            }
+        } else {
+            if abs(player.getRealVelocity().x) > Float(player.speed * 0.5) {
+                player.sprite?.play(name: "mini-jump-spin")
+            } else {
+                player.sprite?.play(name: "mini-jump")
+            }
+        }
     }
 }

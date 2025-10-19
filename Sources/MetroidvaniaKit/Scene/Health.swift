@@ -4,6 +4,7 @@ import SwiftGodot
 class Health: Node {
 
     @Signal var didChange: SignalWithArguments<Int>
+    @Signal var didKill: SimpleSignal
 
     @Export var maxValue: Int = 0 {
         didSet {
@@ -20,8 +21,7 @@ class Health: Node {
     func damage(_ amount: Int) {
         value -= amount
         if value <= 0 {
-            // TODO: kill
-            log("DEAD")
+            didKill.emit()
         }
     }
 

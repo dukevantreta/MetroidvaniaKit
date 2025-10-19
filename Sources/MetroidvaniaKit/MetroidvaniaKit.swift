@@ -69,6 +69,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             Room.self,
             Item.self,
             ItemCollectView.self,
+            DialogueView.self,
         ].forEach { register(type: $0) }
     default:
         break
