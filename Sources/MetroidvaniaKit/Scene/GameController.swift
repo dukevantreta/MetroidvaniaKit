@@ -115,7 +115,7 @@ class GameController: Node {
         getTree()?.paused = true
         itemCollectView?.visible = true
         itemCollectView?.titleLabel?.text = title
-        itemCollectView?.descLabel?.text = description
+        itemCollectView?.pushText(description)
         itemCollectView?.onContinue = { [weak self] in 
             self?.hideGetItem()
         }
