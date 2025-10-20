@@ -39,7 +39,7 @@ class Hitbox: Area2D {
     }
     
     private func hit(_ other: Hitbox) {
-        let damage = Damage(source: .enemy, amount: damage, origin: globalPosition)
+        let damage = Damage(source: damageType, amount: damage, origin: globalPosition)
         other.takeHit(damage)
 //        let direction = other.globalPosition - self.globalPosition
     }

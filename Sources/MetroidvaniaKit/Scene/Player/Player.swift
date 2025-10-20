@@ -286,6 +286,13 @@ class Player: CharacterBody2D {
     func exitWater() {
         isInWater = false
     }
+
+    func layBomb() {
+        let bomb = Bomb()
+        bomb.zIndex = 100
+        bomb.position = self.position + Vector2(x: 0, y: -8)
+        getParent()!.addChild(node: bomb)
+    }
     
     // MARK: RAYCASTS
     

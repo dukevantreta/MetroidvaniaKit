@@ -80,6 +80,13 @@ class PlayerHitbox: Area2D {
     }
     
     func takeHit(_ damage: Damage) {
+        if damage.source == .bomb {
+            if player?.currentState == .morph {
+                player?.velocity.y = Float(-(player?.getJumpspeed() ?? 0.0))
+            }
+            return
+        }
+
         guard !isInvincible else { return }
         isInvincible = true
         

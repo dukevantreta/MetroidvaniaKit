@@ -5,6 +5,7 @@ struct Damage {
         case none
         case enemy
         case rocket
+        case bomb
     }
     let source: Source
     let amount: Int

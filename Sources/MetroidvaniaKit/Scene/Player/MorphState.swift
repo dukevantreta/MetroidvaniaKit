@@ -27,6 +27,9 @@ class MorphState: PlayerState {
                 return .crouch
             }
         }
+        if player.input.isActionJustPressed(.actionLeft) {
+            player.layBomb()
+        }
         return nil
     }
     
