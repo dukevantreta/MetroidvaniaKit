@@ -41,24 +41,33 @@ class WeaponNode: Node {
 
     @Export var ammoCost: Int = 0
     
-    @Export var cooldown: Double = 0.0
+    @Export var cooldownTime: Double = 0.0 {
+        didSet {
+            cooldown.time = cooldownTime
+        }
+    }
 
     @Export var autofire: Bool = false
     
     var cooldownCounter: Double = 0.0
 
+    var cooldown = Cooldown(time: 1.0)
+
     override func _process(delta: Double) {
-        cooldownCounter -= delta
+        // cooldownCounter -= delta
+        cooldown.update(delta)
     }
     
     func fire(from node: Node, origin: Vector2, direction: Vector2) {
-        guard cooldownCounter <= 0 else {
-            return 
-        }
+        // guard cooldownCounter <= 0 else {
+        //     return 
+        // }
+        guard cooldown.isReady else { return }
         guard ammo?.consume(ammoCost) == true else {
             return // play fail sfx
         }
-        cooldownCounter = cooldown
+        // cooldownCounter = cooldown
+        cooldown.use()
         let projectiles = makeProjectiles(origin: origin, direction: direction) 
         projectiles.forEach {
             $0.position = origin
@@ -72,6 +81,48 @@ class WeaponNode: Node {
     }
 
     func release() {
+    }
+}
+
+@Godot
+class DataMiner: WeaponNode {
+
+    private let minePool = [
+        Mine(),
+        Mine(),
+        Mine(),
+        Mine()
+    ]
+
+    deinit {
+        minePool.forEach { $0.queueFree() }
+    }
+
+    override func _ready() {
+        minePool.forEach {
+            $0.zIndex = 100
+        }
+    }
+
+    override func fire(from node: Node, origin: Vector2, direction: Vector2) {
+        guard cooldown.isReady else { return }
+        cooldown.use()
+        let projectiles = makeProjectiles(origin: origin, direction: direction) 
+        projectiles.forEach {
+            $0.position = origin
+            node.addChild(node: $0)
+            ($0 as? Mine)?.reset()
+        }
+    }
+
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+        for mine in minePool {
+            if mine.getParent() == nil {
+                // mine.reset()
+                return [mine]
+            }
+        }
+        return [] // FIXME: cooldown is gonna be eaten anyways
     }
 }
 
@@ -357,7 +408,7 @@ class Flamethrower: WeaponNode {
             }
             ammoCounter = 0.5
         }
-        cooldownCounter = cooldown
+        cooldownCounter = cooldownTime
         let projectiles = makeProjectiles(origin: origin, direction: direction) 
         projectiles.forEach {
             $0.position = origin

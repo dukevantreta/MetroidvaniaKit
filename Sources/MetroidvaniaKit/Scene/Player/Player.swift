@@ -41,6 +41,7 @@ class Player: CharacterBody2D {
     @Node("Weapons/GranadeLauncher") var granadeLauncher: WeaponNode?
     @Node("Weapons/SmartBomb") var smartBomb: WeaponNode?
     @Node("Weapons/Flamethrower") var flamethrower: Flamethrower?
+    @Node("Weapons/DataMiner") var dataMiner: WeaponNode?
     
     @Node("Hookshot") var hookshot: Hookshot?
     @Node("Health") var hp: Health?
@@ -184,6 +185,7 @@ class Player: CharacterBody2D {
             smartBomb,
             flamethrower,
         ].compactMap {$0}.forEach { $0.ammo = ammo } 
+        dataMiner?.ammo = ammo
 
         // ammo?.restore(ammo?.maxValue ?? 0)
         let maxAmmo = data.maxAmmo
@@ -195,7 +197,7 @@ class Player: CharacterBody2D {
         hp?.heal(maxHp)
 
         switchWeapons(weaponLevel)
-        switchSubweapon(.flamethrower) // check for weapon flags
+        switchSubweapon(.rocket) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
             self?.hookHit()
         }
@@ -307,10 +309,11 @@ class Player: CharacterBody2D {
     }
 
     func layBomb() {
-        let bomb = Bomb()
-        bomb.zIndex = 100
-        bomb.position = self.position + Vector2(x: 0, y: -8)
-        getParent()!.addChild(node: bomb)
+        // let bomb = Mine()
+        // bomb.zIndex = 100
+        // bomb.position = self.position + Vector2(x: 0, y: -8)
+        // getParent()!.addChild(node: bomb)
+        dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -8), direction: .zero)
     }
     
     // MARK: RAYCASTS

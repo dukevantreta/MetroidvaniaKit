@@ -1,7 +1,7 @@
 import SwiftGodot
 
 @Godot
-class Bomb: Node2D {
+class Mine: Node2D {
 
     private var bombSprite: Sprite2D?
     private var explosionSprite: Sprite2D?
@@ -9,10 +9,6 @@ class Bomb: Node2D {
 
     private let timer = Timer()
     private let destroyTimer = Timer()
-
-    deinit {
-        log("BOMB DEINIT")
-    }
 
     override func _ready() {
         let texture = PlaceholderTexture2D()
@@ -23,14 +19,14 @@ class Bomb: Node2D {
         addChild(node: sprite)
 
         let explosionTex = PlaceholderTexture2D()
-        explosionTex.size = Vector2(x: 16, y: 16)
+        explosionTex.size = Vector2(x: 32, y: 32)
         let explosionSpr = Sprite2D()
         explosionSpr.texture = explosionTex
         explosionSpr.centered = true
         addChild(node: explosionSpr)
 
         let rect = RectangleShape2D()
-        rect.size = Vector2(x: 16, y: 16)
+        rect.size = Vector2(x: 32, y: 32)
         let collision = CollisionShape2D()
         collision.shape = rect
 
@@ -48,15 +44,17 @@ class Bomb: Node2D {
         self.explosionSprite = explosionSpr
         self.hitbox = hitbox
 
-        timer.autostart = true
-        timer.waitTime = 1.0
+        timer.autostart = false
+        timer.waitTime = 0.5
+        timer.oneShot = true
         timer.timeout.connect { [weak self] in
             self?.explode()
         }
         addChild(node: timer)
 
         destroyTimer.autostart = false
-        destroyTimer.waitTime = 0.3
+        destroyTimer.waitTime = 0.06
+        destroyTimer.oneShot = true
         destroyTimer.timeout.connect { [weak self] in
             self?.destroy()
         }
@@ -72,6 +70,11 @@ class Bomb: Node2D {
         }
     }
 
+    func reset() {
+        bombSprite?.visible = true
+        timer.start()
+    }
+
     func hitPlayer(_ player: Player) {
         // log("BALL HIT")
     }
@@ -84,6 +87,8 @@ class Bomb: Node2D {
     }
 
     func destroy() {
-        queueFree()
+        hitbox?.monitoring = false
+        explosionSprite?.visible = false
+        getParent()?.removeChild(node: self)
     }
 }

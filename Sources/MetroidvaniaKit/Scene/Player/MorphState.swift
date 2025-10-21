@@ -3,7 +3,7 @@ import SwiftGodot
 class MorphState: PlayerState {
     
     var jumpTimestamp: UInt = 0
-    
+
     func enter(_ player: Player) {
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 14)
@@ -28,9 +28,9 @@ class MorphState: PlayerState {
             }
         }
         if player.input.isActionJustPressed(.actionLeft) {
-            if player.bombCooldown.use() {
+            // if player.bombCooldown.use() {
                 player.layBomb()
-            }
+            // }
         }
         return nil
     }
