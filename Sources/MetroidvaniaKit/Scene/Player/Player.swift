@@ -113,6 +113,8 @@ class Player: CharacterBody2D {
         .hook: HookState()
     ]
     var currentState: State = .idle
+
+    let bombCooldown = Cooldown(time: 0.5)
     
     var xDirection: Double = 0.0
     var yDirection: Double = 0.0
@@ -213,6 +215,8 @@ class Player: CharacterBody2D {
             facingDirection = faceDirX
             sprite?.flipH = facingDirection < 0
         }
+
+        bombCooldown.update(delta)
         
         if input.isActionPressed(.rightShoulder) && !isInWater && hasUpgrade(.waterWalking) {
             collisionMask |= 0b0100

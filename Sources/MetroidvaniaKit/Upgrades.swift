@@ -4,23 +4,24 @@ struct Upgrades: OptionSet {
     
     let rawValue: UInt32
 
-    static let highJump         = Upgrades(rawValue: 1 << 0)
-    static let doubleJump       = Upgrades(rawValue: 1 << 1)
+    static let morph            = Upgrades(rawValue: 1 << 0)
+    static let mines            = Upgrades(rawValue: 1 << 1)
     static let overclock        = Upgrades(rawValue: 1 << 2)
-    static let airDash          = Upgrades(rawValue: 1 << 3)
-    static let wallGrab         = Upgrades(rawValue: 1 << 4)
-    static let betterWallGrab   = Upgrades(rawValue: 1 << 5)
-    static let morph            = Upgrades(rawValue: 1 << 6)
+    static let highJump         = Upgrades(rawValue: 1 << 3)
+    static let doubleJump       = Upgrades(rawValue: 1 << 4)
+    static let wallGrab         = Upgrades(rawValue: 1 << 5)
+    static let betterWallGrab   = Upgrades(rawValue: 1 << 6)
     static let waterWalking     = Upgrades(rawValue: 1 << 7)
     static let waterMovement    = Upgrades(rawValue: 1 << 8)
     static let hookshot         = Upgrades(rawValue: 1 << 9)
     static let rocket           = Upgrades(rawValue: 1 << 10)
-    static let normalPhaser     = Upgrades(rawValue: 1 << 11)
-    static let wallPhaser       = Upgrades(rawValue: 1 << 12)
-    static let piercePhaser     = Upgrades(rawValue: 1 << 13)
-    static let flamethrower     = Upgrades(rawValue: 1 << 14)
-    static let granade          = Upgrades(rawValue: 1 << 15)
-    static let smartBomb        = Upgrades(rawValue: 1 << 16)
+    static let granade          = Upgrades(rawValue: 1 << 11)
+    static let flamethrower     = Upgrades(rawValue: 1 << 12)
+    static let smartBomb        = Upgrades(rawValue: 1 << 13)
+    static let normalPhaser     = Upgrades(rawValue: 1 << 14)
+    static let wallPhaser       = Upgrades(rawValue: 1 << 15)
+    static let piercePhaser     = Upgrades(rawValue: 1 << 16)
+    static let airDash          = Upgrades(rawValue: 1 << 17)
 
     static let lookup: [ItemType: Upgrades] = [
         .overclock: .overclock,
@@ -28,23 +29,24 @@ struct Upgrades: OptionSet {
     ]
 
     static let editorNames: [String] = [
+        "Morph",
+        "Morph Bombs",
+        "Overclock",
         "High Jump",
         "Double Jump",
-        "Overclock",
-        "Air Dash",
         "Wall Grab",
         "Advanced Wall Grab",
-        "Morph",
         "Water Walking",
         "Water Movement",
         "Hookshot",
         "Rocket Launcher",
+        "Granade Launcher",
+        "Flamethrower",
+        "Smart Bomb",
         "Normal Beam",
         "Wave Beam",
         "Plasma Beam",
-        "Flamethrower",
-        "Granade Launcher",
-        "Smart Bomb"
+        "Air Dash",
     ]
 
     static let hintString = editorNames.joined(separator: ",")

@@ -28,7 +28,9 @@ class MorphState: PlayerState {
             }
         }
         if player.input.isActionJustPressed(.actionLeft) {
-            player.layBomb()
+            if player.bombCooldown.use() {
+                player.layBomb()
+            }
         }
         return nil
     }
