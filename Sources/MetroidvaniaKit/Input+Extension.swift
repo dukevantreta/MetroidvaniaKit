@@ -57,6 +57,14 @@ class InputController: Node {
     func getVerticalAxis() -> Double {
         isEnabled ? Input.getAxis(negativeAction: .down, positiveAction: .up) : 0.0
     }
+
+    func getSecondaryHorizontalAxis() -> Double {
+        isEnabled ? Input.getAxis(negativeAction: .secondaryLeft, positiveAction: .secondaryRight) : 0.0
+    }
+
+    func getSecondaryVerticalAxis() -> Double {
+        isEnabled ? Input.getAxis(negativeAction: .secondaryDown, positiveAction: .secondaryUp) : 0.0
+    }
     
     func isActionJustPressed(_ action: InputAction) -> Bool {
         Input.isActionJustPressed(action: action.rawValue) && isEnabled

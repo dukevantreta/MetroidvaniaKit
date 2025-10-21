@@ -224,6 +224,21 @@ class Player: CharacterBody2D {
             collisionMask = 0b1011
         }
         
+        let joy2x = input.getSecondaryHorizontalAxis()
+        let joy2y = input.getSecondaryVerticalAxis()
+        if abs(joy2x) > 0.5 || abs(joy2y) > 0.5 {
+            let angle = Vector2(x: joy2x, y: joy2y).angle()
+            if abs(angle) <= .pi / 4 { // right
+                switchSubweapon(.granade)
+            } else if angle > .pi / 4 && angle < 3 * .pi / 4 { // up
+                switchSubweapon(.rocket)
+            } else if abs(angle) >= 3 * .pi / 4 { // left
+                switchSubweapon(.smartBomb)
+            } else { // down, angle is 5π to 7π
+                switchSubweapon(.flamethrower)
+            }
+        }
+
         if let newState = states[currentState]?.processInput(self) {
             if newState != currentState {
                 currentState = newState
