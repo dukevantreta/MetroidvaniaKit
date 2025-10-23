@@ -28,15 +28,21 @@ class RunningState: PlayerState {
             player.velocity.y = Float(-player.getJumpspeed())
             return .jump
         }
-        if player.xDirection.isZero {
-            if player.yDirection < 0 && player.isSpeedBoosting {
+        if player.joy1.y > 0 && player.isMorphed {
+            if !player.raycastForUnmorph() {
+                player.unmorph()
+                return .crouch
+            }
+        }
+        if player.joy1.x.isZero && !player.isMorphed {
+            if player.joy1.y < 0 && player.isSpeedBoosting {
                 player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
                 player.sprite?.play(name: "stand-to-crouch")
                 player.isSpeedBoosting = false
                 player.hasShinesparkCharge = true
                 return .crouch
             }
-            if player.yDirection < 0 && !player.input.isActionPressed(.leftShoulder) {
+            if player.joy1.y < 0 && !player.input.isActionPressed(.leftShoulder) {
                 player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
                 player.sprite?.play(name: "stand-to-crouch")
                 return .crouch
@@ -47,7 +53,7 @@ class RunningState: PlayerState {
             return .idle
         }
         if player.input.isActionJustPressed(.rightShoulder) {
-            if player.hasShinesparkCharge && (!player.xDirection.isZero || !player.yDirection.isZero) {
+            if player.hasShinesparkCharge && (!player.joy1.x.isZero || !player.joy1.y.isZero) {
                 return .charge
             }
             return .dash
@@ -58,7 +64,7 @@ class RunningState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        var targetSpeed = player.speed * player.xDirection
+        var targetSpeed = player.speed * Double(player.joy1.x)
         
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
@@ -73,13 +79,13 @@ class RunningState: PlayerState {
         }
         
         // Horizontal movement
-        if !player.xDirection.isZero {
+        if !player.joy1.x.isZero {
             lastActionTimestamp = Time.getTicksMsec()
             if isFirstRunningFrame {
                 startRunningTimestamp = Time.getTicksMsec()
                 isFirstRunningFrame = false
             }
-            if (player.velocity.x >= 0 && player.xDirection > 0) || (player.velocity.x <= 0 && player.xDirection < 0) {
+            if (player.velocity.x >= 0 && player.joy1.x > 0) || (player.velocity.x <= 0 && player.joy1.x < 0) {
                 player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
             } else {
                 player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
@@ -105,14 +111,23 @@ class RunningState: PlayerState {
         
         player.fire()
         player.fireSubweapon()
+
+        if player.isMorphed {
+            if abs(player.getRealVelocity().x) > 0 {
+                player.sprite?.play(name: "mini-run")
+            } else {
+                player.sprite?.play(name: "mini-idle-2")
+            }
+            return
+        }
         
         
-        
+        // GD.print("REAL V: \(player.getRealVelocity())")
         // Handle animations
         if abs(player.getRealVelocity().x) > 0 {
-            if player.input.isActionPressed(.leftShoulder) || !player.yDirection.isZero {
-                if !player.yDirection.isZero {
-                    player.isAimingDown = player.yDirection < 0
+            if player.input.isActionPressed(.leftShoulder) || !player.joy1.y.isZero {
+                if !player.joy1.y.isZero {
+                    player.isAimingDown = player.joy1.y < 0
                 }
                 if player.isAimingDown {
                     player.sprite?.play(name: "run-aim-down")
@@ -131,8 +146,8 @@ class RunningState: PlayerState {
             }
         } else {
             if player.input.isActionPressed(.leftShoulder) {
-                if !player.yDirection.isZero {
-                    player.isAimingDown = player.yDirection < 0
+                if !player.joy1.y.isZero {
+                    player.isAimingDown = player.joy1.y < 0
                 }
                 if player.isAimingDown {
                     player.sprite?.play(name: "aim-diag-down")
@@ -142,7 +157,7 @@ class RunningState: PlayerState {
                     player.aimDiagonalUp()
                 }
             } else {
-                if player.yDirection > 0 {
+                if player.joy1.y > 0 {
                     player.sprite?.play(name: "aim-up")
                     player.aimUp()
                 } else {

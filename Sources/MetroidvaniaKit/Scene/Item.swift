@@ -43,7 +43,7 @@ class Item: Area2D {
             player.expandAmmo()
         default:
             if let upgrade = Upgrades.lookup[type] {
-                player.data.upgrades.insert(upgrade)
+                player.data.upgradesObtained.insert(upgrade)
             }
         }
         SaveData.shared.itemsCollected[key] = true

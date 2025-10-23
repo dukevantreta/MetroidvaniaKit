@@ -16,7 +16,7 @@ enum WeaponType: Int {
 }
 
 @Godot
-class Player: CharacterBody2D {
+final class Player: CharacterBody2D {
     
     enum State {
         case idle
@@ -58,6 +58,8 @@ class Player: CharacterBody2D {
     }
     
     @Export(.enum) var weaponType: WeaponType = .normal
+
+    @Export(.resourceType) var config: PlayerConfig!
     
     @Export
     var speed: Double = 180.0
@@ -74,7 +76,7 @@ class Player: CharacterBody2D {
     
     /// Height up to where gravity is ignored if the player holds the jump button
     var linearHeight: Double {
-        hasUpgrade(.highJump) ? 52 : 20
+        hasUpgrade(.highJump) ? 52 : 20 // 3 tiles : 1 tile + 4px of extra margin
     }
     
     /// Jump height affected by gravity, after ignore range. Total jump height is the sum of both.
@@ -117,8 +119,9 @@ class Player: CharacterBody2D {
 
     let bombCooldown = Cooldown(time: 0.5)
     
-    var xDirection: Double = 0.0
-    var yDirection: Double = 0.0
+    var joy1: Vector2 = .zero
+    // var xDirection: Double = 0.0
+    // var yDirection: Double = 0.0
     
     var weapon: WeaponNode?
     
@@ -133,6 +136,8 @@ class Player: CharacterBody2D {
     var isAimingDown = false
     
     var isInWater = false
+
+    private(set) var isMorphed = false
     
     var isAffectedByWater: Bool {
         isInWater && !hasUpgrade(.waterMovement)
@@ -142,6 +147,7 @@ class Player: CharacterBody2D {
         didSet {
             floorSnapLength = isSpeedBoosting ? 12 : 6
             self.modulate = isSpeedBoosting ? Color.red : Color.white
+            // if isSpeedBoosting { self.modulate = Color.red }
         }
     }
     
@@ -170,6 +176,10 @@ class Player: CharacterBody2D {
     }
     
     override func _ready() {
+        guard let config else {
+            logError("PlayerConfig resource not found.")
+            return
+        }
         motionMode = .grounded
         floorBlockOnWall = false
         slideOnCeiling = false // doesnt work on this movement model
@@ -209,27 +219,31 @@ class Player: CharacterBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
-        xDirection = input.getHorizontalAxis()
-        yDirection = input.getVerticalAxis()
+        joy1 = Vector2(x: input.getHorizontalAxis(), y: input.getVerticalAxis()).sign()
+        let joy2 = Vector2(x: input.getSecondaryHorizontalAxis(), y: input.getSecondaryVerticalAxis())
         
         let faceDirX = Int(velocity.sign().x)
         if faceDirX != 0 && faceDirX != facingDirection {
             facingDirection = faceDirX
             sprite?.flipH = facingDirection < 0
         }
+        // log("POSITION X: \(position.x)")
+        // log("Collision W: \((collisionShape?.shape as? RectangleShape2D)?.size.x) --- x: \(collisionShape?.position.x)")
 
         bombCooldown.update(delta)
         
-        if input.isActionPressed(.rightShoulder) && !isInWater && hasUpgrade(.waterWalking) {
+        // if input.isActionPressed(.rightShoulder) && !isInWater && hasUpgrade(.waterWalking) {
+        if velocity.x != 0.0 && !isInWater && hasUpgrade(.waterWalking) {
             collisionMask |= 0b0100
         } else {
             collisionMask = 0b1011
         }
         
-        let joy2x = input.getSecondaryHorizontalAxis()
-        let joy2y = input.getSecondaryVerticalAxis()
-        if abs(joy2x) > 0.5 || abs(joy2y) > 0.5 {
-            let angle = Vector2(x: joy2x, y: joy2y).angle()
+        
+        // let joy2x = input.getSecondaryHorizontalAxis()
+        // let joy2y = input.getSecondaryVerticalAxis()
+        if abs(joy2.x) > 0.5 || abs(joy2.y) > 0.5 {
+            let angle = joy2.angle()
             if abs(angle) <= .pi / 4 { // right
                 switchSubweapon(.granade)
             } else if angle > .pi / 4 && angle < 3 * .pi / 4 { // up
@@ -257,8 +271,32 @@ class Player: CharacterBody2D {
         }
     }
 
+    func canUse(_ upgrade: Upgrades) -> Bool {
+        data.upgradesObtained.contains(upgrade) && data.upgradesEnabled.contains(upgrade)
+    }
+
     func hasUpgrade(_ upgrade: Upgrades) -> Bool {
-        data.upgrades.contains(upgrade)
+        data.upgradesObtained.contains(upgrade)
+    }
+
+    func morph() {
+        isMorphed = true
+        if let hitboxRect = hitbox?.shape as? RectangleShape2D {
+            hitboxRect.size = Vector2(x: 14, y: 14)
+            hitbox?.position = Vector2(x: 0, y: -7)
+        }
+        if let collisionRect = collisionShape?.shape as? RectangleShape2D {
+            collisionRect.size = data.bodySizeMorphed
+            collisionShape?.position = Vector2(x: 0, y: -7)
+        }
+    }
+
+    func unmorph() {
+        isMorphed = false
+        if let rect = collisionShape?.shape as? RectangleShape2D {
+            rect.size = data.bodySizeNormal
+            collisionShape?.position = Vector2(x: 0, y: -15)
+        }
     }
 
     func expandHealth() {
@@ -308,12 +346,16 @@ class Player: CharacterBody2D {
         isInWater = false
     }
 
+    func enterLowGravity() {
+        jumpDuration = 1.0
+    }
+
+    func exitLowGravity() {
+        jumpDuration = 0.5
+    }
+
     func layBomb() {
-        // let bomb = Mine()
-        // bomb.zIndex = 100
-        // bomb.position = self.position + Vector2(x: 0, y: -8)
-        // getParent()!.addChild(node: bomb)
-        dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -8), direction: .zero)
+        dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
     }
     
     // MARK: RAYCASTS

@@ -4,7 +4,7 @@ import SwiftGodot
 class BreakableBlock: RigidBody2D {
     
     @Node("Area2D") weak var area: Area2D?
-    @Node("Sprite2D") weak var coverSprite: Sprite2D?
+    @Node("TileSprite2D") weak var coverSprite: Sprite2D?
     @Node("RealSprite") weak var realSprite: Sprite2D?
     @Node("AnimatedSprite2D") weak var destroyAnimation: AnimatedSprite2D?
     
@@ -29,6 +29,7 @@ class BreakableBlock: RigidBody2D {
         area.areaEntered.connect { [weak self] otherArea in
             guard let self, let otherArea else { return }
             if otherArea.collisionLayer & 0b0001_0000 != 0 {
+                self.log("BOOM")
                 self.reveal()
                 self.collisionLayer = 0
                 self.realSprite?.visible = false

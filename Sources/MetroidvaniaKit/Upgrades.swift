@@ -21,7 +21,13 @@ struct Upgrades: OptionSet {
     static let normalPhaser     = Upgrades(rawValue: 1 << 14)
     static let wallPhaser       = Upgrades(rawValue: 1 << 15)
     static let piercePhaser     = Upgrades(rawValue: 1 << 16)
-    static let airDash          = Upgrades(rawValue: 1 << 17)
+    static let glitchPhaser     = Upgrades(rawValue: 1 << 17)
+    static let widePhaser       = Upgrades(rawValue: 1 << 18)
+    static let airDash          = Upgrades(rawValue: 1 << 19)
+    static let pause            = Upgrades(rawValue: 1 << 20)
+    static let autofire         = Upgrades(rawValue: 1 << 21)
+    static let rocketAutofire   = Upgrades(rawValue: 1 << 22)
+    static let knockbackArmor   = Upgrades(rawValue: 1 << 23)
 
     static let lookup: [ItemType: Upgrades] = [
         .overclock: .overclock,
@@ -46,7 +52,13 @@ struct Upgrades: OptionSet {
         "Normal Beam",
         "Wave Beam",
         "Plasma Beam",
+        "Glitch Beam",
+        "Wide Beam",
         "Air Dash",
+        "Pause",
+        "Autofire",
+        "Rocket Autofire",
+        "Knockback Armor"
     ]
 
     static let hintString = editorNames.joined(separator: ",")

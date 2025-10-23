@@ -18,7 +18,6 @@ func setupScene (level: GDExtension.InitializationLevel) {
         register(type: TileSetImporter.self)
         register(type: TileMapImporter.self)
         register(type: WorldImporter.self)
-        // register(type: TileSetImportPlugin.self)
         register(type: TileSetResource.self)
     case .scene:
         [
@@ -37,6 +36,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             FallAI.self,
             Player.self,
             PlayerData.self,
+            PlayerConfig.self,
             TriggerArea2D.self,
             PlayerHitbox.self,
             HookHitbox.self,

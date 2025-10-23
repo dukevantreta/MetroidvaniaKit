@@ -44,6 +44,7 @@ class MorphState: PlayerState {
         // Jump
         if player.input.isActionJustPressed(.actionDown) && player.isOnFloor() {
             player.velocity.y = Float(-player.getJumpspeed())
+            jumpTimestamp = Time.getTicksMsec()
         }
         
         // Horizontal movement

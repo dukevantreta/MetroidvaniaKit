@@ -21,6 +21,7 @@ class PlayerHitbox: Area2D {
         
         self.collisionLayer = 0
         collisionMask |= 0b00000100
+        collisionMask |= 0b1000_0000_0000_0000
         hitbox?.collisionLayer = 0b1_0000_0000
       
         // Hit cooldown timer
@@ -42,6 +43,18 @@ class PlayerHitbox: Area2D {
         
         hitbox?.onHit = { [weak self] damage in
             self?.takeHit(damage)
+        }
+        areaEntered.connect { [weak self] other in
+            guard let self, let other else { return }
+            if other.collisionLayer == 0b1000_0000_0000_0000 {
+                player.enterLowGravity()
+            }
+        }
+        areaExited.connect { [weak self] other in
+            guard let self, let other else { return }
+            if other.collisionLayer == 0b1000_0000_0000_0000 {
+                player.exitLowGravity()
+            }
         }
     }
     

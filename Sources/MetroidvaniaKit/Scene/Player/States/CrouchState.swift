@@ -21,13 +21,15 @@ class CrouchState: PlayerState {
         }
         
         // Stand
-        if player.input.isActionJustPressed(.up) || !player.xDirection.isZero {
+        if player.input.isActionJustPressed(.up) || !player.joy1.x.isZero {
             return .run
         }
         
         // Morph
         if player.input.isActionJustPressed(.down) && player.hasUpgrade(.morph) {
-            return .morph
+            player.morph()
+            return .run
+            // return .morph
         }
         
         // Sanity check
@@ -40,13 +42,8 @@ class CrouchState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-//        let yDirection = player.input.getVerticalAxis()
-//        let xDirection = player.input.getHorizontalAxis()
-        
         player.fire()
         player.fireSubweapon()
-        
-        
         
         // Handle animations
         if player.input.isActionPressed(.leftShoulder) {

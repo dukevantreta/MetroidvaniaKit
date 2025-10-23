@@ -18,5 +18,10 @@
 ### UI
 - Change text align from center to left on labels that display from a strea of characters.
 
+### Bugs
+- Fix item pick locking next pause screen.
+- Holding jump right after falling a ledge makes it ignores gravity (falling != jumping). 
+- Bullet colliders don't rotate w/ the sprite.
+
 ### Unknowns
 - Evaluate the need of obsevability on cooldowns, to add callbacks for rendering UI indicators.

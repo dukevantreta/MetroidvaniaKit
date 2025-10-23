@@ -22,7 +22,7 @@ class WallGrabState: PlayerState {
             player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()
             return .jump
-        } else if Int(player.getWallNormal().sign().x) == Int(player.xDirection) {
+        } else if Int(player.getWallNormal().sign().x) == Int(player.joy1.x) {
             return .jump
         }
         return nil
@@ -30,19 +30,19 @@ class WallGrabState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-//        let yDirection = player.input.getVerticalAxis()
-//        let xDirection = player.input.getHorizontalAxis()
-        
         player.fire()
         player.fireSubweapon()
-        
         
         player.facingDirection = -lastFacingDirection
         player.sprite?.flipH = player.facingDirection < 0
         
-        if player.input.isActionPressed(.leftShoulder) || !player.yDirection.isZero {
-            if !player.yDirection.isZero {
-                player.isAimingDown = player.yDirection < 0
+        if player.isMorphed {
+            player.sprite?.play(name: "mini-wall")
+            return
+        }
+        if player.input.isActionPressed(.leftShoulder) || !player.joy1.y.isZero {
+            if !player.joy1.y.isZero {
+                player.isAimingDown = player.joy1.y < 0
             }
             if player.isAimingDown {
                 player.sprite?.play(name: "wall-aim-down")

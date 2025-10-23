@@ -14,14 +14,18 @@ class ShinesparkState: PlayerState {
         chainShinespark = false
         player.hasShinesparkCharge = false
         player.sprite?.modulate = .orange
-        direction = Vector2(x: player.xDirection, y: player.yDirection)
-        player.sprite?.play(name: "dash")
+        direction = Vector2(x: player.joy1.x, y: player.joy1.y)
+        if player.isMorphed {
+            player.sprite?.play(name: "mini-dash")
+        } else {
+            player.sprite?.play(name: "dash")
+        }
     }
     
     func processInput(_ player: Player) -> Player.State? {
         if chainShinespark {
             player.sprite?.modulate = .white
-            player.velocity.x = Float(player.speed * player.xDirection * 2)
+            player.velocity.x = Float(player.speed * Double(player.joy1.x) * 2)
             player.isSpeedBoosting = true
             return .run
         }

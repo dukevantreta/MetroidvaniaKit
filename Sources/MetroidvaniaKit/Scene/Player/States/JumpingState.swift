@@ -21,7 +21,7 @@ class JumpingState: PlayerState {
     
     func processInput(_ player: Player) -> Player.State? {
         
-        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.xDirection) && player.hasUpgrade(.wallGrab) {
+        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.hasUpgrade(.wallGrab) {
             return .wallGrab
         }
         
@@ -30,7 +30,7 @@ class JumpingState: PlayerState {
             return .run
         }
         if player.input.isActionJustPressed(.rightShoulder) {
-            if player.hasShinesparkCharge && (!player.xDirection.isZero || !player.yDirection.isZero) {
+            if player.hasShinesparkCharge && (!player.joy1.x.isZero || !player.joy1.y.isZero) {
                 return .charge
             }
             return .dash
@@ -43,7 +43,7 @@ class JumpingState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        var targetSpeed = player.speed * player.xDirection
+        var targetSpeed = player.speed * Double(player.joy1.x)
         
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
@@ -55,8 +55,8 @@ class JumpingState: PlayerState {
         }
         
         if Time.getTicksMsec() - player.wallJumpTimestamp > player.wallJumpThresholdMsec {
-            if !player.xDirection.isZero {
-                if (player.velocity.x >= 0 && player.xDirection > 0) || (player.velocity.x <= 0 && player.xDirection < 0) {
+            if !player.joy1.x.isZero {
+                if (player.velocity.x >= 0 && player.joy1.x > 0) || (player.velocity.x <= 0 && player.joy1.x < 0) {
                     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
                 } else {
                     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
@@ -88,9 +88,9 @@ class JumpingState: PlayerState {
         }
         
 
-        if player.input.isActionJustPressed(.actionDown) {
-            GD.print("CAN DOUBLE JUMP? \(canDoubleJump) --- HAS UPGRADE? \(player.hasUpgrade(.doubleJump))")
-        }
+        // if player.input.isActionJustPressed(.actionDown) {
+        //     GD.print("CAN DOUBLE JUMP? \(canDoubleJump) --- HAS UPGRADE? \(player.hasUpgrade(.doubleJump))")
+        // }
         // Mid-air jump
         if player.input.isActionJustPressed(.actionDown) && canDoubleJump && allowsDoubleJump && player.hasUpgrade(.doubleJump) {
             player.velocity.y = Float(-player.getJumpspeed())
@@ -118,17 +118,25 @@ class JumpingState: PlayerState {
         
         
         // Handle animations
+        if player.isMorphed {
+            if abs(player.getRealVelocity().x) > Float(player.speed * 0.5) {
+                player.sprite?.play(name: "mini-jump-spin")
+            } else {
+                player.sprite?.play(name: "mini-jump")
+            }
+            return
+        }
         if abs(player.getRealVelocity().x) > Float(player.speed * 0.8) && !hasShotDuringJump {
             player.sprite?.play(name: "jump-spin")
-            if player.yDirection < 0 {
+            if player.joy1.y < 0 {
                 player.aimDown()
-            } else if player.yDirection > 0 {
+            } else if player.joy1.y > 0 {
                 player.aimUp()
             }
         } else {
-            if player.input.isActionPressed(.leftShoulder) || (!player.yDirection.isZero && !player.xDirection.isZero) {
-                if !player.yDirection.isZero {
-                    player.isAimingDown = player.yDirection < 0
+            if player.input.isActionPressed(.leftShoulder) || (!player.joy1.y.isZero && !player.joy1.x.isZero) {
+                if !player.joy1.y.isZero {
+                    player.isAimingDown = player.joy1.y < 0
                 }
                 if player.isAimingDown {
                     player.sprite?.play(name: "jump-aim-diag-down")
@@ -138,10 +146,10 @@ class JumpingState: PlayerState {
                     player.aimDiagonalUp()
                 }
             } else {
-                if player.yDirection < 0 {
+                if player.joy1.y < 0 {
                     player.sprite?.play(name: "jump-aim-down")
                     player.aimDown()
-                } else if player.yDirection > 0 {
+                } else if player.joy1.y > 0 {
                     player.sprite?.play(name: "jump-aim-up")
                     player.aimUp()
                 } else {

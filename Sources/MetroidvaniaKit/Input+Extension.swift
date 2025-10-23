@@ -27,6 +27,22 @@ enum InputAction: StringName {
 }
 
 extension Input {
+
+    // static func getVector(
+    //     negativeX: InputAction, 
+    //     positiveX: InputAction, 
+    //     negativeY: InputAction, 
+    //     positiveY: InputAction,
+    //     deadzone: Double
+    // ) -> Vector2 {
+    //     Input.getVector(
+    //         negativeX: negativeX.rawValue,
+    //         positiveX: positiveX.rawValue,
+    //         negativeY: negativeY.rawValue,
+    //         positiveY: positiveY.rawValue,
+    //         deadzone: deadzone
+    //     )
+    // }
     
     static func getAxis(negativeAction: InputAction, positiveAction: InputAction) -> Double {
         Input.getAxis(negativeAction: negativeAction.rawValue, positiveAction: positiveAction.rawValue)
@@ -49,6 +65,14 @@ extension Input {
 class InputController: Node {
     
     @Export var isEnabled: Bool = true
+
+    // func getJoy1Axis() -> Vector2 {
+    //     isEnabled ? Input.getVector(negativeX: .left, positiveX: .right, negativeY: .down, positiveY: .up, deadzone: 0.5) : .zero
+    // }
+
+    // func getJoy2Axis() -> Vector2 {
+    //     isEnabled ? Input.getVector(negativeX: .secondaryLeft, positiveX: .secondaryRight, negativeY: .secondaryDown, positiveY: .secondaryUp, deadzone: 0.5) : .zero
+    // }
     
     func getHorizontalAxis() -> Double {
         isEnabled ? Input.getAxis(negativeAction: .left, positiveAction: .right) : 0.0
