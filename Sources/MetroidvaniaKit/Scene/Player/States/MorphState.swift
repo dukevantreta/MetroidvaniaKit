@@ -19,7 +19,7 @@ class MorphState: PlayerState {
     func processInput(_ player: Player) -> Player.State? {
         // Unmorph
         if player.input.isActionJustPressed(.up) && player.isOnFloor() {
-            if !player.raycastForUnmorph() {
+            if player.hasSpaceToUnmorph() {
                 if let rect = player.collisionShape?.shape as? RectangleShape2D {
                     rect.size = Vector2(x: 14, y: 30)
                     player.collisionShape?.position = Vector2(x: 0, y: -15)

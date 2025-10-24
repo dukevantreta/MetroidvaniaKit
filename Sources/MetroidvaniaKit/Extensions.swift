@@ -58,6 +58,12 @@ extension Node {
     }
 }
 
+extension PhysicsDirectSpaceState2D {
+    func raycast(from origin: Vector2, to target: Vector2, mask: LayerMask) -> VariantDictionary {
+        return self.intersectRay(parameters: .create(from: origin, to: target, collisionMask: mask.rawValue))
+    }
+}
+
 extension TileSet {
     
     func getColumnCount(sourceId: Int32) -> Int32 {

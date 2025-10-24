@@ -1,5 +1,7 @@
 import SwiftGodot
 
+typealias Ray = (origin: Vector2, target: Vector2)
+
 enum SubweaponType {
     case none
     case rocket
@@ -47,7 +49,7 @@ final class Player: CharacterBody2D {
     @Node("Health") var hp: Health?
     @Node("Ammo") var ammo: Ammo?
 
-    @Node("data") let data: PlayerData
+    @Node("data") let data: PlayerData!
     
     @BindNode var input: InputController
     
@@ -59,7 +61,7 @@ final class Player: CharacterBody2D {
     
     @Export(.enum) var weaponType: WeaponType = .normal
 
-    @Export(.resourceType) var config: PlayerConfig!
+    // @Export(.resourceType) var config: PlayerConfig!
     
     @Export
     var speed: Double = 180.0
@@ -120,14 +122,28 @@ final class Player: CharacterBody2D {
     let bombCooldown = Cooldown(time: 0.5)
     
     var joy1: Vector2 = .zero
-    // var xDirection: Double = 0.0
-    // var yDirection: Double = 0.0
     
     var weapon: WeaponNode?
     
     var subweapon: WeaponNode?
+
+    @Export private(set) var size: Vector2 = .zero {
+        didSet {
+            (collisionShape?.shape as? RectangleShape2D)?.size = size
+            collisionShape?.position = Vector2(x: 0, y: -size.y / 2)
+            updateWallGrabRaycast()
+        }
+    }
+
+    private(set) var highRay: Ray = (.zero, .zero)
+    private(set) var midRay: Ray = (.zero, .zero)
+    private(set) var lowRay: Ray = (.zero, .zero)
     
-    var facingDirection: Int = 1
+    var facingDirection: Int = 1 {
+        didSet {
+            updateWallGrabRaycast()
+        }
+    }
     
     var wallJumpTimestamp: UInt = 0
     
@@ -160,8 +176,8 @@ final class Player: CharacterBody2D {
         }
     }
     
-    var shotOrigin: Vector2 = .zero
-    var shotDirection: Vector2 = .zero
+    private(set) var shotOrigin: Vector2 = .zero
+    private(set) var shotDirection: Vector2 = .zero
     
     func getGravity() -> Double {
         8 * parabolicHeight / (jumpDuration * jumpDuration)
@@ -176,10 +192,11 @@ final class Player: CharacterBody2D {
     }
     
     override func _ready() {
-        guard let config else {
-            logError("PlayerConfig resource not found.")
-            return
+        guard data != nil else {
+            logError("PlayerData node not found."); return
         }
+        self.size = Vector2(from: data.bodySizeDefault)
+
         motionMode = .grounded
         floorBlockOnWall = false
         slideOnCeiling = false // doesnt work on this movement model
@@ -227,21 +244,15 @@ final class Player: CharacterBody2D {
             facingDirection = faceDirX
             sprite?.flipH = facingDirection < 0
         }
-        // log("POSITION X: \(position.x)")
-        // log("Collision W: \((collisionShape?.shape as? RectangleShape2D)?.size.x) --- x: \(collisionShape?.position.x)")
 
         bombCooldown.update(delta)
         
-        // if input.isActionPressed(.rightShoulder) && !isInWater && hasUpgrade(.waterWalking) {
         if velocity.x != 0.0 && !isInWater && hasUpgrade(.waterWalking) {
             collisionMask |= 0b0100
         } else {
             collisionMask = 0b1011
         }
         
-        
-        // let joy2x = input.getSecondaryHorizontalAxis()
-        // let joy2y = input.getSecondaryVerticalAxis()
         if abs(joy2.x) > 0.5 || abs(joy2.y) > 0.5 {
             let angle = joy2.angle()
             if abs(angle) <= .pi / 4 { // right
@@ -281,22 +292,16 @@ final class Player: CharacterBody2D {
 
     func morph() {
         isMorphed = true
+        self.size = Vector2(from: data.bodySizeMorphed)
         if let hitboxRect = hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 14)
             hitbox?.position = Vector2(x: 0, y: -7)
-        }
-        if let collisionRect = collisionShape?.shape as? RectangleShape2D {
-            collisionRect.size = data.bodySizeMorphed
-            collisionShape?.position = Vector2(x: 0, y: -7)
         }
     }
 
     func unmorph() {
         isMorphed = false
-        if let rect = collisionShape?.shape as? RectangleShape2D {
-            rect.size = data.bodySizeNormal
-            collisionShape?.position = Vector2(x: 0, y: -15)
-        }
+        self.size = Vector2(from: data.bodySizeDefault)
     }
 
     func expandHealth() {
@@ -358,49 +363,65 @@ final class Player: CharacterBody2D {
         dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
     }
     
-    // MARK: RAYCASTS
+    // MARK: RAYCASTS & BOUNDARIES CHECKING
+
+    func updateWallGrabRaycast() {
+        guard let data else { return }
+        
+        let x0 = size.x * 0.5 * Float(facingDirection)
+        let xf = (size.x * 0.5 + data.wallDetectionLength) * Float(facingDirection)
+        
+        highRay.origin.x = x0
+        highRay.target.x = xf
+        highRay.origin.y = -size.y + data.highRayOffsetY
+        highRay.target.y = -size.y + data.highRayOffsetY
+        
+        midRay.origin.x = x0
+        midRay.target.x = xf
+        midRay.origin.y = -size.y / 2
+        midRay.target.y = -size.y / 2
+        
+        lowRay.origin.x = x0
+        lowRay.target.x = xf
+        lowRay.origin.y = data.lowRayOffsetY
+        lowRay.target.y = data.lowRayOffsetY
+    }
     
     func raycastForWall() -> Bool {
-        guard let size = getCollisionRectSize(), let space = getWorld2d()?.directSpaceState else { return false }
-        
-        // I have no idea why this hack is needed
-        // Left wall grab stopped working after a map importer update, this fixes it
-        let correctionFactor: Float = facingDirection < 0 ? 2.0 : 1.0
-        
-        let origin1 = position + Vector2(x: 0, y: -1)
-        let dest1 = origin1 + Vector2(x: (size.x * 0.5 + correctionFactor) * Float(facingDirection), y: 0)
-        let ray1 = PhysicsRayQueryParameters2D.create(from: origin1, to: dest1, collisionMask: 0b0001)
-        
-        let origin2 = position + Vector2(x: 0, y: -size.y)
-        let dest2 = origin2 + Vector2(x: (size.x * 0.5 + correctionFactor) * Float(facingDirection), y: 0)
-        let ray2 = PhysicsRayQueryParameters2D.create(from: origin2, to: dest2, collisionMask: 0b0001)
-        
-        let result1 = space.intersectRay(parameters: ray1)
-        let result2 = space.intersectRay(parameters: ray2)
-        
-        if
-            let point1 = result1["position"],
-            let point2 = result2["position"]
+        guard let space = getWorld2d()?.directSpaceState else { return false }
+        let resultLow = space.raycast(from: position + lowRay.origin, to: position + lowRay.target, mask: .floor)
+        let resultMid = space.raycast(from: position + midRay.origin, to: position + midRay.target, mask: .floor)
+        let resultHigh = space.raycast(from: position + highRay.origin, to: position + highRay.target, mask: .floor)
+        let downRay = Vector2(x: 0, y: data.floorCheckLength)
+        let resultDown = space.raycast(from: position, to: position + downRay, mask: .floor)
+        if 
+            resultLow["position"] != nil && 
+            resultMid["position"] != nil && 
+            resultHigh["position"] != nil && 
+            resultDown["position"] == nil
         {
             return true
         }
         return false
     }
     
-    func raycastForUnmorph() -> Bool {
+    func hasSpaceToUnmorph() -> Bool {
         guard let space = getWorld2d()?.directSpaceState else { return false }
         
-        let origin1 = position + Vector2(x: -7, y: -14)
-        let dest1 = origin1 + Vector2(x: 0, y: -16)
-        let ray1 = PhysicsRayQueryParameters2D.create(from: origin1, to: dest1, collisionMask: 0b0001)
+        let morphSize = data.bodySizeMorphed
+        let humanSize = data.bodySizeDefault
         
-        let origin2 = position + Vector2(x: 6, y: -14)
-        let dest2 = origin2 + Vector2(x: 0, y: -16)
-        let ray2 = PhysicsRayQueryParameters2D.create(from: origin2, to: dest2, collisionMask: 0b0001)
-        
-        let result1 = space.intersectRay(parameters: ray1)
-        let result2 = space.intersectRay(parameters: ray2)
-        if result1["position"] != nil || result2["position"] != nil {
+        let leftRay = Ray(
+            origin: Vector2(x: -morphSize.x / 2, y: -morphSize.y), 
+            target: Vector2(x: -humanSize.x / 2, y: -humanSize.y))
+        let rightRay = Ray(
+            origin: Vector2(x: morphSize.x / 2, y: -morphSize.y),
+            target: Vector2(x: humanSize.x / 2, y: -humanSize.y))
+
+        let resultLeft = space.raycast(from: position + leftRay.origin, to: position + leftRay.target, mask: .floor)
+        let resultRight = space.raycast(from: position + rightRay.origin, to: position + rightRay.target, mask: .floor)
+
+        if resultLeft["position"] == nil && resultRight["position"] == nil {
             return true
         }
         return false
@@ -516,32 +537,5 @@ final class Player: CharacterBody2D {
     func aimCrouchUp() {
         shotOrigin = Vector2(x: Float(13 * facingDirection), y: -24)
         shotDirection = Vector2(x: facingDirection, y: -1).normalized()
-    }
-    
-    // MARK: DEBUG
-    
-    override func _process(delta: Double) {
-        queueRedraw()
-    }
-    
-    override func _draw() {
-        let origin = Vector2(x: 0, y: -14)
-        let v = velocity * 0.1
-        drawLine(from: origin, to: origin + v, color: .blue)
-        drawLine(from: origin, to: origin + Vector2(x: v.x, y: 0), color: .red)
-        drawLine(from: origin, to: origin + Vector2(x: 0, y: v.y), color: .green)
-        
-        let size = getCollisionRectSize() ?? .zero
-        
-        let rayOrigin1 = Vector2(x: 0, y: -1)
-        let rayDest1 = Vector2(x: rayOrigin1.x + (size.x * 0.5 + 1) * Float(facingDirection), y: rayOrigin1.y)
-        drawLine(from: rayOrigin1, to: rayDest1, color: .magenta)
-        
-        let rayOrigin2 = Vector2(x: 0, y: -size.y)
-        let rayDest2 = Vector2(x: rayOrigin2.x + (size.x * 0.5 + 1) * Float(facingDirection), y: rayOrigin2.y)
-        drawLine(from: rayOrigin2, to: rayDest2, color: .magenta)
-        
-        let shotRegion = Rect2(x: shotOrigin.x - 1, y: shotOrigin.y - 1, width: 3, height: 3)
-        drawRect(shotRegion, color: .red)
     }
 }

@@ -1,4 +1,5 @@
 import SwiftGodot
+import Foundation
 
 class JumpingState: PlayerState {
     
@@ -22,6 +23,12 @@ class JumpingState: PlayerState {
     func processInput(_ player: Player) -> Player.State? {
         
         if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.hasUpgrade(.wallGrab) {
+            let xNormal = Int(player.getWallNormal().sign().x)
+            if xNormal > 0 {
+                player.position.x =  player.position.x.rounded(.down)
+            } else if xNormal < 0 {
+                player.position.x =  player.position.x.rounded(.up)
+            }
             return .wallGrab
         }
         

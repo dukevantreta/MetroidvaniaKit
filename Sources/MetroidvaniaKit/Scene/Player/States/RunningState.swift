@@ -29,7 +29,7 @@ class RunningState: PlayerState {
             return .jump
         }
         if player.joy1.y > 0 && player.isMorphed {
-            if !player.raycastForUnmorph() {
+            if player.hasSpaceToUnmorph() {
                 player.unmorph()
                 return .crouch
             }

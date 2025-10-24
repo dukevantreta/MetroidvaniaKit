@@ -24,7 +24,7 @@ class IdleState: PlayerState {
             return .jump
         }
         if player.input.isActionJustPressed(.up) && player.isMorphed {
-            if !player.raycastForUnmorph() {
+            if player.hasSpaceToUnmorph() {
                 player.unmorph()
                 return .crouch
             }

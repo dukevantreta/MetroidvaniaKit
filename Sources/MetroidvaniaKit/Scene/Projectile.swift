@@ -31,7 +31,7 @@ class Projectile: Node2D {
     var effectSpawner: Spawner?
 
     deinit {
-        GD.print("Projectile DEINIT")
+        // GD.print("Projectile DEINIT")
     }
     
     override func _ready() {

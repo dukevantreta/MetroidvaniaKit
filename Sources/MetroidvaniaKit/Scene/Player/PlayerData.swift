@@ -18,8 +18,18 @@ final class PlayerData: Node {
     @Export(.flags, Upgrades.hintString) var upgradesEnabled: Upgrades = Upgrades(rawValue: 0xFFFFFFFF)
 
     #exportGroup("Physics")
-    @Export private(set) var bodySizeNormal: Vector2 = Vector2(x: 14, y: 30)
-    @Export private(set) var bodySizeMorphed: Vector2 = Vector2(x: 10, y: 14)
+    @Export private(set) var bodySizeDefault: Vector2i = Vector2i(x: 12, y: 30) {
+        didSet { updateConfigurationWarnings() }
+    }
+    @Export private(set) var bodySizeMorphed: Vector2i = Vector2i(x: 12, y: 14) {
+        didSet { updateConfigurationWarnings() }
+    }
+
+    #exportSubgroup("Wall Grab")
+    @Export private(set) var wallDetectionLength: Float = 1.0
+    @Export private(set) var highRayOffsetY: Float = 1.0
+    @Export private(set) var lowRayOffsetY: Float = -1.0
+    @Export private(set) var floorCheckLength: Float = 8.0
 
     #exportGroup("Movement")
     @Export private(set) var movespeed: Double = 180.0
@@ -40,5 +50,15 @@ final class PlayerData: Node {
 
     var maxAmmo: Int {
         baseAmmo + ammoPerExpansion * ammoExpansions
+    }
+
+    override func _getConfigurationWarnings() -> PackedStringArray {
+        var message = PackedStringArray()
+        if !bodySizeDefault.x.isMultiple(of: 2) || !bodySizeDefault.y.isMultiple(of: 2) ||
+            !bodySizeMorphed.x.isMultiple(of: 2) || !bodySizeMorphed.y.isMultiple(of: 2)
+        {
+            message.append("Using odd dimensions for body size is not recommended.")
+        }
+        return message
     }
 }
