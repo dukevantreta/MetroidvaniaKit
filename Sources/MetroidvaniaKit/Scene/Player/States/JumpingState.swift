@@ -9,6 +9,7 @@ class JumpingState: PlayerState {
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
     
     func enter(_ player: Player) {
+        player.overclockAccumulator = 0.0
         canDoubleJump = true
         allowsDoubleJump = false
         jumpTimestamp = Time.getTicksMsec()
@@ -50,28 +51,11 @@ class JumpingState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        var targetSpeed = player.speed * Double(player.joy1.x)
-        
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
         
-        // Horizontal Movement
-        if player.isSpeedBoosting {
-            targetSpeed *= 2
-        }
-        
-        if Time.getTicksMsec() - player.wallJumpTimestamp > player.wallJumpThresholdMsec {
-            if !player.joy1.x.isZero {
-                if (player.velocity.x >= 0 && player.joy1.x > 0) || (player.velocity.x <= 0 && player.joy1.x < 0) {
-                    player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
-                } else {
-                    player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
-                }
-            } else {
-                player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration * 0.4))
-            }
-        }
+        player.handleHorizontalMovement(dt)
         
         // Vertical Movement
         let airInterval = Time.getTicksMsec() - jumpTimestamp
@@ -94,20 +78,12 @@ class JumpingState: PlayerState {
             }
         }
         
-
-        // if player.input.isActionJustPressed(.actionDown) {
-        //     GD.print("CAN DOUBLE JUMP? \(canDoubleJump) --- HAS UPGRADE? \(player.hasUpgrade(.doubleJump))")
-        // }
         // Mid-air jump
         if player.input.isActionJustPressed(.actionDown) && canDoubleJump && allowsDoubleJump && player.hasUpgrade(.doubleJump) {
             player.velocity.y = Float(-player.getJumpspeed())
             jumpTimestamp = Time.getTicksMsec()
             canDoubleJump = false
             hasShotDuringJump = false
-        }
-        
-        if abs(player.velocity.x) < Float(player.speed) {
-            player.isSpeedBoosting = false
         }
         
         if player.isAffectedByWater {
@@ -122,18 +98,16 @@ class JumpingState: PlayerState {
             hasShotDuringJump = true
         }
         
-        
-        
         // Handle animations
         if player.isMorphed {
-            if abs(player.getRealVelocity().x) > Float(player.speed * 0.5) {
+            if abs(player.getRealVelocity().x) > player.data.movespeed * 0.5 {
                 player.sprite?.play(name: "mini-jump-spin")
             } else {
                 player.sprite?.play(name: "mini-jump")
             }
             return
         }
-        if abs(player.getRealVelocity().x) > Float(player.speed * 0.8) && !hasShotDuringJump {
+        if abs(player.getRealVelocity().x) > player.data.movespeed * 0.8 && !hasShotDuringJump {
             player.sprite?.play(name: "jump-spin")
             if player.joy1.y < 0 {
                 player.aimDown()

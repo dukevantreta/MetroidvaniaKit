@@ -22,6 +22,7 @@
 - Fix item pick locking next pause screen.
 - Holding jump right after falling a ledge makes it ignores gravity (falling != jumping). 
 - Bullet colliders don't rotate w/ the sprite.
+- Slopes can cancel overclock (by reducing speed) when it is beginning.
 
 ### Unknowns
 - Evaluate the need of obsevability on cooldowns, to add callbacks for rendering UI indicators.

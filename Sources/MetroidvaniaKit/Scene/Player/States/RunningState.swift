@@ -2,14 +2,12 @@ import SwiftGodot
 
 class RunningState: PlayerState {
     
-    var isFirstRunningFrame: Bool = true
-    var startRunningTimestamp: UInt = 0
-    
     var lastActionTimestamp: UInt = 0
     
     func enter(_ player: Player) {
         // player.canDoubleJump = true
-        startRunningTimestamp = Time.getTicksMsec()
+        player.overclockAccumulator = 0.0
+        // startRunningTimestamp = Time.getTicksMsec()
         lastActionTimestamp = Time.getTicksMsec()
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -35,10 +33,10 @@ class RunningState: PlayerState {
             }
         }
         if player.joy1.x.isZero && !player.isMorphed {
-            if player.joy1.y < 0 && player.isSpeedBoosting {
+            if player.joy1.y < 0 && player.isOverclocking {
                 player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
                 player.sprite?.play(name: "stand-to-crouch")
-                player.isSpeedBoosting = false
+                player.isOverclocking = false
                 player.hasShinesparkCharge = true
                 return .crouch
             }
@@ -64,42 +62,44 @@ class RunningState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        var targetSpeed = player.speed * Double(player.joy1.x)
+        var targetSpeed = player.data.movespeed * player.joy1.x
         
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
         
+        player.handleHorizontalMovement(dt)
+
         // Speed booster turn on
-        if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.hasUpgrade(.overclock) {
-            player.isSpeedBoosting = true
-        }
-        if player.isSpeedBoosting {
-            targetSpeed *= 2
-        }
+        // if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.hasUpgrade(.overclock) {
+        //     player.isSpeedBoosting = true
+        // }
+        // if player.isSpeedBoosting {
+        //     targetSpeed *= 2
+        // }
         
         // Horizontal movement
-        if !player.joy1.x.isZero {
-            lastActionTimestamp = Time.getTicksMsec()
-            if isFirstRunningFrame {
-                startRunningTimestamp = Time.getTicksMsec()
-                isFirstRunningFrame = false
-            }
-            if (player.velocity.x >= 0 && player.joy1.x > 0) || (player.velocity.x <= 0 && player.joy1.x < 0) {
-                player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.acceleration))
-            } else {
-                player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: targetSpeed, delta: player.deceleration))
-            }
-        } else {
-            player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: player.deceleration))
-        }
+        // if !player.joy1.x.isZero {
+        //     lastActionTimestamp = Time.getTicksMsec()
+        //     if isFirstRunningFrame {
+        //         startRunningTimestamp = Time.getTicksMsec()
+        //         isFirstRunningFrame = false
+        //     }
+        //     if (player.velocity.x >= 0 && player.joy1.x > 0) || (player.velocity.x <= 0 && player.joy1.x < 0) {
+        //         player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: Double(targetSpeed), delta: Double(player.data.acceleration)))
+        //     } else {
+        //         player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: Double(targetSpeed), delta: Double(player.data.deceleration)))
+        //     }
+        // } else {
+        //     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: Double(player.data.deceleration)))
+        // }
         
         // Speed booster cancel
-        if abs(player.velocity.x) < Float(player.speed) * 0.9 || player.getRealVelocity().x == 0 {
-            isFirstRunningFrame = true
-            startRunningTimestamp = Time.getTicksMsec()
-            player.isSpeedBoosting = false
-        }
+        // if abs(player.velocity.x) < player.data.movespeed * 0.9 || player.getRealVelocity().x == 0 {
+        //     isFirstRunningFrame = true
+        //     startRunningTimestamp = Time.getTicksMsec()
+        //     player.isSpeedBoosting = false
+        // }
         
         
         

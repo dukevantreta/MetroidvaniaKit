@@ -6,6 +6,7 @@ class DashState: PlayerState {
     private var dashTime = 0.0
     
     func enter(_ player: Player) {
+        player.isOverclocking = false
         dashTime = 0.0
         xZero = player.position.x
         player.velocity.y = 0.0
@@ -27,7 +28,7 @@ class DashState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        player.velocity.x = Float(player.facingDirection) * player.dashSpeed
+        player.velocity.x = player.lookDirection * player.dashSpeed
         
         player.moveAndSlide()
         

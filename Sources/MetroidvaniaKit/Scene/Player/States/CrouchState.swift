@@ -5,7 +5,7 @@ class CrouchState: PlayerState {
     func enter(_ player: Player) {
         player.velocity.x = 0
         player.velocity.y = 0
-        player.isSpeedBoosting = false
+        player.isOverclocking = false
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 24)

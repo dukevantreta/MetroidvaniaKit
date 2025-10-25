@@ -2,13 +2,14 @@ import SwiftGodot
 
 class WallGrabState: PlayerState {
     
-    private var lastFacingDirection: Int = 0
+    private var lastLookDirection: Float = 0.0
     
     func enter(_ player: Player) {
+        // player.isOverclocking = false
         player.velocity.x = 0
         player.velocity.y = 0
-        player.isSpeedBoosting = false
-        lastFacingDirection = player.facingDirection
+        player.isOverclocking = false
+        lastLookDirection = player.lookDirection
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 36)
@@ -19,7 +20,7 @@ class WallGrabState: PlayerState {
     func processInput(_ player: Player) -> Player.State? {
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = Float(-player.getJumpspeed())
-            player.velocity.x = player.getWallNormal().sign().x * Float(player.speed) //* 0.25
+            player.velocity.x = player.getWallNormal().sign().x * player.data.movespeed //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()
             return .jump
         } else if Int(player.getWallNormal().sign().x) == Int(player.joy1.x) {
@@ -33,8 +34,8 @@ class WallGrabState: PlayerState {
         player.fire()
         player.fireSubweapon()
         
-        player.facingDirection = -lastFacingDirection
-        player.sprite?.flipH = player.facingDirection < 0
+        player.lookDirection = -lastLookDirection
+        player.sprite?.flipH = player.lookDirection < 0
         
         if player.isMorphed {
             player.sprite?.play(name: "mini-wall")

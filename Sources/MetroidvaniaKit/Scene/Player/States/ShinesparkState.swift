@@ -25,8 +25,8 @@ class ShinesparkState: PlayerState {
     func processInput(_ player: Player) -> Player.State? {
         if chainShinespark {
             player.sprite?.modulate = .white
-            player.velocity.x = Float(player.speed * Double(player.joy1.x) * 2)
-            player.isSpeedBoosting = true
+            player.velocity.x = player.data.movespeed * player.joy1.x * 2
+            player.isOverclocking = true
             return .run
         }
         if collisionTime > 0.7 {

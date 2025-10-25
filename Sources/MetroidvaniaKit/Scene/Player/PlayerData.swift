@@ -32,9 +32,11 @@ final class PlayerData: Node {
     @Export private(set) var floorCheckLength: Float = 8.0
 
     #exportGroup("Movement")
-    @Export private(set) var movespeed: Double = 180.0
-    @Export private(set) var acceleration: Double = 10.0
-    @Export private(set) var deceleration: Double = 80.0
+    @Export private(set) var movespeed: Float = 180.0
+    @Export private(set) var acceleration: Float = 10.0
+    @Export private(set) var deceleration: Float = 80.0
+    @Export private(set) var airDampFactor: Float = 0.4
+    @Export private(set) var overclockFactor: Float = 2.0
 
     #exportSubgroup("Jumping")
     @Export private(set) var baseJumpLinearHeight: Double = 20 // 1 tile + 4px margin
@@ -43,6 +45,9 @@ final class PlayerData: Node {
     @Export private(set) var parabolicJumpDuration: Double = 0.5
 
     #exportGroup("Animation")
+
+    @Export private(set) var overclockThresholdTime: Double = 3.0
+
 
     var maxHp: Int {
         baseHP + hpPerExpansion * hpExpansions

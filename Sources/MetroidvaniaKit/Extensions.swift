@@ -9,6 +9,18 @@ public func ???<T,E>(optional: T?, error: @autoclosure () -> E) throws(E) -> T {
     return value
 }
 
+infix operator ∆: AdditionPrecedence
+
+public func ∆<T>(lhs: T, rhs: T) -> T where T: AdditiveArithmetic, T: SignedNumeric, T: Comparable {
+    return abs(lhs - rhs)
+}
+
+extension GD {
+    static func moveToward(from: Float, to: Float, delta: Float) -> Float {
+        return Float(GD.moveToward(from: Double(from), to: Double(to), delta: Double(delta)))
+    }
+}
+
 extension Vector2 {
     public static func *(lhs: Vector2, rhs: Float) -> Vector2 {
         return Vector2(x: lhs.x * rhs, y: lhs.y * rhs)

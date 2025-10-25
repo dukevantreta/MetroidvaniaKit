@@ -26,7 +26,6 @@ final class Player: CharacterBody2D {
         case jump
         case wallGrab
         case crouch
-        case morph
         case dash
         case charge
         case hook
@@ -61,15 +60,6 @@ final class Player: CharacterBody2D {
     
     @Export(.enum) var weaponType: WeaponType = .normal
 
-    // @Export(.resourceType) var config: PlayerConfig!
-    
-    @Export
-    var speed: Double = 180.0
-    @Export
-    var acceleration: Double = 10.0
-    @Export
-    var deceleration: Double = 80.0
-    
     @Export var damageSpeed: Float = 500
     
     @Export var allowJumpSensitivity: Bool = true
@@ -92,7 +82,7 @@ final class Player: CharacterBody2D {
         hasUpgrade(.betterWallGrab) ? 100 : 500
     }
     
-    @Export var speedBoostThreshold: Int = 3000
+    // @Export var speedBoostThreshold: Int = 3000
     
     @Export var idleAnimationThreshold: Int = 10000
     
@@ -105,6 +95,14 @@ final class Player: CharacterBody2D {
     @Export var dashTimeLimit: Double = 1.0
     
     @Export var hookLaunchSpeed: Float = 700
+
+    @Export private(set) var size: Vector2 = .zero {
+        didSet {
+            (collisionShape?.shape as? RectangleShape2D)?.size = size
+            collisionShape?.position = Vector2(x: 0, y: -size.y / 2)
+            updateWallGrabRaycast()
+        }
+    }
     
     let states: [State: PlayerState] = [
         .idle: IdleState(),
@@ -112,7 +110,6 @@ final class Player: CharacterBody2D {
         .jump: JumpingState(),
         .wallGrab: WallGrabState(),
         .crouch: CrouchState(),
-        .morph: MorphState(),
         .dash: DashState(),
         .charge: ShinesparkState(),
         .hook: HookState()
@@ -127,19 +124,11 @@ final class Player: CharacterBody2D {
     
     var subweapon: WeaponNode?
 
-    @Export private(set) var size: Vector2 = .zero {
-        didSet {
-            (collisionShape?.shape as? RectangleShape2D)?.size = size
-            collisionShape?.position = Vector2(x: 0, y: -size.y / 2)
-            updateWallGrabRaycast()
-        }
-    }
-
     private(set) var highRay: Ray = (.zero, .zero)
     private(set) var midRay: Ray = (.zero, .zero)
     private(set) var lowRay: Ray = (.zero, .zero)
     
-    var facingDirection: Int = 1 {
+    var lookDirection: Float = 1.0 {
         didSet {
             updateWallGrabRaycast()
         }
@@ -159,10 +148,12 @@ final class Player: CharacterBody2D {
         isInWater && !hasUpgrade(.waterMovement)
     }
     
-    var isSpeedBoosting = false {
+    var overclockAccumulator: Double = 0.0
+
+    var isOverclocking = false {
         didSet {
-            floorSnapLength = isSpeedBoosting ? 12 : 6
-            self.modulate = isSpeedBoosting ? Color.red : Color.white
+            floorSnapLength = isOverclocking ? 12 : 6
+            self.modulate = isOverclocking ? Color.red : Color.white
             // if isSpeedBoosting { self.modulate = Color.red }
         }
     }
@@ -239,10 +230,10 @@ final class Player: CharacterBody2D {
         joy1 = Vector2(x: input.getHorizontalAxis(), y: input.getVerticalAxis()).sign()
         let joy2 = Vector2(x: input.getSecondaryHorizontalAxis(), y: input.getSecondaryVerticalAxis())
         
-        let faceDirX = Int(velocity.sign().x)
-        if faceDirX != 0 && faceDirX != facingDirection {
-            facingDirection = faceDirX
-            sprite?.flipH = facingDirection < 0
+        let faceDirX = velocity.sign().x
+        if faceDirX != 0 && faceDirX != lookDirection {
+            lookDirection = faceDirX
+            sprite?.flipH = lookDirection < 0
         }
 
         bombCooldown.update(delta)
@@ -362,14 +353,44 @@ final class Player: CharacterBody2D {
     func layBomb() {
         dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
     }
+
+    func handleHorizontalMovement(_ delta: Double) {
+        var targetSpeed = data.movespeed * joy1.x
+        if overclockAccumulator >= data.overclockThresholdTime && hasUpgrade(.overclock) {
+            isOverclocking = true
+        }
+        if isOverclocking {
+            targetSpeed *= data.overclockFactor
+        }
+        guard isOnFloor() || Time.getTicksMsec() - wallJumpTimestamp > wallJumpThresholdMsec else { 
+            return
+        }
+        if joy1.x != 0.0 {
+            if (velocity.x >= 0 && joy1.x > 0) || (velocity.x <= 0 && joy1.x < 0) { // joystick is aligned w/ movement
+                if isOnFloor() {
+                    overclockAccumulator += delta
+                }
+                velocity.x = GD.moveToward(from: velocity.x, to: targetSpeed, delta: data.acceleration)
+            } else {
+                velocity.x = GD.moveToward(from: velocity.x, to: targetSpeed, delta: data.deceleration)
+            }
+        } else {
+            let dampFactor = isOnFloor() ? 1.0 : data.airDampFactor
+            velocity.x = GD.moveToward(from: velocity.x, to: 0, delta: data.deceleration * dampFactor)
+        }
+        if abs(getRealVelocity().x) < data.movespeed * 0.95 {
+            overclockAccumulator = 0.0
+            isOverclocking = false //
+        }
+    }
     
     // MARK: RAYCASTS & BOUNDARIES CHECKING
 
     func updateWallGrabRaycast() {
         guard let data else { return }
         
-        let x0 = size.x * 0.5 * Float(facingDirection)
-        let xf = (size.x * 0.5 + data.wallDetectionLength) * Float(facingDirection)
+        let x0 = size.x * 0.5 * lookDirection
+        let xf = (size.x * 0.5 + data.wallDetectionLength) * lookDirection
         
         highRay.origin.x = x0
         highRay.target.x = xf
@@ -495,22 +516,22 @@ final class Player: CharacterBody2D {
     // MARK: AIMING FUNCTIONS
     
     func aimForward() {
-        shotOrigin = Vector2(x: Float(16 * facingDirection), y: -27)
-        shotDirection = Vector2(x: facingDirection, y: 0).normalized()
+        shotOrigin = Vector2(x: 16 * lookDirection, y: -27)
+        shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
     
     func aimDiagonalUp() {
-        shotOrigin = Vector2(x: Float(12 * facingDirection), y: -37)
-        shotDirection = Vector2(x: facingDirection, y: -1).normalized()
+        shotOrigin = Vector2(x: 12 * lookDirection, y: -37)
+        shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
     
     func aimDiagonalDown() {
-        shotOrigin = Vector2(x: Float(13 * facingDirection), y: -18)
-        shotDirection = Vector2(x: facingDirection, y: 1).normalized()
+        shotOrigin = Vector2(x: 13 * lookDirection, y: -18)
+        shotDirection = Vector2(x: lookDirection, y: 1).normalized()
     }
     
     func aimUp() {
-        shotOrigin = Vector2(x: Float(4 * facingDirection), y: -42)
+        shotOrigin = Vector2(x: 4 * lookDirection, y: -42)
         shotDirection = Vector2(x: 0, y: -1).normalized()
     }
     
@@ -520,22 +541,22 @@ final class Player: CharacterBody2D {
     }
     
     func aimWallUp() {
-        shotOrigin = Vector2(x: Float(17 * facingDirection), y: -37)
-        shotDirection = Vector2(x: facingDirection, y: -1).normalized()
+        shotOrigin = Vector2(x: 17 * lookDirection, y: -37)
+        shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
     
     func aimWallDown() {
-        shotOrigin = Vector2(x: Float(17 * facingDirection), y: -18)
-        shotDirection = Vector2(x: facingDirection, y: 1).normalized()
+        shotOrigin = Vector2(x: 17 * lookDirection, y: -18)
+        shotDirection = Vector2(x: lookDirection, y: 1).normalized()
     }
     
     func aimCrouchForward() {
-        shotOrigin = Vector2(x: Float(16 * facingDirection), y: -14)
-        shotDirection = Vector2(x: facingDirection, y: 0).normalized()
+        shotOrigin = Vector2(x: 16 * lookDirection, y: -14)
+        shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
     
     func aimCrouchUp() {
-        shotOrigin = Vector2(x: Float(13 * facingDirection), y: -24)
-        shotDirection = Vector2(x: facingDirection, y: -1).normalized()
+        shotOrigin = Vector2(x: 13 * lookDirection, y: -24)
+        shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
 }
