@@ -1,6 +1,6 @@
 final class Cooldown {
 
-    var time: Double = 0.0
+    var time: Double
 
     private(set) var timeLeft: Double = 0.0
 
@@ -8,7 +8,7 @@ final class Cooldown {
         timeLeft <= 0.0
     }
 
-    init(time: Double) {
+    init(time: Double = 0.0) {
         self.time = time
     }
 

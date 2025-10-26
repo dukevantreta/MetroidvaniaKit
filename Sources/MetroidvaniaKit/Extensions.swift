@@ -15,6 +15,16 @@ public func ∆<T>(lhs: T, rhs: T) -> T where T: AdditiveArithmetic, T: SignedNu
     return abs(lhs - rhs)
 }
 
+infix operator <-
+
+extension Node {
+    // Can be chained
+    static func <- (parent: Node, child: Node) -> Node {
+        parent.addChild(node: child)
+        return child
+    }
+}
+
 extension GD {
     static func moveToward(from: Float, to: Float, delta: Float) -> Float {
         return Float(GD.moveToward(from: Double(from), to: Double(to), delta: Double(delta)))

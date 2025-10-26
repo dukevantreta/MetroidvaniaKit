@@ -1,6 +1,8 @@
 import SwiftGodot
 
 class CrouchState: PlayerState {
+
+    let canFire: Bool = true
     
     func enter(_ player: Player) {
         player.velocity.x = 0
@@ -41,9 +43,6 @@ class CrouchState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
-        
-        player.fire()
-        player.fireSubweapon()
         
         // Handle animations
         if player.input.isActionPressed(.leftShoulder) {

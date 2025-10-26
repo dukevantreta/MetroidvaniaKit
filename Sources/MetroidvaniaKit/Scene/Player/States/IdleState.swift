@@ -1,6 +1,8 @@
 import SwiftGodot
 
 class IdleState: PlayerState {
+
+    let canFire: Bool = true
     
     func enter(_ player: Player) {
         player.sprite?.play(name: "idle-1")
@@ -34,9 +36,6 @@ class IdleState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        player.fire()
-        player.fireSubweapon()
-
         if player.isMorphed {
             player.sprite?.play(name: "mini-idle-1")
             return

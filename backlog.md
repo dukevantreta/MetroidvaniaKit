@@ -20,6 +20,7 @@
 
 ### Bugs
 - Fix item pick locking next pause screen.
+    - Pause storage is breaking room transitions.
 - Holding jump right after falling a ledge makes it ignores gravity (falling != jumping). 
 - Bullet colliders don't rotate w/ the sprite.
 - Slopes can cancel overclock (by reducing speed) when it is beginning.

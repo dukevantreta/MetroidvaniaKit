@@ -2,6 +2,8 @@ import SwiftGodot
 
 class RunningState: PlayerState {
     
+    let canFire: Bool = true
+    
     var lastActionTimestamp: UInt = 0
     
     func enter(_ player: Player) {
@@ -62,56 +64,18 @@ class RunningState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        var targetSpeed = player.data.movespeed * player.joy1.x
-        
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
         
         player.handleHorizontalMovement(dt)
 
-        // Speed booster turn on
-        // if Time.getTicksMsec() - startRunningTimestamp > player.speedBoostThreshold && player.hasUpgrade(.overclock) {
-        //     player.isSpeedBoosting = true
-        // }
-        // if player.isSpeedBoosting {
-        //     targetSpeed *= 2
-        // }
-        
-        // Horizontal movement
-        // if !player.joy1.x.isZero {
-        //     lastActionTimestamp = Time.getTicksMsec()
-        //     if isFirstRunningFrame {
-        //         startRunningTimestamp = Time.getTicksMsec()
-        //         isFirstRunningFrame = false
-        //     }
-        //     if (player.velocity.x >= 0 && player.joy1.x > 0) || (player.velocity.x <= 0 && player.joy1.x < 0) {
-        //         player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: Double(targetSpeed), delta: Double(player.data.acceleration)))
-        //     } else {
-        //         player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: Double(targetSpeed), delta: Double(player.data.deceleration)))
-        //     }
-        // } else {
-        //     player.velocity.x = Float(GD.moveToward(from: Double(player.velocity.x), to: 0, delta: Double(player.data.deceleration)))
-        // }
-        
-        // Speed booster cancel
-        // if abs(player.velocity.x) < player.data.movespeed * 0.9 || player.getRealVelocity().x == 0 {
-        //     isFirstRunningFrame = true
-        //     startRunningTimestamp = Time.getTicksMsec()
-        //     player.isSpeedBoosting = false
-        // }
-        
-        
-        
         if player.isAffectedByWater {
             player.velocity *= 0.9
         }
         
         player.moveAndSlide()
         
-        player.fire()
-        player.fireSubweapon()
-
         if player.isMorphed {
             if abs(player.getRealVelocity().x) > 0 {
                 player.sprite?.play(name: "mini-run")
@@ -120,9 +84,7 @@ class RunningState: PlayerState {
             }
             return
         }
-        
-        
-        // GD.print("REAL V: \(player.getRealVelocity())")
+         
         // Handle animations
         if abs(player.getRealVelocity().x) > 0 {
             if player.input.isActionPressed(.leftShoulder) || !player.joy1.y.isZero {

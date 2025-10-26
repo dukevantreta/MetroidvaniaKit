@@ -1,6 +1,8 @@
 import SwiftGodot
 
 class ShinesparkState: PlayerState {
+
+    let canFire: Bool = false
     
     var direction: Vector2 = .zero
     

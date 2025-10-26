@@ -41,7 +41,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             PlayerHitbox.self,
             HookHitbox.self,
             Projectile.self,
-            WeaponNode.self,
+            Weapon.self,
             PowerBeam.self,
             WaveBeam.self,
             PlasmaBeam.self,

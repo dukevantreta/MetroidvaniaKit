@@ -94,7 +94,7 @@ class PlayerHitbox: Area2D {
     
     func takeHit(_ damage: Damage) {
         if damage.source == .bomb {
-            if player?.currentState == .morph {
+            if player?.isMorphed == true {
                 player?.velocity.y = Float(-(player?.getJumpspeed() ?? 0.0))
             }
             return

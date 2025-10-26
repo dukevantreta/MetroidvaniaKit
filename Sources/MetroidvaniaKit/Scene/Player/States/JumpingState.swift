@@ -3,11 +3,13 @@ import Foundation
 
 class JumpingState: PlayerState {
     
+    let canFire: Bool = true
+
     var jumpTimestamp: UInt = 0
     var hasShotDuringJump = false
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
-    
+
     func enter(_ player: Player) {
         player.overclockAccumulator = 0.0
         canDoubleJump = true
@@ -91,12 +93,6 @@ class JumpingState: PlayerState {
         }
         
         player.moveAndSlide()
-        
-        if player.fire() {
-            hasShotDuringJump = true
-        } else if player.fireSubweapon() {
-            hasShotDuringJump = true
-        }
         
         // Handle animations
         if player.isMorphed {

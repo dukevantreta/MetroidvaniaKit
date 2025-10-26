@@ -1,6 +1,8 @@
 import SwiftGodot
 
 class WallGrabState: PlayerState {
+
+    let canFire: Bool = true
     
     private var lastLookDirection: Float = 0.0
     
@@ -30,9 +32,6 @@ class WallGrabState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
-        
-        player.fire()
-        player.fireSubweapon()
         
         player.lookDirection = -lastLookDirection
         player.sprite?.flipH = player.lookDirection < 0

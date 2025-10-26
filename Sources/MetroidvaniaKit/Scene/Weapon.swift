@@ -35,57 +35,48 @@ struct GranadeHitSpawner: Spawner {
 }
 
 @Godot
-class WeaponNode: Node {
+class Weapon: Node {
 
     var ammo: Ammo?
+    var cooldown: Cooldown?
 
     @Export var ammoCost: Int = 0
     
-    @Export var cooldownTime: Double = 0.0 {
-        didSet {
-            cooldown.time = cooldownTime
-        }
-    }
+    @Export var cooldownTime: Double = 0.0 
 
     @Export var autofire: Bool = false
     
-    var cooldownCounter: Double = 0.0
-
-    var cooldown = Cooldown(time: 1.0)
-
-    override func _process(delta: Double) {
-        // cooldownCounter -= delta
-        cooldown.update(delta)
-    }
+    var isFirstFrame = true
     
-    func fire(from node: Node, origin: Vector2, direction: Vector2) {
-        // guard cooldownCounter <= 0 else {
-        //     return 
-        // }
-        guard cooldown.isReady else { return }
-        guard ammo?.consume(ammoCost) == true else {
-            return // play fail sfx
+    func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+        guard isPressed else {
+            isFirstFrame = true
+            return false
         }
-        // cooldownCounter = cooldown
+        guard autofire || isFirstFrame else { return false }
+        isFirstFrame = false
+        guard let cooldown, cooldown.isReady else { return false }
+        guard ammo?.consume(ammoCost) == true else { 
+            return false // play fail sfx
+        }
+        cooldown.time = cooldownTime
         cooldown.use()
         let projectiles = makeProjectiles(origin: origin, direction: direction) 
         projectiles.forEach {
             $0.position = origin
             node.addChild(node: $0)
         }
+        return true
     }
 
     func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         logError("Method not implemented")
         return []
     }
-
-    func release() {
-    }
 }
 
 @Godot
-class DataMiner: WeaponNode {
+class DataMiner: Weapon {
 
     private let minePool = [
         Mine(),
@@ -104,8 +95,15 @@ class DataMiner: WeaponNode {
         }
     }
 
-    override func fire(from node: Node, origin: Vector2, direction: Vector2) {
-        guard cooldown.isReady else { return }
+    override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+        guard isPressed else {
+            isFirstFrame = true
+            return false
+        }
+        guard isFirstFrame else { return false }
+        isFirstFrame = false
+        guard let cooldown, cooldown.isReady else { return false }
+        cooldown.time = cooldownTime
         cooldown.use()
         let projectiles = makeProjectiles(origin: origin, direction: direction) 
         projectiles.forEach {
@@ -113,6 +111,7 @@ class DataMiner: WeaponNode {
             node.addChild(node: $0)
             ($0 as? Mine)?.reset()
         }
+        return true
     }
 
     override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
@@ -127,7 +126,7 @@ class DataMiner: WeaponNode {
 }
 
 @Godot
-class PowerBeam: WeaponNode {
+class PowerBeam: Weapon {
     
     @Export var sprite: PackedScene?
     
@@ -177,7 +176,7 @@ class PowerBeam: WeaponNode {
 }
 
 @Godot
-class WaveBeam: WeaponNode {
+class WaveBeam: Weapon {
     
     @Export var waveAmplitude: Float = 3.5
     @Export var waveFrequency: Float = 15.0
@@ -228,7 +227,7 @@ class WaveBeam: WeaponNode {
 }
 
 @Godot
-class PlasmaBeam: WeaponNode {
+class PlasmaBeam: Weapon {
     
     @Export var sprite: PackedScene?
     
@@ -275,7 +274,7 @@ class PlasmaBeam: WeaponNode {
 }
 
 @Godot
-class RocketLauncher: WeaponNode {
+class RocketLauncher: Weapon {
     
     @Export var sprite: PackedScene?
 
@@ -316,7 +315,7 @@ class RocketLauncher: WeaponNode {
 }
 
 @Godot
-class GranadeLauncher: WeaponNode {
+class GranadeLauncher: Weapon {
 
     @Export var projectile: PackedScene?
 
@@ -354,7 +353,7 @@ class GranadeLauncher: WeaponNode {
 }
 
 @Godot
-class SmartBomb: WeaponNode {
+class SmartBomb: Weapon {
 
     // @Export var projectile: PackedScene?
 
@@ -389,35 +388,35 @@ class SmartBomb: WeaponNode {
 }
 
 @Godot
-class Flamethrower: WeaponNode {
+class Flamethrower: Weapon {
 
     private var ammoCounter: Double = 0.0
 
     override func _process(delta: Double) {
-        cooldownCounter -= delta
         ammoCounter -= delta
     }
 
-    override func fire(from node: Node, origin: Vector2, direction: Vector2) {
-        guard cooldownCounter <= 0 else {
-            return 
+    override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+        guard isPressed else {
+            // isFirstFrame = true
+            ammoCounter = 0
+            return false
         }
+        guard let cooldown, cooldown.isReady else { return false }
         if ammoCounter <= 0 {
             guard ammo?.consume(ammoCost) == true else {
-                return
+                return false
             }
             ammoCounter = 0.5
         }
-        cooldownCounter = cooldownTime
+        cooldown.time = cooldownTime
+        cooldown.use()
         let projectiles = makeProjectiles(origin: origin, direction: direction) 
         projectiles.forEach {
             $0.position = origin
             node.addChild(node: $0)
         }
-    }
-
-    override func release() {
-        ammoCounter = 0
+        return true
     }
 
     override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {

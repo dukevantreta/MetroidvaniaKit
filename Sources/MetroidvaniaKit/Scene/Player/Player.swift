@@ -2,6 +2,11 @@ import SwiftGodot
 
 typealias Ray = (origin: Vector2, target: Vector2)
 
+enum Magic {
+    static let normalShotCooldown = 0.1
+    static let bombsCooldown = 0.11
+}
+
 enum SubweaponType {
     case none
     case rocket
@@ -35,14 +40,14 @@ final class Player: CharacterBody2D {
     @Node("PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
     @Node("AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
-    @Node("Weapons/PowerBeam") var powerBeam: WeaponNode?
-    @Node("Weapons/WaveBeam") var waveBeam: WeaponNode?
-    @Node("Weapons/PlasmaBeam") var plasmaBeam: WeaponNode?
-    @Node("Weapons/RocketLauncher") var rocketLauncher: WeaponNode?
-    @Node("Weapons/GranadeLauncher") var granadeLauncher: WeaponNode?
-    @Node("Weapons/SmartBomb") var smartBomb: WeaponNode?
+    @Node("Weapons/PowerBeam") var powerBeam: Weapon?
+    @Node("Weapons/WaveBeam") var waveBeam: Weapon?
+    @Node("Weapons/PlasmaBeam") var plasmaBeam: Weapon?
+    @Node("Weapons/RocketLauncher") var rocketLauncher: Weapon?
+    @Node("Weapons/GranadeLauncher") var granadeLauncher: Weapon?
+    @Node("Weapons/SmartBomb") var smartBomb: Weapon?
     @Node("Weapons/Flamethrower") var flamethrower: Flamethrower?
-    @Node("Weapons/DataMiner") var dataMiner: WeaponNode?
+    @Node("Weapons/DataMiner") var dataMiner: Weapon?
     
     @Node("Hookshot") var hookshot: Hookshot?
     @Node("Health") var hp: Health?
@@ -116,13 +121,13 @@ final class Player: CharacterBody2D {
     ]
     var currentState: State = .idle
 
-    let bombCooldown = Cooldown(time: 0.5)
-    
     var joy1: Vector2 = .zero
+
+    var weaponCooldown = Cooldown()
     
-    var weapon: WeaponNode?
+    var weapon: Weapon?
     
-    var subweapon: WeaponNode?
+    var subweapon: Weapon?
 
     private(set) var highRay: Ray = (.zero, .zero)
     private(set) var midRay: Ray = (.zero, .zero)
@@ -202,8 +207,9 @@ final class Player: CharacterBody2D {
             granadeLauncher,
             smartBomb,
             flamethrower,
-        ].compactMap {$0}.forEach { $0.ammo = ammo } 
+        ].compactMap {$0}.forEach { $0.ammo = ammo; $0.cooldown = weaponCooldown } 
         dataMiner?.ammo = ammo
+        dataMiner?.cooldown = weaponCooldown
 
         // ammo?.restore(ammo?.maxValue ?? 0)
         let maxAmmo = data.maxAmmo
@@ -227,6 +233,8 @@ final class Player: CharacterBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
+        weaponCooldown.update(delta)
+
         joy1 = Vector2(x: input.getHorizontalAxis(), y: input.getVerticalAxis()).sign()
         let joy2 = Vector2(x: input.getSecondaryHorizontalAxis(), y: input.getSecondaryVerticalAxis())
         
@@ -236,8 +244,6 @@ final class Player: CharacterBody2D {
             sprite?.flipH = lookDirection < 0
         }
 
-        bombCooldown.update(delta)
-        
         if velocity.x != 0.0 && !isInWater && hasUpgrade(.waterWalking) {
             collisionMask |= 0b0100
         } else {
@@ -254,6 +260,17 @@ final class Player: CharacterBody2D {
                 switchSubweapon(.smartBomb)
             } else { // down, angle is 5π to 7π
                 switchSubweapon(.flamethrower)
+            }
+        }
+
+        if states[currentState]?.canFire == true {
+            if isMorphed, let dataMiner {
+                tryFire(dataMiner, pressing: .actionLeft)
+            } else if let weapon {
+                tryFire(weapon, pressing: .actionLeft)
+            }
+            if let subweapon {
+                tryFire(subweapon, pressing: .actionUp)
             }
         }
 
@@ -351,7 +368,7 @@ final class Player: CharacterBody2D {
     }
 
     func layBomb() {
-        dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
+        // dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
     }
 
     func handleHorizontalMovement(_ delta: Double) {
@@ -367,7 +384,7 @@ final class Player: CharacterBody2D {
         }
         if joy1.x != 0.0 {
             if (velocity.x >= 0 && joy1.x > 0) || (velocity.x <= 0 && joy1.x < 0) { // joystick is aligned w/ movement
-                if isOnFloor() {
+                if isOnFloor() && !isMorphed {
                     overclockAccumulator += delta
                 }
                 velocity.x = GD.moveToward(from: velocity.x, to: targetSpeed, delta: data.acceleration)
@@ -468,49 +485,12 @@ final class Player: CharacterBody2D {
         case .flamethrower: subweapon = flamethrower
         }
     }
-    
-    @discardableResult
-    func fire() -> Bool {
-        guard let weapon, let parent = getParent() else { return false }
-        if weapon.autofire {
-            if input.isActionPressed(.actionLeft) {
-                weapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
-                lastShotTimestamp = Time.getTicksMsec()
-                return true
-            }
-        } else {
-            if input.isActionJustPressed(.actionLeft) {
-                weapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
-                lastShotTimestamp = Time.getTicksMsec()
-                return true
-            }
+
+    func tryFire(_ weapon: Weapon, pressing action: InputAction) {
+        guard let receiver = getParent() else { return }
+        if weapon.fire(from: receiver, origin: position + shotOrigin, direction: shotDirection, isPressed: input.isActionPressed(action)) {
+            lastShotTimestamp = Time.getTicksMsec()
         }
-        if input.isActionJustReleased(.actionLeft) {
-            weapon.release()
-        }
-        return false
-    }
-    
-    @discardableResult
-    func fireSubweapon() -> Bool {
-        guard let subweapon, let parent = getParent() else { return false }
-        if subweapon.autofire {
-            if input.isActionPressed(.actionUp) {
-                subweapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
-                lastShotTimestamp = Time.getTicksMsec()
-                return true
-            }
-        } else {
-            if input.isActionJustPressed(.actionUp) {
-                subweapon.fire(from: parent, origin: self.position + shotOrigin, direction: shotDirection) 
-                lastShotTimestamp = Time.getTicksMsec()
-                return true
-            }
-        }
-        if input.isActionJustReleased(.actionUp) {
-            subweapon.release()
-        }
-        return false
     }
     
     // MARK: AIMING FUNCTIONS

@@ -1,6 +1,8 @@
 import SwiftGodot
 
 class DashState: PlayerState {
+
+    let canFire: Bool = false
     
     private var xZero: Float = 0.0
     private var dashTime = 0.0
