@@ -19,7 +19,7 @@ class IdleState: PlayerState {
             return .run
         }
         if player.input.isActionJustPressed(.actionDown) {
-            player.velocity.y = Float(-player.getJumpspeed())
+            player.velocity.y = -player.getJumpspeed()
             return .jump
         }
         if !player.isOnFloor() {

@@ -5,16 +5,20 @@ class JumpingState: PlayerState {
     
     let canFire: Bool = true
 
-    var jumpTimestamp: UInt = 0
+    var jumpTime: Double = 0.0
     var hasShotDuringJump = false
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
+
+    var isJumpJustPressed = false
+    var isJumpPressed = false
+    var isJumpJustReleased = false
 
     func enter(_ player: Player) {
         player.overclockAccumulator = 0.0
         canDoubleJump = true
         allowsDoubleJump = false
-        jumpTimestamp = Time.getTicksMsec()
+        jumpTime = 0.0
         player.sprite?.play(name: "jump-begin")
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -45,7 +49,13 @@ class JumpingState: PlayerState {
             }
             return .dash
         }
-        if player.input.isActionJustReleased(.actionDown) {
+        if player.input.isActionJustPressed(.leftShoulder) {
+            player.isAimingDown = false
+        }
+        isJumpPressed = player.input.isActionPressed(.actionDown)
+        isJumpJustPressed = player.input.isActionJustPressed(.actionDown)
+        isJumpJustReleased = player.input.isActionJustReleased(.actionDown)
+        if isJumpJustReleased {
             allowsDoubleJump = true
         }
         return nil
@@ -53,37 +63,24 @@ class JumpingState: PlayerState {
     
     func processPhysics(_ player: Player, dt: Double) {
         
-        if player.input.isActionJustPressed(.leftShoulder) {
-            player.isAimingDown = false
+        player.updateHorizontalMovement(dt)
+        
+        // NOTE: This breaks with any vertical impulse-based mechanics (verified with hookshot)
+        if isJumpJustReleased && player.velocity.y < 0 {
+            player.velocity.y = 0 // stop jump mid-air
         }
-        
-        player.handleHorizontalMovement(dt)
-        
-        // Vertical Movement
-        let airInterval = Time.getTicksMsec() - jumpTimestamp
-        let airHeight = player.getJumpspeed() * Double(airInterval) / 1000
-        
-        if player.input.isActionJustReleased(.actionDown) && player.velocity.y < 0 { // stop jump mid-air
-            player.velocity.y = 0
-        }
-        if player.input.isActionPressed(.actionDown) && airHeight < player.linearHeight && player.allowJumpSensitivity {
+        let height = player.getJumpspeed() * Float(jumpTime)
+        if isJumpPressed && player.velocity.y < 0 && height < player.linearHeight && player.data.allowJumpSensitivity {
             // do nothing
         } else {
-            player.velocity.y += Float(player.getGravity() * dt)
-            
-            var terminalVelocity = Float(player.getJumpspeed()) * player.terminalVelocityFactor
-            if player.isAffectedByWater {
-                terminalVelocity *= 0.2
-            }
-            if player.velocity.y > terminalVelocity {
-                player.velocity.y = terminalVelocity
-            }
+            player.velocity.y += player.getGravity() * Float(dt)
+            player.enforceVerticalSpeedCap()
         }
         
         // Mid-air jump
-        if player.input.isActionJustPressed(.actionDown) && canDoubleJump && allowsDoubleJump && player.hasUpgrade(.doubleJump) {
-            player.velocity.y = Float(-player.getJumpspeed())
-            jumpTimestamp = Time.getTicksMsec()
+        if isJumpJustPressed && canDoubleJump && allowsDoubleJump && player.canUse(.doubleJump) {
+            player.velocity.y = -player.getJumpspeed()
+            jumpTime = 0.0
             canDoubleJump = false
             hasShotDuringJump = false
         }
@@ -93,6 +90,8 @@ class JumpingState: PlayerState {
         }
         
         player.moveAndSlide()
+
+        jumpTime += dt // Update timer AFTER motion
         
         // Handle animations
         if player.isMorphed {

@@ -25,7 +25,7 @@ class RunningState: PlayerState {
         // Jump
         if player.input.isActionJustPressed(.actionDown) {
             lastActionTimestamp = Time.getTicksMsec()
-            player.velocity.y = Float(-player.getJumpspeed())
+            player.velocity.y = -player.getJumpspeed()
             return .jump
         }
         if player.joy1.y > 0 && player.isMorphed {
@@ -68,7 +68,7 @@ class RunningState: PlayerState {
             player.isAimingDown = false
         }
         
-        player.handleHorizontalMovement(dt)
+        player.updateHorizontalMovement(dt)
 
         if player.isAffectedByWater {
             player.velocity *= 0.9

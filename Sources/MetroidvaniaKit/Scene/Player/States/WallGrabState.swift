@@ -7,10 +7,9 @@ class WallGrabState: PlayerState {
     private var lastLookDirection: Float = 0.0
     
     func enter(_ player: Player) {
-        // player.isOverclocking = false
+        player.isOverclocking = false
         player.velocity.x = 0
         player.velocity.y = 0
-        player.isOverclocking = false
         lastLookDirection = player.lookDirection
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -21,7 +20,7 @@ class WallGrabState: PlayerState {
     
     func processInput(_ player: Player) -> Player.State? {
         if player.input.isActionJustPressed(.actionDown) {
-            player.velocity.y = Float(-player.getJumpspeed())
+            player.velocity.y = -player.getJumpspeed()
             player.velocity.x = player.getWallNormal().sign().x * player.data.movespeed //* 0.25
             player.wallJumpTimestamp = Time.getTicksMsec()
             return .jump

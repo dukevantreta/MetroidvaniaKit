@@ -67,36 +67,12 @@ final class Player: CharacterBody2D {
 
     @Export var damageSpeed: Float = 500
     
-    @Export var allowJumpSensitivity: Bool = true
-    
-    @Export var jumpDuration: Double = 0.5
-    
-    /// Height up to where gravity is ignored if the player holds the jump button
-    var linearHeight: Double {
-        hasUpgrade(.highJump) ? 52 : 20 // 3 tiles : 1 tile + 4px of extra margin
-    }
-    
-    /// Jump height affected by gravity, after ignore range. Total jump height is the sum of both.
-    @Export var parabolicHeight: Double = 48
-    
-    @Export var terminalVelocityFactor: Float = 1.3
-    
-    @Export var airTime: Double = 0
-    
-    var wallJumpThresholdMsec: Int {
-        hasUpgrade(.betterWallGrab) ? 100 : 500
-    }
-    
-    // @Export var speedBoostThreshold: Int = 3000
-    
     @Export var idleAnimationThreshold: Int = 10000
     
     @Export var lastShotAnimationThreshold: Int = 3000
     
     @Export var dashDistance: Int = 48
-    
     @Export var dashSpeed: Float = 240
-    
     @Export var dashTimeLimit: Double = 1.0
     
     @Export var hookLaunchSpeed: Float = 700
@@ -105,6 +81,12 @@ final class Player: CharacterBody2D {
         didSet {
             (collisionShape?.shape as? RectangleShape2D)?.size = size
             collisionShape?.position = Vector2(x: 0, y: -size.y / 2)
+            updateWallGrabRaycast()
+        }
+    }
+
+    var lookDirection: Float = 1.0 {
+        didSet {
             updateWallGrabRaycast()
         }
     }
@@ -132,14 +114,6 @@ final class Player: CharacterBody2D {
     private(set) var highRay: Ray = (.zero, .zero)
     private(set) var midRay: Ray = (.zero, .zero)
     private(set) var lowRay: Ray = (.zero, .zero)
-    
-    var lookDirection: Float = 1.0 {
-        didSet {
-            updateWallGrabRaycast()
-        }
-    }
-    
-    var wallJumpTimestamp: UInt = 0
     
     var lastShotTimestamp: UInt = 0
     
@@ -174,13 +148,32 @@ final class Player: CharacterBody2D {
     
     private(set) var shotOrigin: Vector2 = .zero
     private(set) var shotDirection: Vector2 = .zero
+
+    var wallJumpTimestamp: UInt = 0 // Using a timestamp here allows cheating
     
-    func getGravity() -> Double {
-        8 * parabolicHeight / (jumpDuration * jumpDuration)
+    var wallJumpThresholdMsec: Int {
+        hasUpgrade(.betterWallGrab) ? 100 : 500
+    }
+
+    var jumpDuration: Float {
+        data.parabolicJumpDuration
+    }
+
+    var terminalVelocity: Float {
+        return isAffectedByWater ? data.fallSpeedCap * 0.2 : data.fallSpeedCap
     }
     
-    func getJumpspeed() -> Double {
-        (2 * parabolicHeight * getGravity()).squareRoot()
+    // TODO: water physics values
+    var linearHeight: Float {
+        canUse(.highJump) ? data.baseJumpLinearHeight + data.superJumpExtraHeight : data.baseJumpLinearHeight
+    }
+    
+    func getGravity() -> Float {
+        8 * data.parabolicHeight / (jumpDuration * jumpDuration)
+    }
+    
+    func getJumpspeed() -> Float {
+        (2 * data.parabolicHeight * getGravity()).squareRoot()
     }
     
     func getCollisionRectSize() -> Vector2? {
@@ -360,18 +353,18 @@ final class Player: CharacterBody2D {
     }
 
     func enterLowGravity() {
-        jumpDuration = 1.0
+        // jumpDuration = 1.0
     }
 
     func exitLowGravity() {
-        jumpDuration = 0.5
+        // jumpDuration = 0.5
     }
 
     func layBomb() {
         // dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
     }
 
-    func handleHorizontalMovement(_ delta: Double) {
+    func updateHorizontalMovement(_ delta: Double) {
         var targetSpeed = data.movespeed * joy1.x
         if overclockAccumulator >= data.overclockThresholdTime && hasUpgrade(.overclock) {
             isOverclocking = true
@@ -398,6 +391,12 @@ final class Player: CharacterBody2D {
         if abs(getRealVelocity().x) < data.movespeed * 0.95 {
             overclockAccumulator = 0.0
             isOverclocking = false //
+        }
+    }
+
+    func enforceVerticalSpeedCap() {
+        if velocity.y > terminalVelocity {
+            velocity.y = terminalVelocity
         }
     }
     

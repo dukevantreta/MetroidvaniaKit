@@ -18,7 +18,7 @@ class CrouchState: PlayerState {
     func processInput(_ player: Player) -> Player.State? {
         // Jump
         if player.input.isActionJustPressed(.actionDown) {
-            player.velocity.y = Float(-player.getJumpspeed())
+            player.velocity.y = -player.getJumpspeed()
             return .jump
         }
         
@@ -31,7 +31,6 @@ class CrouchState: PlayerState {
         if player.input.isActionJustPressed(.down) && player.hasUpgrade(.morph) {
             player.morph()
             return .run
-            // return .morph
         }
         
         // Sanity check
