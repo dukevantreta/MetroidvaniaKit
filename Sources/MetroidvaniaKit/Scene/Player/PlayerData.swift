@@ -48,6 +48,8 @@ final class PlayerData: Node {
     @Export private(set) var parabolicJumpDuration: Float = 0.5
     @Export private(set) var allowJumpSensitivity: Bool = true
     @Export private(set) var fallSpeedCap: Float = 500.0
+    @Export private(set) var wallIgnoreTimeMsec: Int = 500
+    @Export private(set) var wallIgnoreImprovedTimeMsec: Int = 100
 
     #exportGroup("Animation")
     @Export private(set) var idleThresholdTime: Double = 5.0

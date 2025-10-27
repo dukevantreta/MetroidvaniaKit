@@ -25,8 +25,8 @@ class Projectile: Node2D {
     var destroyOnTimeout: Bool = false
     
     var destroyMask: LayerMask = .floor
-    // @Node("Hitbox") 
-    var hitbox: Hitbox?
+    // @Node("Hitbox2D") 
+    var hitbox: Hitbox2D?
 
     var effectSpawner: Spawner?
 
@@ -61,6 +61,10 @@ class Projectile: Node2D {
             // queueFree()
             self.timeout()
         }
+    }
+
+    override func _process(delta: Double) {
+        
     }
     
     func destroy() {

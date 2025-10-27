@@ -10,10 +10,6 @@ class JumpingState: PlayerState {
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
 
-    var isJumpJustPressed = false
-    var isJumpPressed = false
-    var isJumpJustReleased = false
-
     func enter(_ player: Player) {
         player.overclockAccumulator = 0.0
         canDoubleJump = true
@@ -29,7 +25,7 @@ class JumpingState: PlayerState {
     
     func processInput(_ player: Player) -> Player.State? {
         
-        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.hasUpgrade(.wallGrab) {
+        if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.canUse(.wallGrab) {
             let xNormal = Int(player.getWallNormal().sign().x)
             if xNormal > 0 {
                 player.position.x =  player.position.x.rounded(.down)
@@ -52,16 +48,19 @@ class JumpingState: PlayerState {
         if player.input.isActionJustPressed(.leftShoulder) {
             player.isAimingDown = false
         }
-        isJumpPressed = player.input.isActionPressed(.actionDown)
-        isJumpJustPressed = player.input.isActionJustPressed(.actionDown)
-        isJumpJustReleased = player.input.isActionJustReleased(.actionDown)
-        if isJumpJustReleased {
-            allowsDoubleJump = true
-        }
         return nil
     }
     
     func processPhysics(_ player: Player, dt: Double) {
+
+        // needs to be cached here, if done in processInput it can lead to a broken jump state
+        let isJumpPressed = player.input.isActionPressed(.actionDown)
+        let isJumpJustPressed = player.input.isActionJustPressed(.actionDown)
+        let isJumpJustReleased = player.input.isActionJustReleased(.actionDown)
+        
+        if isJumpJustReleased {
+            allowsDoubleJump = true
+        }
         
         player.updateHorizontalMovement(dt)
         

@@ -5,7 +5,7 @@ class Mine: Node2D {
 
     private var bombSprite: Sprite2D?
     private var explosionSprite: Sprite2D?
-    private var hitbox: Hitbox?
+    private var hitbox: Hitbox2D?
 
     private let timer = Timer()
     private let destroyTimer = Timer()
@@ -30,7 +30,7 @@ class Mine: Node2D {
         let collision = CollisionShape2D()
         collision.shape = rect
 
-        let hitbox = Hitbox()
+        let hitbox = Hitbox2D()
         hitbox.addChild(node: collision)
         hitbox.collisionLayer = 0
         hitbox.addCollisionMask(.player)
@@ -62,7 +62,7 @@ class Mine: Node2D {
 
         hitbox.areaEntered.connect { [weak self] other in
             guard let self, let other else { return }
-            if let hitbox = other as? Hitbox {
+            if let hitbox = other as? Hitbox2D {
                 if let player = hitbox.getParent() as? Player {
                     self.hitPlayer(player)
                 }

@@ -4,7 +4,7 @@ import SwiftGodot
 class PlayerHitbox: Area2D {
     
     @Node("..") weak var player: Player?
-    @Node("../Hitbox") weak var hitbox: Hitbox?
+    @Node("../Hitbox2D") weak var hitbox: Hitbox2D?
     
     private let hitTimer = Timer()
     private let invFramesTimer = Timer()

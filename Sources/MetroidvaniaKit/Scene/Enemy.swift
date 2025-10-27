@@ -5,7 +5,7 @@ class Enemy: Node2D {
     
     @Node("AI") var enemyAI: NodeAI?
     @Node("Sprite2D") var sprite: Sprite2D?
-    @Node("Hitbox") var hitbox: Hitbox?
+    @Node("Hitbox2D") var hitbox: Hitbox2D?
     
     @Export var hp: Int = 10
     

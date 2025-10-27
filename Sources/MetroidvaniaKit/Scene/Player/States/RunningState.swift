@@ -7,9 +7,7 @@ class RunningState: PlayerState {
     var lastActionTimestamp: UInt = 0
     
     func enter(_ player: Player) {
-        // player.canDoubleJump = true
         player.overclockAccumulator = 0.0
-        // startRunningTimestamp = Time.getTicksMsec()
         lastActionTimestamp = Time.getTicksMsec()
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {

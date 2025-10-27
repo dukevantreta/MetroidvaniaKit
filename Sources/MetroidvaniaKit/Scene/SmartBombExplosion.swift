@@ -5,8 +5,8 @@ class SmartBombExplosion: Node2D {
 
     @Node("Sprite2D") var sprite: Sprite2D?
 
-    @Node("Hitbox") var hitbox: Hitbox?
-    @Node("Hitbox/CollisionShape2D") var collision: CollisionShape2D?
+    @Node("Hitbox2D") var hitbox: Hitbox2D?
+    @Node("Hitbox2D/CollisionShape2D") var collision: CollisionShape2D?
 
     // var lifetime = 2.0
     var expanding = true

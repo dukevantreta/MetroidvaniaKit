@@ -23,7 +23,7 @@ struct GranadeHitSpawner: Spawner {
 
     func spawn(on node: Node) -> Node2D? {
         guard let instance: Node2D = try? object?.instantiate() else { return nil }
-        if let hitbox = instance.findChild(pattern: "Hitbox") as? Hitbox {
+        if let hitbox = instance.findChild(pattern: "Hitbox2D") as? Hitbox2D {
             hitbox.monitorable = false
             hitbox.damage = 10
             hitbox.damageType = .rocket
@@ -72,6 +72,69 @@ class Weapon: Node {
     func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         logError("Method not implemented")
         return []
+    }
+}
+
+protocol Poolable {
+
+}
+
+//
+
+final class ObjectPool<T: Node2D> where T: Poolable {
+    private var pool: [T] = []
+
+    // var size: Int
+    deinit {
+        pool.forEach { $0.queueFree() }
+    }
+
+    init() {
+
+    }
+
+    func preload() {
+        pool.index(after: 1)
+    }
+
+    func get() -> T? {
+        return nil
+    }
+}
+
+
+@Godot
+class MainWeapon: Weapon {
+
+    @Export private(set) var lifetime: Double = 1.0
+    
+    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+        let bullet = Bullet()
+        bullet.position = origin
+
+        let ai = LinearMoveAI()
+        ai.direction = direction
+        ai.speed = 800
+
+        bullet.ai = ai
+        bullet <- ai
+
+        bullet.lifetime = lifetime
+        bullet.damageValue = [.player]
+
+        // bullet.hitbox.setCollisionLayer(.projectile)
+        bullet.hitbox.collisionLayer = 0
+        bullet.hitbox.addCollisionMask([.floor, .enemy])
+        // check weapon flags
+        bullet.destroyMask.insert(.enemy)
+
+        return [bullet]
+
+        // var effectSpawner = HitEffectSpawner()
+        // effectSpawner.object = hitEffect
+        // projectile.effectSpawner = effectSpawner
+        
+        // return [projectile]
     }
 }
 
@@ -148,7 +211,7 @@ class PowerBeam: Weapon {
         let collisionBox = CollisionShape2D()
         collisionBox.shape = collisionRect
         
-        let hitbox = Hitbox()
+        let hitbox = Hitbox2D()
         hitbox.addChild(node: collisionBox)
         
         projectile.addChild(node: hitbox)
@@ -195,7 +258,7 @@ class WaveBeam: Weapon {
             let collisionBox = CollisionShape2D()
             collisionBox.shape = collisionRect
             
-            let hitbox = Hitbox()
+            let hitbox = Hitbox2D()
             hitbox.addChild(node: collisionBox)
             
             projectiles[i].addChild(node: hitbox)
@@ -256,7 +319,7 @@ class PlasmaBeam: Weapon {
             ai.speed = projectiles[i].speed
             ai.direction = newDirection
             
-            let hitbox = Hitbox()
+            let hitbox = Hitbox2D()
             hitbox.addChild(node: collisionBox)
             
             projectiles[i].addChild(node: hitbox)
@@ -285,7 +348,7 @@ class RocketLauncher: Weapon {
             sprite.rotation = Double(Float.atan2(y: direction.y, x: direction.x))
         }
         
-        let hitbox = Hitbox()
+        let hitbox = Hitbox2D()
         
         let collisionRect = RectangleShape2D()
         collisionRect.size = Vector2(x: 14, y: 10)
@@ -329,7 +392,7 @@ class GranadeLauncher: Weapon {
         }
         p.position = origin
 
-        p.hitbox = p.findChild(pattern: "Hitbox") as? Hitbox
+        p.hitbox = p.findChild(pattern: "Hitbox2D") as? Hitbox2D
         let ai = FallAI()
         
         ai.speed = speed

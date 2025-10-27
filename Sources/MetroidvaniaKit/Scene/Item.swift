@@ -25,7 +25,7 @@ class Item: Area2D {
 
         areaEntered.connect { [weak self] other in
             guard let self, let other else { return }
-            if let hitbox = other as? Hitbox {
+            if let hitbox = other as? Hitbox2D {
                 if let player = hitbox.getParent() as? Player {
                     self.collect(player: player)
                 }

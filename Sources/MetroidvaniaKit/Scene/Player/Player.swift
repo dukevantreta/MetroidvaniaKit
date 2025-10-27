@@ -40,6 +40,7 @@ final class Player: CharacterBody2D {
     @Node("PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
     @Node("AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
     
+    @Node("Weapons/MainWeapon") var mainWeapon: Weapon?
     @Node("Weapons/PowerBeam") var powerBeam: Weapon?
     @Node("Weapons/WaveBeam") var waveBeam: Weapon?
     @Node("Weapons/PlasmaBeam") var plasmaBeam: Weapon?
@@ -111,6 +112,10 @@ final class Player: CharacterBody2D {
     
     var subweapon: Weapon?
 
+    var hasMainWeapon: Bool {
+        !data.upgradesObtained.intersection(data.upgradesEnabled).intersection(.allShots).isEmpty
+    }
+
     private(set) var highRay: Ray = (.zero, .zero)
     private(set) var midRay: Ray = (.zero, .zero)
     private(set) var lowRay: Ray = (.zero, .zero)
@@ -124,7 +129,7 @@ final class Player: CharacterBody2D {
     private(set) var isMorphed = false
     
     var isAffectedByWater: Bool {
-        isInWater && !hasUpgrade(.waterMovement)
+        isInWater && !canUse(.waterMovement)
     }
     
     var overclockAccumulator: Double = 0.0
@@ -152,7 +157,7 @@ final class Player: CharacterBody2D {
     var wallJumpTimestamp: UInt = 0 // Using a timestamp here allows cheating
     
     var wallJumpThresholdMsec: Int {
-        hasUpgrade(.betterWallGrab) ? 100 : 500
+        canUse(.betterWallGrab) ? data.wallIgnoreImprovedTimeMsec : data.wallIgnoreTimeMsec
     }
 
     var jumpDuration: Float {
@@ -164,7 +169,7 @@ final class Player: CharacterBody2D {
     }
     
     // TODO: water physics values
-    var linearHeight: Float {
+    var linearHeight: Float {   
         canUse(.highJump) ? data.baseJumpLinearHeight + data.superJumpExtraHeight : data.baseJumpLinearHeight
     }
     
@@ -176,10 +181,10 @@ final class Player: CharacterBody2D {
         (2 * data.parabolicHeight * getGravity()).squareRoot()
     }
     
-    func getCollisionRectSize() -> Vector2? {
-        (collisionShape?.shape as? RectangleShape2D)?.size
+    func canUse(_ upgrade: Upgrades) -> Bool {
+        data.upgradesObtained.contains(upgrade) && data.upgradesEnabled.contains(upgrade)
     }
-    
+
     override func _ready() {
         guard data != nil else {
             logError("PlayerData node not found."); return
@@ -192,6 +197,8 @@ final class Player: CharacterBody2D {
         floorSnapLength = 6.0
         collisionLayer = 0
         collisionMask = 0b1011
+        mainWeapon?.ammo = ammo
+        mainWeapon?.cooldown = weaponCooldown
         [
             powerBeam,
             waveBeam,
@@ -237,11 +244,7 @@ final class Player: CharacterBody2D {
             sprite?.flipH = lookDirection < 0
         }
 
-        if velocity.x != 0.0 && !isInWater && hasUpgrade(.waterWalking) {
-            collisionMask |= 0b0100
-        } else {
-            collisionMask = 0b1011
-        }
+        updateWaterWalkStatus()
         
         if abs(joy2.x) > 0.5 || abs(joy2.y) > 0.5 {
             let angle = joy2.angle()
@@ -257,9 +260,9 @@ final class Player: CharacterBody2D {
         }
 
         if states[currentState]?.canFire == true {
-            if isMorphed, let dataMiner {
+            if canUse(.mines), isMorphed, let dataMiner {
                 tryFire(dataMiner, pressing: .actionLeft)
-            } else if let weapon {
+            } else if let weapon, hasMainWeapon {
                 tryFire(weapon, pressing: .actionLeft)
             }
             if let subweapon {
@@ -281,14 +284,6 @@ final class Player: CharacterBody2D {
             hookshot?.direction = shotDirection
             hookshot?.activate()
         }
-    }
-
-    func canUse(_ upgrade: Upgrades) -> Bool {
-        data.upgradesObtained.contains(upgrade) && data.upgradesEnabled.contains(upgrade)
-    }
-
-    func hasUpgrade(_ upgrade: Upgrades) -> Bool {
-        data.upgradesObtained.contains(upgrade)
     }
 
     func morph() {
@@ -364,9 +359,19 @@ final class Player: CharacterBody2D {
         // dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
     }
 
+    // MARK: MOVEMENT FUNCTIONS
+
+    func updateWaterWalkStatus() {
+        if velocity.x != 0.0 && !isInWater && canUse(.waterWalking) {
+            addCollisionMask(.water)
+        } else {
+            removeCollisionMask(.water)
+        }
+    }
+
     func updateHorizontalMovement(_ delta: Double) {
         var targetSpeed = data.movespeed * joy1.x
-        if overclockAccumulator >= data.overclockThresholdTime && hasUpgrade(.overclock) {
+        if overclockAccumulator >= data.overclockThresholdTime && canUse(.overclock) {
             isOverclocking = true
         }
         if isOverclocking {
@@ -467,12 +472,13 @@ final class Player: CharacterBody2D {
     // MARK: WEAPON FUNCTIONS
     
     func switchWeapons(_ level: Int) {
-        switch level {
-        case 0: weapon = nil
-        case 1: weapon = powerBeam
-        case 2: weapon = waveBeam
-        default: weapon = plasmaBeam
-        }
+        // switch level {
+        // case 0: weapon = nil
+        // case 1: weapon = powerBeam
+        // case 2: weapon = waveBeam
+        // default: weapon = plasmaBeam
+        // }
+        weapon = mainWeapon
     }
     
     func switchSubweapon(_ type: SubweaponType) {

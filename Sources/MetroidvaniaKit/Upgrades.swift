@@ -18,16 +18,18 @@ struct Upgrades: OptionSet {
     static let granade          = Upgrades(rawValue: 1 << 11)
     static let flamethrower     = Upgrades(rawValue: 1 << 12)
     static let smartBomb        = Upgrades(rawValue: 1 << 13)
-    static let normalPhaser     = Upgrades(rawValue: 1 << 14)
-    static let wallPhaser       = Upgrades(rawValue: 1 << 15)
-    static let piercePhaser     = Upgrades(rawValue: 1 << 16)
-    static let glitchPhaser     = Upgrades(rawValue: 1 << 17)
-    static let widePhaser       = Upgrades(rawValue: 1 << 18)
+    static let normalBeam       = Upgrades(rawValue: 1 << 14)
+    static let wallPierceBeam   = Upgrades(rawValue: 1 << 15)
+    static let pierceBeam       = Upgrades(rawValue: 1 << 16)
+    static let glitchBeam       = Upgrades(rawValue: 1 << 17)
+    static let wideBeam         = Upgrades(rawValue: 1 << 18)
     static let airDash          = Upgrades(rawValue: 1 << 19)
     static let pause            = Upgrades(rawValue: 1 << 20)
     static let autofire         = Upgrades(rawValue: 1 << 21)
     static let rocketAutofire   = Upgrades(rawValue: 1 << 22)
     static let knockbackArmor   = Upgrades(rawValue: 1 << 23)
+
+    static let allShots: Upgrades = [.normalShot, .wideShot, .wallPierceShot, .pierceShot, .glitchShot]
 
     static let lookup: [ItemType: Upgrades] = [
         .overclock: .overclock,

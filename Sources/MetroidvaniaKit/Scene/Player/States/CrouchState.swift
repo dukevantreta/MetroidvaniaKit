@@ -28,7 +28,7 @@ class CrouchState: PlayerState {
         }
         
         // Morph
-        if player.input.isActionJustPressed(.down) && player.hasUpgrade(.morph) {
+        if player.input.isActionJustPressed(.down) && player.canUse(.morph) {
             player.morph()
             return .run
         }
