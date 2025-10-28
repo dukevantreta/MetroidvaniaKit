@@ -2,6 +2,9 @@ import SwiftGodot
 
 typealias Ray = (origin: Vector2, target: Vector2)
 
+enum Z {
+
+}
 enum Magic {
     static let normalShotCooldown = 0.1
     static let bombsCooldown = 0.11
@@ -24,6 +27,9 @@ enum WeaponType: Int {
 
 extension Player: WeaponDelegate {
     
+    func firingPoint() -> Vector2 {
+        globalPosition + shotOrigin
+    }
 }
 
 @Godot
@@ -496,8 +502,7 @@ final class Player: CharacterBody2D {
     }
 
     func tryFire(_ weapon: Weapon, pressing action: InputAction) {
-        guard let receiver = getParent() else { return }
-        if weapon.fire(from: receiver, origin: position + shotOrigin, direction: shotDirection, isPressed: input.isActionPressed(action)) {
+        if weapon.trigger(isPressed: input.isActionPressed(action)) {
             lastShotTimestamp = Time.getTicksMsec()
         }
     }

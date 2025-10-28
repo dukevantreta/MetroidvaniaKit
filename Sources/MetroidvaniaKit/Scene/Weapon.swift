@@ -34,21 +34,34 @@ struct GranadeHitSpawner: Spawner {
     }
 }
 
+protocol WeaponDelegate: AnyObject {
+    func canUse(_ upgrade: Upgrades) -> Bool
+    func firingPoint() -> Vector2
+    var shotDirection: Vector2 { get }
+}
+
 @Godot
 class Weapon: Node {
+
+    @Node("../..") weak var delegate: (Node2D & WeaponDelegate)?
+
+    @Export private(set) var autofire: Bool = false
+    @Export private(set) var ammoCost: Int = 0
+    @Export private(set) var cooldownTime: Double = 0.0 
+    @Export private(set) var bulletSpeed: Float = 640
+    @Export private(set) var lifetime: Double = 1.5
 
     var ammo: Ammo?
     var cooldown: Cooldown?
 
-    @Export var ammoCost: Int = 0
-    
-    @Export var cooldownTime: Double = 0.0 
-
-    @Export var autofire: Bool = false
-    
+    // private 
     var isFirstFrame = true
+
+    private(set) lazy var scene: BulletPool? = {
+        return getNode(path: "/root/TestScene2") as? BulletPool
+    }()
     
-    func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+    func trigger(isPressed: Bool) -> Bool {
         guard isPressed else {
             isFirstFrame = true
             return false
@@ -61,39 +74,25 @@ class Weapon: Node {
         }
         cooldown.time = cooldownTime
         cooldown.use()
-        let projectiles = makeProjectiles(origin: origin, direction: direction) 
-        projectiles.forEach {
-            $0.position = origin
-            node.addChild(node: $0)
-        }
+        fire()
         return true
     }
 
+    func fire() {
+        logError("Method not implemented")
+    }
+
+    // DEPRECATED
     func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
         logError("Method not implemented")
         return []
     }
 }
 
-protocol WeaponDelegate: AnyObject {
-    func canUse(_ upgrade: Upgrades) -> Bool
-    var shotOrigin: Vector2 { get }
-    var shotDirection: Vector2 { get }
-}
-
 @Godot
 class MainWeapon: Weapon {
 
-    @Node("../..") weak var delegate: (Node2D & WeaponDelegate)?
-
-    private var spriteScene: PackedScene? 
-    
-    private lazy var scene: BulletPool? = {
-        return getNode(path: "/root/TestScene2") as? BulletPool
-    }()
-
-    @Export private(set) var bulletSpeed: Float = 640
-    @Export private(set) var lifetime: Double = 1.0
+    private var spriteScene: PackedScene?
 
     override func _ready() {
         guard delegate != nil else {
@@ -104,36 +103,19 @@ class MainWeapon: Weapon {
             logError("Shot sprite not set!"); return
         }
     }
-    
-    override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
-        guard isPressed else {
-            isFirstFrame = true
-            return false
-        }
-        guard autofire || isFirstFrame else { return false }
-        isFirstFrame = false
-        guard let cooldown, cooldown.isReady else { return false }
-        guard ammo?.consume(ammoCost) == true else { 
-            return false // play fail sfx
-        }
-        cooldown.time = cooldownTime
-        cooldown.use()
-        spawnBullets()
-        return true
-    }
 
-    func spawnBullets() {
+    override func fire() {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
 
             let direction = delegate.shotDirection
-            bullet.position = delegate.shotOrigin + delegate.position
+            bullet.position = delegate.firingPoint()
 
             if let sprite = spriteScene?.instantiate() as? Node2D {
                 let angle = Float.atan2(y: direction.y, x: direction.x)
                 sprite.rotation = Double(angle)
                 bullet.setSprite(sprite)
-            } 
+            }
 
             let ai = LinearMoveAI()
             ai.direction = direction
@@ -147,10 +129,10 @@ class MainWeapon: Weapon {
 
             bullet.hitbox.collisionLayer = 0
             bullet.hitbox.addCollisionMask([.floor, .enemy])
-            if delegate.canUse(.wallPierceBeam) {
+            if delegate.canUse(.waveBeam) {
                 bullet.destroyMask.remove(.floor)
             }
-            if !delegate.canUse(.pierceBeam) {
+            if !delegate.canUse(.plasmaBeam) {
                 bullet.destroyMask.insert(.enemy)
             }
 
@@ -181,7 +163,7 @@ class DataMiner: Weapon {
         }
     }
 
-    override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+    override func trigger(isPressed: Bool) -> Bool {
         guard isPressed else {
             isFirstFrame = true
             return false
@@ -191,12 +173,12 @@ class DataMiner: Weapon {
         guard let cooldown, cooldown.isReady else { return false }
         cooldown.time = cooldownTime
         cooldown.use()
-        let projectiles = makeProjectiles(origin: origin, direction: direction) 
-        projectiles.forEach {
-            $0.position = origin
-            node.addChild(node: $0)
-            ($0 as? Mine)?.reset()
-        }
+        // let projectiles = makeProjectiles(origin: origin, direction: direction) 
+        // projectiles.forEach {
+        //     $0.position = origin
+        //     node.addChild(node: $0)
+        //     ($0 as? Mine)?.reset()
+        // }
         return true
     }
 
@@ -362,41 +344,42 @@ class PlasmaBeam: Weapon {
 @Godot
 class RocketLauncher: Weapon {
     
-    @Export var sprite: PackedScene?
+    private var spriteScene: PackedScene?
 
-    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
-        let projectile = Projectile()
-        if let sprite = sprite?.instantiate() as? Sprite2D {
-            projectile.addChild(node: sprite)
-            sprite.rotation = Double(Float.atan2(y: direction.y, x: direction.x))
+    override func _ready() {
+        spriteScene = GD.load(path: "res://objects/bullets/bullet_rocket.tscn")
+        guard spriteScene != nil else {
+            logError("Rocket sprite not set"); return
         }
-        
-        let hitbox = Hitbox2D()
-        
-        let collisionRect = RectangleShape2D()
-        collisionRect.size = Vector2(x: 14, y: 10)
-        let collisionBox = CollisionShape2D()
-        collisionBox.shape = collisionRect
-        
-        hitbox.addChild(node: collisionBox)
-        
-        projectile.addChild(node: hitbox)
-        projectile.hitbox = hitbox
-        hitbox.damageType = .rocket
-        
-        let ai = LinearMoveAI()
-        projectile.ai = ai
-        projectile.addChild(node: ai)
-        
-        ai.direction = direction
-        ai.speed = projectile.speed
-        
-        projectile.hitbox?.collisionLayer = 0b1_0000
-        projectile.hitbox?.collisionMask = 0b0010_0011
-        projectile.destroyMask.insert(.enemy)
-        projectile.type = .rocket
-        projectile.damage = 50
-        return [projectile]
+    }
+
+    override func fire() {
+        guard let delegate else { return }
+        scene?.spawnBullet { bullet in
+
+            let direction = delegate.shotDirection
+            bullet.position = delegate.firingPoint()
+
+            if let sprite = spriteScene?.instantiate() as? Node2D {
+                let angle = Float.atan2(y: direction.y, x: direction.x)
+                sprite.rotation = Double(angle)
+                bullet.setSprite(sprite)
+            }
+            bullet.radius = 5
+
+            let ai = LinearMoveAI()
+            ai.direction = direction
+            ai.speed = bulletSpeed
+
+            bullet.ai = ai
+            bullet <- ai
+
+            bullet.lifetime = lifetime
+            bullet.damageValue = [.rocket]
+            bullet.hitbox.collisionLayer = 0
+            bullet.hitbox.addCollisionMask([.floor, .enemy])
+            bullet.destroyMask.insert(.enemy)
+        }
     }
 }
 
@@ -482,9 +465,8 @@ class Flamethrower: Weapon {
         ammoCounter -= delta
     }
 
-    override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+    override func trigger(isPressed: Bool) -> Bool {
         guard isPressed else {
-            // isFirstFrame = true
             ammoCounter = 0
             return false
         }
@@ -497,29 +479,29 @@ class Flamethrower: Weapon {
         }
         cooldown.time = cooldownTime
         cooldown.use()
-        let projectiles = makeProjectiles(origin: origin, direction: direction) 
-        projectiles.forEach {
-            $0.position = origin
-            node.addChild(node: $0)
-        }
+        fire()
         return true
     }
 
-    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
-        let projectile = Projectile()
+    override func fire() {
+        guard let delegate else { return }
+        scene?.spawnBullet { bullet in
+            let direction = delegate.shotDirection
+            bullet.position = delegate.firingPoint()
+            
+            let sprite = FlameSprite()
+            bullet.setSprite(sprite)
 
-        let sprite = FlameSprite()
-        projectile.addChild(node: sprite)
+            let ai = LinearMoveAI()
+            ai.direction = direction
+            ai.speed = bulletSpeed
 
-        let ai = LinearMoveAI()
-        projectile.ai = ai
-        projectile.addChild(node: ai)
-        
-        ai.direction = direction
-        ai.speed = 200
-        projectile.lifetime = 0.5
+            bullet.ai = ai
+            bullet <- ai
 
-        return [projectile]
+            bullet.lifetime = lifetime
+            bullet.destroyMask = []
+        }
     }
 }
 

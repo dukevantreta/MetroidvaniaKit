@@ -10,7 +10,7 @@ class BreakableBlock: RigidBody2D {
     
     override func _ready() {
         guard let hitbox else {
-            logError("Hitbox not found."); return
+            logError("Hitbox not found!"); return
         }
         
         freeze = true

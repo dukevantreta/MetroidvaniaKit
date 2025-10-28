@@ -19,8 +19,8 @@ struct Upgrades: OptionSet {
     static let flamethrower     = Upgrades(rawValue: 1 << 12)
     static let smartBomb        = Upgrades(rawValue: 1 << 13)
     static let normalBeam       = Upgrades(rawValue: 1 << 14)
-    static let wallPierceBeam   = Upgrades(rawValue: 1 << 15)
-    static let pierceBeam       = Upgrades(rawValue: 1 << 16)
+    static let waveBeam         = Upgrades(rawValue: 1 << 15)
+    static let plasmaBeam       = Upgrades(rawValue: 1 << 16)
     static let glitchBeam       = Upgrades(rawValue: 1 << 17)
     static let wideBeam         = Upgrades(rawValue: 1 << 18)
     static let airDash          = Upgrades(rawValue: 1 << 19)
@@ -29,7 +29,7 @@ struct Upgrades: OptionSet {
     static let rocketAutofire   = Upgrades(rawValue: 1 << 22)
     static let knockbackArmor   = Upgrades(rawValue: 1 << 23)
 
-    static let allShots: Upgrades = [.normalBeam, .wideBeam, .wallPierceBeam, .pierceBeam, .glitchBeam]
+    static let allShots: Upgrades = [.normalBeam, .wideBeam, .waveBeam, .plasmaBeam, .glitchBeam]
 
     static let lookup: [ItemType: Upgrades] = [
         .overclock: .overclock,
