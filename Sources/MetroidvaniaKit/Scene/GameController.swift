@@ -8,6 +8,7 @@ let ROOM_HEIGHT: Int32 = 15
 @Godot
 class GameController: Node {
     
+    @Node("..") weak var scene: GameScene?
     @Node("../Player") var player: Player?
     @Node("../SidescrollerCamera") var camera: SidescrollerCamera?
     @Node("../SidescrollerCamera/Overlay") var bgOverlay: Polygon2D?
@@ -25,6 +26,7 @@ class GameController: Node {
     @Export var tileMaterial: ShaderMaterial? // move somewhere else
     
     private(set) var world: World?
+    // private(set) var currentMap: World.Map!
     
     var lastCellPosition: Vector2i = .zero
     
@@ -217,6 +219,8 @@ class GameController: Node {
                 player?.globalPosition.x = spawn.globalPosition.x
                 player?.globalPosition.y = spawn.globalPosition.y
             }
+            // currentMap = map
+            scene?.setCurrentRoom(map)
         } else { // perform room transition
             guard let camera else { return }
             let sceneTree = getTree()
@@ -244,6 +248,8 @@ class GameController: Node {
                     
                     self?.currentRoom?.queueFree()
                     self?.currentRoom = newRoom
+                    // self?.currentMap = map
+                    self?.scene?.setCurrentRoom(map)
                     
                     sceneTree?.paused = false
                 }

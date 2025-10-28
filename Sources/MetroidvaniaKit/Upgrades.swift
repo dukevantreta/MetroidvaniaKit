@@ -29,7 +29,7 @@ struct Upgrades: OptionSet {
     static let rocketAutofire   = Upgrades(rawValue: 1 << 22)
     static let knockbackArmor   = Upgrades(rawValue: 1 << 23)
 
-    static let allShots: Upgrades = [.normalShot, .wideShot, .wallPierceShot, .pierceShot, .glitchShot]
+    static let allShots: Upgrades = [.normalBeam, .wideBeam, .wallPierceBeam, .pierceBeam, .glitchBeam]
 
     static let lookup: [ItemType: Upgrades] = [
         .overclock: .overclock,

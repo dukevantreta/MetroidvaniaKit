@@ -2,6 +2,7 @@ import SwiftGodot
 import Foundation
 
 struct World: Codable {
+    /// Represents a Tiled map's locality within a world. All dimensions are given in pixels.
     struct Map: Codable {
         let fileName: String
         let width: Int32

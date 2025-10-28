@@ -75,60 +75,56 @@ class Weapon: Node {
     }
 }
 
-protocol Poolable {
-
-}
-
-//
-
-final class ObjectPool<T: Node2D> where T: Poolable {
-    private var pool: [T] = []
-
-    // var size: Int
-    deinit {
-        pool.forEach { $0.queueFree() }
-    }
-
-    init() {
-
-    }
-
-    func preload() {
-        pool.index(after: 1)
-    }
-
-    func get() -> T? {
-        return nil
-    }
-}
-
-
 @Godot
 class MainWeapon: Weapon {
 
+    private lazy var scene: BulletPool? = {
+        log("RESULVING SCENE SERVICE")
+        return getNode(path: "/root/TestScene2") as? BulletPool
+    }()
+
     @Export private(set) var lifetime: Double = 1.0
     
+    override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
+        // log("MAIN FIRE")
+        guard isPressed else {
+            isFirstFrame = true
+            return false
+        }
+        guard autofire || isFirstFrame else { return false }
+        isFirstFrame = false
+        guard let cooldown, cooldown.isReady else { return false }
+        guard ammo?.consume(ammoCost) == true else { 
+            return false // play fail sfx
+        }
+        cooldown.time = cooldownTime
+        cooldown.use()
+        let _ = makeProjectiles(origin: origin, direction: direction) 
+        return true
+    }
+
     override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
-        let bullet = Bullet()
-        bullet.position = origin
+        scene?.spawnBullet { bullet in
+            bullet.position = origin
 
-        let ai = LinearMoveAI()
-        ai.direction = direction
-        ai.speed = 800
+            let ai = LinearMoveAI()
+            ai.direction = direction
+            ai.speed = 800
 
-        bullet.ai = ai
-        bullet <- ai
+            bullet.ai = ai
+            bullet <- ai
 
-        bullet.lifetime = lifetime
-        bullet.damageValue = [.player]
+            bullet.lifetime = lifetime
+            bullet.damageValue = [.player]
 
-        // bullet.hitbox.setCollisionLayer(.projectile)
-        bullet.hitbox.collisionLayer = 0
-        bullet.hitbox.addCollisionMask([.floor, .enemy])
-        // check weapon flags
-        bullet.destroyMask.insert(.enemy)
-
-        return [bullet]
+            // bullet.hitbox.setCollisionLayer(.projectile)
+            bullet.hitbox.collisionLayer = 0
+            bullet.hitbox.addCollisionMask([.floor, .enemy])
+            // check weapon flags
+            bullet.destroyMask.insert(.enemy)
+        }
+        
+        return []
 
         // var effectSpawner = HitEffectSpawner()
         // effectSpawner.object = hitEffect

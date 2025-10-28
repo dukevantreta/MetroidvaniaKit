@@ -37,6 +37,24 @@ extension Vector2 {
     }
 }
 
+extension Vector2 {
+    init(x: Int, y: Int) {
+        self.init(x: Float(x), y: Float(y))
+    }
+    
+    init(x: Int32, y: Int32) {
+        self.init(x: Float(x), y: Float(y))
+    }
+    
+    init(x: Double, y: Double) {
+        self.init(x: Float(x), y: Float(y))
+    }
+}
+
+extension Rect2 {
+    static let zero = Rect2(position: .zero, size: .zero)
+}
+
 enum GameError: Error {
     case failedToLoadScene
     case typeMismatch
@@ -60,22 +78,13 @@ extension PackedScene {
     }
 }
 
-extension Vector2 {
-    init(x: Int, y: Int) {
-        self.init(x: Float(x), y: Float(y))
-    }
-    
-    init(x: Int32, y: Int32) {
-        self.init(x: Float(x), y: Float(y))
-    }
-    
-    init(x: Double, y: Double) {
-        self.init(x: Float(x), y: Float(y))
-    }
-}
-
 extension Node {
-    func setName(_ name: String) {
+
+    final func removeFromParent() {
+        getParent()?.removeChild(node: self)
+    }
+
+    final func setName(_ name: String) {
         self.name = StringName(name)
     }
 }

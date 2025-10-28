@@ -23,6 +23,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
         [
             DebugGrid.self,
             PlayerDebug.self,
+            GameScene.self,
             GameController.self,
             InputController.self,
             SidescrollerCamera.self,
