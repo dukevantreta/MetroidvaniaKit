@@ -22,6 +22,10 @@ enum WeaponType: Int {
     case plasma
 }
 
+extension Player: WeaponDelegate {
+    
+}
+
 @Godot
 final class Player: CharacterBody2D {
     

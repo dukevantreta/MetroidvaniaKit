@@ -75,18 +75,37 @@ class Weapon: Node {
     }
 }
 
+protocol WeaponDelegate: AnyObject {
+    func canUse(_ upgrade: Upgrades) -> Bool
+    var shotOrigin: Vector2 { get }
+    var shotDirection: Vector2 { get }
+}
+
 @Godot
 class MainWeapon: Weapon {
 
+    @Node("../..") weak var delegate: (Node2D & WeaponDelegate)?
+
+    private var spriteScene: PackedScene? 
+    
     private lazy var scene: BulletPool? = {
-        log("RESULVING SCENE SERVICE")
         return getNode(path: "/root/TestScene2") as? BulletPool
     }()
 
+    @Export private(set) var bulletSpeed: Float = 640
     @Export private(set) var lifetime: Double = 1.0
+
+    override func _ready() {
+        guard delegate != nil else {
+            logError("Delegate not set!"); return
+        }
+        spriteScene = GD.load(path: "res://objects/bullets/bullet_normal.tscn")
+        guard spriteScene != nil else {
+            logError("Shot sprite not set!"); return
+        }
+    }
     
     override func fire(from node: Node, origin: Vector2, direction: Vector2, isPressed: Bool) -> Bool {
-        // log("MAIN FIRE")
         guard isPressed else {
             isFirstFrame = true
             return false
@@ -99,17 +118,26 @@ class MainWeapon: Weapon {
         }
         cooldown.time = cooldownTime
         cooldown.use()
-        let _ = makeProjectiles(origin: origin, direction: direction) 
+        spawnBullets()
         return true
     }
 
-    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+    func spawnBullets() {
+        guard let delegate else { return }
         scene?.spawnBullet { bullet in
-            bullet.position = origin
+
+            let direction = delegate.shotDirection
+            bullet.position = delegate.shotOrigin + delegate.position
+
+            if let sprite = spriteScene?.instantiate() as? Node2D {
+                let angle = Float.atan2(y: direction.y, x: direction.x)
+                sprite.rotation = Double(angle)
+                bullet.setSprite(sprite)
+            } 
 
             let ai = LinearMoveAI()
             ai.direction = direction
-            ai.speed = 800
+            ai.speed = bulletSpeed
 
             bullet.ai = ai
             bullet <- ai
@@ -117,20 +145,19 @@ class MainWeapon: Weapon {
             bullet.lifetime = lifetime
             bullet.damageValue = [.player]
 
-            // bullet.hitbox.setCollisionLayer(.projectile)
             bullet.hitbox.collisionLayer = 0
             bullet.hitbox.addCollisionMask([.floor, .enemy])
-            // check weapon flags
-            bullet.destroyMask.insert(.enemy)
-        }
-        
-        return []
+            if delegate.canUse(.wallPierceBeam) {
+                bullet.destroyMask.remove(.floor)
+            }
+            if !delegate.canUse(.pierceBeam) {
+                bullet.destroyMask.insert(.enemy)
+            }
 
-        // var effectSpawner = HitEffectSpawner()
-        // effectSpawner.object = hitEffect
-        // projectile.effectSpawner = effectSpawner
-        
-        // return [projectile]
+            var hitEffect = HitEffectSpawner()
+            hitEffect.object = GD.load(path: "res://objects/bullets/hit_1.tscn")
+            bullet.effectSpawner = hitEffect
+        }
     }
 }
 
