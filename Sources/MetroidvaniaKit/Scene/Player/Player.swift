@@ -67,6 +67,7 @@ final class Player: CharacterBody2D {
         }
     }
     
+    @Export private(set) var shotOffset: Float = 6.0
     @Export(.enum) var weaponType: WeaponType = .normal
 
     @Export var damageSpeed: Float = 500
@@ -564,6 +565,6 @@ extension Player: MainWeaponDelegate {
     }
     
     func firingPoint() -> Vector2 {
-        globalPosition + shotOrigin
+        globalPosition + shotOrigin + aimDirection().sign() * shotOffset
     }
 }

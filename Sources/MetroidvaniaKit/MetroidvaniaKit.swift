@@ -33,6 +33,7 @@ func setupScene (level: GDExtension.InitializationLevel) {
             LinearMoveAI.self,
             LinearBounceAI.self,
             SinWaveAI.self,
+            WideCurveAI.self,
             PatrolAI.self,
             CrawlerAI.self,
             FallAI.self,

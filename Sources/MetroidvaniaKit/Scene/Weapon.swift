@@ -58,8 +58,7 @@ class Weapon: Node {
     var ammo: Ammo?
     var cooldown: Cooldown?
 
-    // private 
-    var isFirstFrame = true
+    private var isFirstFrame = true
 
     private(set) lazy var scene: BulletPool? = {
         return getNode(path: "/root/TestScene2") as? BulletPool
@@ -121,39 +120,61 @@ class MainWeapon: Weapon {
 
     override func fire() {
         guard let delegate else { return }
-        scene?.spawnBullet { bullet in
 
-            let direction = delegate.aimDirection()
-            bullet.position = delegate.firingPoint()
+        let bulletCount = delegate.canUse(.wideBeam) ? 3 : 1
 
-            if let sprite = spriteScene?.instantiate() as? Node2D {
-                let angle = Float.atan2(y: direction.y, x: direction.x)
-                sprite.rotation = Double(angle)
-                bullet.setSprite(sprite)
+        for i in 0..<bulletCount {
+            scene?.spawnBullet { bullet in
+
+                let direction = delegate.aimDirection()
+                bullet.position = delegate.firingPoint()
+
+                if let sprite = spriteScene?.instantiate() as? Node2D {
+                    let angle = Float.atan2(y: direction.y, x: direction.x)
+                    sprite.rotation = Double(angle)
+                    bullet.setSprite(sprite)
+                }
+
+                if i == 0 {
+                    let ai = LinearMoveAI()
+                    ai.direction = direction
+                    ai.speed = bulletSpeed
+
+                    bullet.ai = ai
+                    bullet <- ai
+                } else if i == 1 {
+                    let ai = WideCurveAI()
+                    ai.direction = direction
+                    ai.speed = bulletSpeed
+
+                    bullet.ai = ai
+                    bullet <- ai
+                } else if i == 2 {
+                    let ai = WideCurveAI()
+                    ai.direction = direction
+                    ai.speed = bulletSpeed
+                    ai.amplitude *= -1
+
+                    bullet.ai = ai
+                    bullet <- ai
+                }
+                
+                bullet.lifetime = lifetime
+                bullet.damageValue = [.player]
+
+                bullet.hitbox.collisionLayer = 0
+                bullet.hitbox.addCollisionMask([.floor, .enemy])
+                if delegate.canUse(.waveBeam) {
+                    bullet.destroyMask.remove(.floor)
+                }
+                if !delegate.canUse(.plasmaBeam) {
+                    bullet.destroyMask.insert(.enemy)
+                }
+
+                var hitEffect = HitEffectSpawner()
+                hitEffect.object = GD.load(path: "res://objects/bullets/hit_1.tscn")
+                bullet.effectSpawner = hitEffect
             }
-
-            let ai = LinearMoveAI()
-            ai.direction = direction
-            ai.speed = bulletSpeed
-
-            bullet.ai = ai
-            bullet <- ai
-
-            bullet.lifetime = lifetime
-            bullet.damageValue = [.player]
-
-            bullet.hitbox.collisionLayer = 0
-            bullet.hitbox.addCollisionMask([.floor, .enemy])
-            if delegate.canUse(.waveBeam) {
-                bullet.destroyMask.remove(.floor)
-            }
-            if !delegate.canUse(.plasmaBeam) {
-                bullet.destroyMask.insert(.enemy)
-            }
-
-            var hitEffect = HitEffectSpawner()
-            hitEffect.object = GD.load(path: "res://objects/bullets/hit_1.tscn")
-            bullet.effectSpawner = hitEffect
         }
     }
 }
