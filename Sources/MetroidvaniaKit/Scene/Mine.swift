@@ -35,7 +35,7 @@ class Mine: Node2D {
         hitbox.collisionLayer = 0
         hitbox.addCollisionMask(.player)
         hitbox.monitoring = false
-        hitbox.damageType = .bomb
+        hitbox.damageValue = .mines
         addChild(node: hitbox)
 
         explosionSpr.visible = false

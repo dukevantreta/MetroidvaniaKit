@@ -25,13 +25,6 @@ enum WeaponType: Int {
     case plasma
 }
 
-extension Player: WeaponDelegate {
-    
-    func firingPoint() -> Vector2 {
-        globalPosition + shotOrigin
-    }
-}
-
 @Godot
 final class Player: CharacterBody2D {
     
@@ -126,6 +119,9 @@ final class Player: CharacterBody2D {
         !data.upgradesObtained.intersection(data.upgradesEnabled).intersection(.allShots).isEmpty
     }
 
+    private(set) var shotOrigin: Vector2 = .zero
+    private(set) var shotDirection: Vector2 = .zero
+
     private(set) var highRay: Ray = (.zero, .zero)
     private(set) var midRay: Ray = (.zero, .zero)
     private(set) var lowRay: Ray = (.zero, .zero)
@@ -161,9 +157,6 @@ final class Player: CharacterBody2D {
         }
     }
     
-    private(set) var shotOrigin: Vector2 = .zero
-    private(set) var shotDirection: Vector2 = .zero
-
     var wallJumpTimestamp: UInt = 0 // Using a timestamp here allows cheating
     
     var wallJumpThresholdMsec: Int {
@@ -202,11 +195,13 @@ final class Player: CharacterBody2D {
         self.size = Vector2(from: data.bodySizeDefault)
 
         motionMode = .grounded
+        floorConstantSpeed = true
         floorBlockOnWall = false
         slideOnCeiling = false // doesnt work on this movement model
         floorSnapLength = 6.0
-        collisionLayer = 0
-        collisionMask = 0b1011
+
+        setCollisionLayer(.player)
+        addCollisionMask(.floor)
         mainWeapon?.ammo = ammo
         mainWeapon?.cooldown = weaponCooldown
         [
@@ -552,5 +547,12 @@ final class Player: CharacterBody2D {
     func aimCrouchUp() {
         shotOrigin = Vector2(x: 13 * lookDirection, y: -24)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
+    }
+}
+
+extension Player: WeaponDelegate {
+    
+    func firingPoint() -> Vector2 {
+        globalPosition + shotOrigin
     }
 }
