@@ -69,8 +69,10 @@ class Weapon: Node {
         guard autofire || isFirstFrame else { return false }
         isFirstFrame = false
         guard let cooldown, cooldown.isReady else { return false }
-        guard ammo?.consume(ammoCost) == true else { 
-            return false // play fail sfx
+        if let ammo {
+            guard ammo.consume(ammoCost) else {
+                return false // play fail sfx
+            }
         }
         cooldown.time = cooldownTime
         cooldown.use()
@@ -163,33 +165,19 @@ class DataMiner: Weapon {
         }
     }
 
-    override func trigger(isPressed: Bool) -> Bool {
-        guard isPressed else {
-            isFirstFrame = true
-            return false
-        }
-        guard isFirstFrame else { return false }
-        isFirstFrame = false
-        guard let cooldown, cooldown.isReady else { return false }
-        cooldown.time = cooldownTime
-        cooldown.use()
-        // let projectiles = makeProjectiles(origin: origin, direction: direction) 
-        // projectiles.forEach {
-        //     $0.position = origin
-        //     node.addChild(node: $0)
-        //     ($0 as? Mine)?.reset()
-        // }
-        return true
-    }
-
-    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
+    override func fire() {
+        var freeMine: Mine?
         for mine in minePool {
             if mine.getParent() == nil {
-                // mine.reset()
-                return [mine]
+                freeMine = mine
+                break
             }
         }
-        return [] // FIXME: cooldown is gonna be eaten anyways
+        guard let freeMine else { return }
+        guard let delegate else { return }
+        freeMine.position = delegate.position + Vector2(x: 0, y: -6)
+        delegate.getParent()?.addChild(node: freeMine)
+        freeMine.reset()
     }
 }
 
