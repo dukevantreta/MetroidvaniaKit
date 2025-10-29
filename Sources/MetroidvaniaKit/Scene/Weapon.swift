@@ -182,6 +182,190 @@ class DataMiner: Weapon {
 }
 
 @Godot
+class RocketLauncher: Weapon {
+    
+    private var spriteScene: PackedScene?
+
+    override func _ready() {
+        spriteScene = GD.load(path: "res://objects/bullets/bullet_rocket.tscn")
+        guard spriteScene != nil else {
+            logError("Rocket sprite not set"); return
+        }
+    }
+
+    override func fire() {
+        guard let delegate else { return }
+        scene?.spawnBullet { bullet in
+
+            let direction = delegate.shotDirection
+            bullet.position = delegate.firingPoint()
+
+            if let sprite = spriteScene?.instantiate() as? Node2D {
+                let angle = Float.atan2(y: direction.y, x: direction.x)
+                sprite.rotation = Double(angle)
+                bullet.setSprite(sprite)
+            }
+            bullet.radius = 5
+
+            let ai = LinearMoveAI()
+            ai.direction = direction
+            ai.speed = bulletSpeed
+
+            bullet.ai = ai
+            bullet <- ai
+
+            bullet.lifetime = lifetime
+            bullet.damageValue = [.rocket]
+            bullet.hitbox.collisionLayer = 0
+            bullet.hitbox.addCollisionMask([.floor, .enemy])
+            bullet.destroyMask.insert(.enemy)
+        }
+    }
+}
+
+@Godot
+class GranadeLauncher: Weapon {
+
+    @Export var projectile: PackedScene?
+
+    @Export var hitEffect: PackedScene?
+
+    @Export var speed: Float = 200
+
+    override func fire() {
+        guard let delegate else { return }
+        scene?.spawnBullet { bullet in
+            let direction = delegate.shotDirection
+            bullet.position = delegate.firingPoint()
+
+            let tex = PlaceholderTexture2D()
+            tex.size = Vector2(x: 12, y: 12)
+            let sprite = Sprite2D()
+            sprite.texture = tex
+            sprite.centered = true
+            bullet.setSprite(sprite)
+
+            let ai = FallAI()
+            ai.speed = speed
+            ai.direction = direction
+            bullet.ai = ai
+            bullet <- ai
+
+            bullet.hitbox.damageType = .rocket // FIXME
+            bullet.hitbox.collisionLayer = 0
+            bullet.hitbox.addCollisionMask([.floor, .enemy])
+            bullet.destroyMask.insert(.enemy)
+
+            var spawner = GranadeHitSpawner()
+            spawner.object = hitEffect
+            bullet.effectSpawner = spawner
+        }
+    }
+}
+
+@Godot
+class SmartBomb: Weapon {
+
+    @Export var explosion: PackedScene?
+
+    override func fire() {
+        guard let delegate else { return }
+        scene?.spawnBullet { bullet in
+            let direction = delegate.shotDirection
+            bullet.position = delegate.firingPoint()
+
+            let tex = PlaceholderTexture2D()
+            tex.size = Vector2(x: 8, y: 8)
+            let sprite = Sprite2D()
+            sprite.texture = tex
+            bullet.setSprite(sprite)
+
+            let ai = LinearMoveAI()
+            ai.direction = direction
+            ai.speed = 100
+
+            bullet.ai = ai
+            bullet <- ai
+
+            bullet.lifetime = 1.0
+            bullet.hitsOnTimeout = true
+
+            var effectSpawner = HitEffectSpawner()
+            effectSpawner.object = explosion
+            bullet.effectSpawner = effectSpawner
+        }
+    }
+}
+
+@Godot
+class Flamethrower: Weapon {
+
+    private var ammoCounter: Double = 0.0
+
+    override func _process(delta: Double) {
+        ammoCounter -= delta
+    }
+
+    override func trigger(isPressed: Bool) -> Bool {
+        guard isPressed else {
+            ammoCounter = 0
+            return false
+        }
+        guard let cooldown, cooldown.isReady else { return false }
+        if ammoCounter <= 0 {
+            guard ammo?.consume(ammoCost) == true else {
+                return false
+            }
+            ammoCounter = 0.5
+        }
+        cooldown.time = cooldownTime
+        cooldown.use()
+        fire()
+        return true
+    }
+
+    override func fire() {
+        guard let delegate else { return }
+        scene?.spawnBullet { bullet in
+            let direction = delegate.shotDirection
+            bullet.position = delegate.firingPoint()
+            
+            let sprite = FlameSprite()
+            bullet.setSprite(sprite)
+
+            let ai = LinearMoveAI()
+            ai.direction = direction
+            ai.speed = bulletSpeed
+
+            bullet.ai = ai
+            bullet <- ai
+
+            bullet.lifetime = lifetime
+            bullet.destroyMask = []
+        }
+    }
+}
+
+@Godot
+class FlameSprite: Sprite2D {
+
+    var spriteScale = 1.0
+
+    override func _ready() {
+        let tex = PlaceholderTexture2D()
+        tex.size = Vector2(x: 8, y: 8)
+        self.texture = tex
+    }
+
+    override func _physicsProcess(delta: Double) {
+        spriteScale += 8 * delta
+        self.scale = Vector2(x: spriteScale, y: spriteScale) // TODO also needs to scale bullet collider size
+    }
+}
+
+// old weapons
+
+@Godot
 class PowerBeam: Weapon {
     
     @Export var sprite: PackedScene?
@@ -326,186 +510,5 @@ class PlasmaBeam: Weapon {
         }
         projectiles[1].zIndex += 1
         return projectiles
-    }
-}
-
-@Godot
-class RocketLauncher: Weapon {
-    
-    private var spriteScene: PackedScene?
-
-    override func _ready() {
-        spriteScene = GD.load(path: "res://objects/bullets/bullet_rocket.tscn")
-        guard spriteScene != nil else {
-            logError("Rocket sprite not set"); return
-        }
-    }
-
-    override func fire() {
-        guard let delegate else { return }
-        scene?.spawnBullet { bullet in
-
-            let direction = delegate.shotDirection
-            bullet.position = delegate.firingPoint()
-
-            if let sprite = spriteScene?.instantiate() as? Node2D {
-                let angle = Float.atan2(y: direction.y, x: direction.x)
-                sprite.rotation = Double(angle)
-                bullet.setSprite(sprite)
-            }
-            bullet.radius = 5
-
-            let ai = LinearMoveAI()
-            ai.direction = direction
-            ai.speed = bulletSpeed
-
-            bullet.ai = ai
-            bullet <- ai
-
-            bullet.lifetime = lifetime
-            bullet.damageValue = [.rocket]
-            bullet.hitbox.collisionLayer = 0
-            bullet.hitbox.addCollisionMask([.floor, .enemy])
-            bullet.destroyMask.insert(.enemy)
-        }
-    }
-}
-
-@Godot
-class GranadeLauncher: Weapon {
-
-    @Export var projectile: PackedScene?
-
-    @Export var hitEffect: PackedScene?
-
-    @Export var speed: Float = 200
-
-    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
-        guard let p: Projectile = try? projectile?.instantiate() else { 
-            return []
-        }
-        p.position = origin
-
-        p.hitbox = p.findChild(pattern: "Hitbox2D") as? Hitbox2D
-        let ai = FallAI()
-        
-        ai.speed = speed
-        ai.direction = direction
-        
-        p.ai = ai
-        
-        p.hitbox?.damage = 10
-        p.hitbox?.damageType = .rocket
-        p.hitbox?.collisionLayer = 0b1_0000
-        p.hitbox?.collisionMask = 0b0010_0011
-        p.destroyMask.insert(.enemy)
-        
-        var spawner = GranadeHitSpawner()
-        spawner.object = hitEffect
-        p.effectSpawner = spawner
-
-        p.addChild(node: ai)
-        return [p]
-    }
-}
-
-@Godot
-class SmartBomb: Weapon {
-
-    // @Export var projectile: PackedScene?
-
-    @Export var explosion: PackedScene?
-
-    override func makeProjectiles(origin: Vector2, direction: Vector2) -> [Node2D] {
-        let projectile = Projectile()
-        
-        let tex = PlaceholderTexture2D()
-        tex.size = Vector2(x: 8, y: 8)
-        let sprite = Sprite2D()
-        sprite.texture = tex
-
-        projectile.addChild(node: sprite)
-
-        let ai = LinearMoveAI()
-        projectile.ai = ai
-        projectile.addChild(node: ai)
-        
-        ai.direction = direction
-        ai.speed = 100
-        projectile.lifetime = 1.0
-
-        projectile.destroyOnTimeout = true
-
-        var effectSpawner = HitEffectSpawner()
-        effectSpawner.object = explosion
-        projectile.effectSpawner = effectSpawner
-
-        return [projectile]
-    }
-}
-
-@Godot
-class Flamethrower: Weapon {
-
-    private var ammoCounter: Double = 0.0
-
-    override func _process(delta: Double) {
-        ammoCounter -= delta
-    }
-
-    override func trigger(isPressed: Bool) -> Bool {
-        guard isPressed else {
-            ammoCounter = 0
-            return false
-        }
-        guard let cooldown, cooldown.isReady else { return false }
-        if ammoCounter <= 0 {
-            guard ammo?.consume(ammoCost) == true else {
-                return false
-            }
-            ammoCounter = 0.5
-        }
-        cooldown.time = cooldownTime
-        cooldown.use()
-        fire()
-        return true
-    }
-
-    override func fire() {
-        guard let delegate else { return }
-        scene?.spawnBullet { bullet in
-            let direction = delegate.shotDirection
-            bullet.position = delegate.firingPoint()
-            
-            let sprite = FlameSprite()
-            bullet.setSprite(sprite)
-
-            let ai = LinearMoveAI()
-            ai.direction = direction
-            ai.speed = bulletSpeed
-
-            bullet.ai = ai
-            bullet <- ai
-
-            bullet.lifetime = lifetime
-            bullet.destroyMask = []
-        }
-    }
-}
-
-@Godot
-class FlameSprite: Sprite2D {
-
-    var spriteScale = 1.0
-
-    override func _ready() {
-        let tex = PlaceholderTexture2D()
-        tex.size = Vector2(x: 8, y: 8)
-        self.texture = tex
-    }
-
-    override func _physicsProcess(delta: Double) {
-        spriteScale += 8 * delta
-        self.scale = Vector2(x: spriteScale, y: spriteScale) // TODO also needs to scale bullet collider size
     }
 }

@@ -5,7 +5,7 @@ class Bullet: Node2D {
 
     weak var scene: SceneService?
 
-    var effectSpawner: HitEffectSpawner?
+    var effectSpawner: Spawner?
 
     var ai: NodeAI?
 
