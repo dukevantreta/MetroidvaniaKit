@@ -52,7 +52,7 @@ class WallGrabState: PlayerState {
             }
         } else {
             player.sprite?.play(name: "wall-aim")
-            player.aimForward()
+            player.aimWallForward()
         }
     }
 }

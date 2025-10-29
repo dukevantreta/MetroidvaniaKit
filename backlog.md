@@ -18,6 +18,9 @@
 ### UI
 - Change text align from center to left on labels that display from a strea of characters.
 
+### Minor Details
+- Bullet's hit effects position should align with collision point instead of bullet's current position.
+
 ### Bugs
 - Fix item pick locking next pause screen.
     - Pause storage is breaking room transitions.

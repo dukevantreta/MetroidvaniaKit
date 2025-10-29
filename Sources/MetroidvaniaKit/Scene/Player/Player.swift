@@ -503,47 +503,52 @@ final class Player: CharacterBody2D {
     // MARK: AIMING FUNCTIONS
     
     func aimForward() {
-        shotOrigin = Vector2(x: 16 * lookDirection, y: -27)
+        shotOrigin = Vector2(x: 14 * lookDirection, y: -27)
         shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
     
     func aimDiagonalUp() {
-        shotOrigin = Vector2(x: 12 * lookDirection, y: -37)
+        shotOrigin = Vector2(x: 10 * lookDirection, y: -36)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
     
     func aimDiagonalDown() {
-        shotOrigin = Vector2(x: 13 * lookDirection, y: -18)
+        shotOrigin = Vector2(x: 11 * lookDirection, y: -18)
         shotDirection = Vector2(x: lookDirection, y: 1).normalized()
     }
     
     func aimUp() {
-        shotOrigin = Vector2(x: 4 * lookDirection, y: -42)
+        shotOrigin = Vector2(x: 2 * lookDirection, y: -40)
         shotDirection = Vector2(x: 0, y: -1).normalized()
     }
     
     func aimDown() {
-        shotOrigin = Vector2(x: 0, y: -12)
+        shotOrigin = Vector2(x: 1 * lookDirection, y: -12)
         shotDirection = Vector2(x: 0, y: 1).normalized()
     }
     
+    func aimWallForward() {
+        shotOrigin = Vector2(x: 23 * lookDirection, y: -23)
+        shotDirection = Vector2(x: lookDirection, y: 0).normalized()
+    }
+
     func aimWallUp() {
-        shotOrigin = Vector2(x: 17 * lookDirection, y: -37)
+        shotOrigin = Vector2(x: 19 * lookDirection, y: -32)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
     
     func aimWallDown() {
-        shotOrigin = Vector2(x: 17 * lookDirection, y: -18)
+        shotOrigin = Vector2(x: 19 * lookDirection, y: -14)
         shotDirection = Vector2(x: lookDirection, y: 1).normalized()
     }
     
     func aimCrouchForward() {
-        shotOrigin = Vector2(x: 16 * lookDirection, y: -14)
+        shotOrigin = Vector2(x: 14 * lookDirection, y: -14)
         shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
     
     func aimCrouchUp() {
-        shotOrigin = Vector2(x: 13 * lookDirection, y: -24)
+        shotOrigin = Vector2(x: 10 * lookDirection, y: -23)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
 }
