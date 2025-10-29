@@ -115,9 +115,7 @@ final class Player: CharacterBody2D {
     
     var subweapon: Weapon?
 
-    var hasMainWeapon: Bool {
-        !data.upgradesObtained.intersection(data.upgradesEnabled).intersection(.allShots).isEmpty
-    }
+    
 
     private(set) var shotOrigin: Vector2 = .zero
     private(set) var shotDirection: Vector2 = .zero
@@ -267,7 +265,7 @@ final class Player: CharacterBody2D {
         if states[currentState]?.canFire == true {
             if canUse(.mines), isMorphed, let dataMiner {
                 tryFire(dataMiner, pressing: .actionLeft)
-            } else if let weapon, hasMainWeapon {
+            } else if let weapon {
                 tryFire(weapon, pressing: .actionLeft)
             }
             if let subweapon {
@@ -550,7 +548,15 @@ final class Player: CharacterBody2D {
     }
 }
 
-extension Player: WeaponDelegate {
+extension Player: MainWeaponDelegate {
+
+    var hasMainWeapon: Bool {
+        !data.upgradesObtained.intersection(data.upgradesEnabled).intersection(.allShots).isEmpty
+    }
+    
+    func aimDirection() -> Vector2 {
+        shotDirection
+    }
     
     func firingPoint() -> Vector2 {
         globalPosition + shotOrigin

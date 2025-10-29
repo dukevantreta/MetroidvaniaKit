@@ -36,8 +36,12 @@ struct GranadeHitSpawner: Spawner {
 
 protocol WeaponDelegate: AnyObject {
     func canUse(_ upgrade: Upgrades) -> Bool
+    func aimDirection() -> Vector2
     func firingPoint() -> Vector2
-    var shotDirection: Vector2 { get }
+}
+
+protocol MainWeaponDelegate: WeaponDelegate {
+    var hasMainWeapon: Bool { get }
 }
 
 @Godot
@@ -62,6 +66,7 @@ class Weapon: Node {
     }()
     
     func trigger(isPressed: Bool) -> Bool {
+        guard canFire() else { return false }
         guard isPressed else {
             isFirstFrame = true
             return false
@@ -77,6 +82,10 @@ class Weapon: Node {
         cooldown.time = cooldownTime
         cooldown.use()
         fire()
+        return true
+    }
+
+    func canFire() -> Bool {
         return true
     }
 
@@ -106,11 +115,15 @@ class MainWeapon: Weapon {
         }
     }
 
+    override func canFire() -> Bool {
+        (delegate as? MainWeaponDelegate)?.hasMainWeapon == true
+    }
+
     override func fire() {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
 
-            let direction = delegate.shotDirection
+            let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
 
             if let sprite = spriteScene?.instantiate() as? Node2D {
@@ -165,6 +178,10 @@ class DataMiner: Weapon {
         }
     }
 
+    override func canFire() -> Bool {
+        delegate?.canUse(.mines) == true
+    }
+
     override func fire() {
         var freeMine: Mine?
         for mine in minePool {
@@ -193,11 +210,15 @@ class RocketLauncher: Weapon {
         }
     }
 
+    override func canFire() -> Bool {
+        delegate?.canUse(.rocket) == true
+    }
+
     override func fire() {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
 
-            let direction = delegate.shotDirection
+            let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
 
             if let sprite = spriteScene?.instantiate() as? Node2D {
@@ -232,10 +253,14 @@ class GranadeLauncher: Weapon {
 
     @Export var speed: Float = 200
 
+    override func canFire() -> Bool {
+        delegate?.canUse(.granade) == true
+    }
+
     override func fire() {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
-            let direction = delegate.shotDirection
+            let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
 
             let tex = PlaceholderTexture2D()
@@ -268,10 +293,14 @@ class SmartBomb: Weapon {
 
     @Export var explosion: PackedScene?
 
+    override func canFire() -> Bool {
+        delegate?.canUse(.smartBomb) == true
+    }
+
     override func fire() {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
-            let direction = delegate.shotDirection
+            let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
 
             let tex = PlaceholderTexture2D()
@@ -306,7 +335,12 @@ class Flamethrower: Weapon {
         ammoCounter -= delta
     }
 
+    override func canFire() -> Bool {
+        delegate?.canUse(.flamethrower) == true
+    }
+
     override func trigger(isPressed: Bool) -> Bool {
+        guard canFire() else { return false }
         guard isPressed else {
             ammoCounter = 0
             return false
@@ -327,7 +361,7 @@ class Flamethrower: Weapon {
     override func fire() {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
-            let direction = delegate.shotDirection
+            let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
             
             let sprite = FlameSprite()
