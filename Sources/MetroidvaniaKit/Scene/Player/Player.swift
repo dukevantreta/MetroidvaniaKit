@@ -67,7 +67,7 @@ final class Player: CharacterBody2D {
         }
     }
     
-    @Export private(set) var shotOffset: Float = 6.0
+    // @Export private(set) var shotOffset: Float = 6.0
     @Export(.enum) var weaponType: WeaponType = .normal
 
     @Export var damageSpeed: Float = 500
@@ -117,9 +117,12 @@ final class Player: CharacterBody2D {
     var subweapon: Weapon?
 
     
+    // private
+    var aimY: Float = 0.0
 
     private(set) var shotOrigin: Vector2 = .zero
     private(set) var shotDirection: Vector2 = .zero
+    private(set) var shotAnimOffset: Vector2 = .zero
 
     private(set) var highRay: Ray = (.zero, .zero)
     private(set) var midRay: Ray = (.zero, .zero)
@@ -127,6 +130,7 @@ final class Player: CharacterBody2D {
     
     var lastShotTimestamp: UInt = 0
     
+    var isAiming = false
     var isAimingDown = false
     
     var isInWater = false
@@ -199,6 +203,14 @@ final class Player: CharacterBody2D {
         slideOnCeiling = false // doesnt work on this movement model
         floorSnapLength = 6.0
 
+        guard let sprite else { return }
+        sprite.animationChanged.connect { [weak self] in
+            self?.animationCheck()
+        }
+        sprite.frameChanged.connect { [weak self] in
+            self?.animationCheck()
+        }
+
         setCollisionLayer(.player)
         addCollisionMask(.floor)
         mainWeapon?.ammo = ammo
@@ -270,6 +282,8 @@ final class Player: CharacterBody2D {
             }
         }
         states[currentState]?.processPhysics(self, dt: delta)
+
+        // animationCheck()
 
         if states[currentState]?.canFire == true {
             if canUse(.mines), isMorphed, let dataMiner {
@@ -552,6 +566,44 @@ final class Player: CharacterBody2D {
         shotOrigin = Vector2(x: 10 * lookDirection, y: -23)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
+
+    func animationCheck() {
+        guard let sprite else { shotAnimOffset = .zero; return }
+        if sprite.animation == "run-aim" {
+            let offset: Float = switch sprite.frame {
+                case 0, 2, 5, 7: 1.0
+                case 3, 8: 2.0
+                case 4, 9: 3.0
+                default: 0.0
+            }
+            shotAnimOffset = Vector2(x: 0.0, y: offset)
+        } else if sprite.animation == "run-aim-up" {
+            let offX: Float = 1.0
+            let offset: Float = switch sprite.frame {
+                case 0, 2, 5, 7: 1.0
+                case 3, 8: 2.0
+                case 4, 9: 3.0
+                default: 0.0
+            }
+            shotAnimOffset = Vector2(x: offX, y: offset)
+        } else if sprite.animation == "run-aim-down" {
+            let offset: Float = switch sprite.frame {
+                case 0, 2, 5, 7: 1.0
+                case 3, 8: 2.0
+                case 4, 9: 3.0
+                default: 0.0
+            }
+            shotAnimOffset = Vector2(x: 0.0, y: offset)
+        } else if sprite.animation == "jump-aim" {
+            shotAnimOffset = Vector2(x: 0.0, y: 1.0)
+        } else if sprite.animation == "jump-aim-diag-up" {
+            shotAnimOffset = Vector2(x: 1.0, y: 1.0)
+        } else if sprite.animation == "jump-aim-diag-down" {
+            shotAnimOffset = Vector2(x: 0.0, y: 1.0)
+        } else {
+            shotAnimOffset = .zero
+        }
+    }
 }
 
 extension Player: MainWeaponDelegate {
@@ -565,7 +617,9 @@ extension Player: MainWeaponDelegate {
     }
     
     func firingPoint() -> Vector2 {
-        globalPosition + shotOrigin + aimDirection().sign() * shotOffset
+        var animOffset = shotAnimOffset
+        animOffset.x *= lookDirection
+        return globalPosition + shotOrigin + animOffset
     }
 
     func getMomentum() -> Vector2 {

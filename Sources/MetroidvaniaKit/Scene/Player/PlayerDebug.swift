@@ -30,7 +30,10 @@ final class PlayerDebug: Node2D {
         drawLine(from: player.highRay.origin, to: player.highRay.target, color: .magenta)
         drawLine(from: .zero, to: Vector2(x: 0, y: player.data.floorCheckLength), color: .blueViolet)
         
-        let shotRegion = Rect2(x: player.shotOrigin.x - 1, y: player.shotOrigin.y - 1, width: 2, height: 2)
+        var animOffset = player.shotAnimOffset
+        animOffset.x *= player.lookDirection
+        let shotOrigin = player.shotOrigin + animOffset
+        let shotRegion = Rect2(x: shotOrigin.x - 1, y: shotOrigin.y - 1, width: 2, height: 2)
         drawRect(shotRegion, color: .red)
     }
 }

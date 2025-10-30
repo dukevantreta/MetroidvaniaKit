@@ -9,6 +9,10 @@ class RunningState: PlayerState {
     func enter(_ player: Player) {
         player.overclockAccumulator = 0.0
         lastActionTimestamp = Time.getTicksMsec()
+
+        if !player.input.isActionPressed(.leftShoulder) {
+            player.aimY = 0.0
+        }
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 36)
@@ -17,6 +21,39 @@ class RunningState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
+        if player.input.isActionJustPressed(.leftShoulder) {
+            player.aimY = 0.0
+        }
+        if player.input.isActionJustReleased(.leftShoulder) {
+            player.aimY = 0.0
+        }
+        player.isAiming = player.input.isActionPressed(.leftShoulder)
+        if !player.joy1.y.isZero {
+            player.aimY = player.joy1.sign().y
+        }
+
+        if player.isAiming {
+            if player.aimY < 0.0 {
+                player.aimDiagonalDown()
+            } else {
+                player.aimDiagonalUp()
+            }
+        } else {
+            if player.joy1.y != 0 {
+                if player.joy1.x != 0 {
+                    if player.joy1.y > 0 {
+                        player.aimDiagonalUp()
+                    } else if player.joy1.y < 0 {
+                        player.aimDiagonalDown()
+                    }
+                } else {
+                    player.aimUp()
+                }
+            } else {
+                player.aimForward()
+            }
+        }
+
         if !player.isOnFloor() {
             return .jump
         }
@@ -61,11 +98,6 @@ class RunningState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
-        
-        if player.input.isActionJustPressed(.leftShoulder) {
-            player.isAimingDown = false
-        }
-        
         player.updateHorizontalMovement(dt)
 
         if player.isAffectedByWater {
@@ -85,16 +117,11 @@ class RunningState: PlayerState {
          
         // Handle animations
         if abs(player.getRealVelocity().x) > 0 {
-            if player.input.isActionPressed(.leftShoulder) || !player.joy1.y.isZero {
-                if !player.joy1.y.isZero {
-                    player.isAimingDown = player.joy1.y < 0
-                }
-                if player.isAimingDown {
+            if player.isAiming || !player.joy1.y.isZero {
+                if player.aimY < 0.0 {
                     player.sprite?.play(name: "run-aim-down")
-                    player.aimDiagonalDown()
                 } else {
                     player.sprite?.play(name: "run-aim-up")
-                    player.aimDiagonalUp()
                 }
             } else {
                 if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
@@ -102,31 +129,23 @@ class RunningState: PlayerState {
                 } else {
                     player.sprite?.play(name: "run")
                 }
-                player.aimForward()
             }
         } else {
-            if player.input.isActionPressed(.leftShoulder) {
-                if !player.joy1.y.isZero {
-                    player.isAimingDown = player.joy1.y < 0
-                }
-                if player.isAimingDown {
+            if player.isAiming {
+                if player.aimY < 0.0 {
                     player.sprite?.play(name: "aim-diag-down")
-                    player.aimDiagonalDown()
                 } else {
                     player.sprite?.play(name: "aim-diag-up")
-                    player.aimDiagonalUp()
                 }
             } else {
                 if player.joy1.y > 0 {
                     player.sprite?.play(name: "aim-up")
-                    player.aimUp()
                 } else {
                     if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
                         player.sprite?.play(name: "aim-idle")
                     } else {
                         player.sprite?.play(name: "idle-3")
                     }
-                    player.aimForward()
                 }
             }
         }

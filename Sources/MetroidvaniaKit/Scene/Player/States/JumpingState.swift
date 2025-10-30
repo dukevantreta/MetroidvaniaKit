@@ -5,16 +5,27 @@ class JumpingState: PlayerState {
     
     let canFire: Bool = true
 
+    var jumpTimestamp: UInt = 0
     var jumpTime: Double = 0.0
     var hasShotDuringJump = false
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
 
+    // var isJumpAimDown = false
+    // var isAimingUp = false
+    var isForward = false
+    // var aimY: Float = 0.0
+
     func enter(_ player: Player) {
+        jumpTimestamp = Time.getTicksMsec()
         player.overclockAccumulator = 0.0
         canDoubleJump = true
         allowsDoubleJump = false
+        hasShotDuringJump = false
+        // isAimingUp = false
+        isForward = false
         jumpTime = 0.0
+        // player.aimY = 0.0
         player.sprite?.play(name: "jump-begin")
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -24,7 +35,56 @@ class JumpingState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
-        
+        if player.input.isActionJustPressed(.leftShoulder) {
+            player.aimY = 0.0
+        }
+        if player.input.isActionJustReleased(.leftShoulder) {
+            player.aimY = 0.0
+        }
+        player.isAiming = player.input.isActionPressed(.leftShoulder)
+
+        if Int64(player.lastShotTimestamp) - Int64(jumpTimestamp) > 0 {
+            hasShotDuringJump = true
+        }
+
+        if !player.joy1.y.isZero { // toggle
+            player.aimY = player.joy1.sign().y
+            if player.joy1.x.isZero {
+                isForward = false
+            }
+        }
+        if !player.joy1.x.isZero {
+            isForward = true
+            if player.joy1.y.isZero {
+                player.aimY = 0.0
+            }
+        }
+
+
+        if player.isAiming {
+            if player.aimY < 0.0 {
+                player.aimDiagonalDown()
+            } else {
+                player.aimDiagonalUp()
+            }
+        } else {
+            if player.aimY > 0.0 {
+                if isForward {
+                    player.aimDiagonalUp()
+                } else {
+                    player.aimUp()
+                }
+            } else if player.aimY < 0.0 {
+                if isForward {
+                    player.aimDiagonalDown()
+                } else {
+                    player.aimDown()
+                }
+            } else {
+                player.aimForward()
+            }
+        }
+
         if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.canUse(.wallGrab) {
             let xNormal = Int(player.getWallNormal().sign().x)
             if xNormal > 0 {
@@ -44,9 +104,6 @@ class JumpingState: PlayerState {
                 return .charge
             }
             return .dash
-        }
-        if player.input.isActionJustPressed(.leftShoulder) {
-            player.isAimingDown = false
         }
         return nil
     }
@@ -101,41 +158,107 @@ class JumpingState: PlayerState {
             }
             return
         }
+
         if abs(player.getRealVelocity().x) > player.data.movespeed * 0.8 && !hasShotDuringJump {
-            player.sprite?.play(name: "jump-spin")
-            if player.joy1.y < 0 {
-                player.aimDown()
-            } else if player.joy1.y > 0 {
-                player.aimUp()
-            }
+            player.sprite?.play(name: "jump-spin") // breaks aiming
         } else {
-            if player.input.isActionPressed(.leftShoulder) || (!player.joy1.y.isZero && !player.joy1.x.isZero) {
-                if !player.joy1.y.isZero {
-                    player.isAimingDown = player.joy1.y < 0
-                }
-                if player.isAimingDown {
+            if player.isAiming {
+                if player.aimY < 0.0 {
                     player.sprite?.play(name: "jump-aim-diag-down")
-                    player.aimDiagonalDown()
                 } else {
                     player.sprite?.play(name: "jump-aim-diag-up")
-                    player.aimDiagonalUp()
                 }
             } else {
-                if player.joy1.y < 0 {
-                    player.sprite?.play(name: "jump-aim-down")
-                    player.aimDown()
-                } else if player.joy1.y > 0 {
-                    player.sprite?.play(name: "jump-aim-up")
-                    player.aimUp()
+                if player.aimY < 0.0 {
+                    if isForward {
+                        player.sprite?.play(name: "jump-aim-diag-down")
+                    } else {
+                        player.sprite?.play(name: "jump-aim-down")
+                    }
+                } else if player.aimY > 0.0 {
+                    if isForward {
+                        player.sprite?.play(name: "jump-aim-diag-up")
+                    } else {
+                        player.sprite?.play(name: "jump-aim-up")
+                    }
                 } else {
                     if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
                         player.sprite?.play(name: "jump-aim")
                     } else {
                         player.sprite?.play(name: "jump-still")
                     }
-                    player.aimForward()
                 }
             }
         }
     }
 }
+
+// enum PlayerAnimation {
+
+//     case idle
+//     case run(mode: Run)
+//     case jump(mode: Jump)
+    
+//     enum Run {
+//         case normal
+//         case aim(Aim)
+//     }
+    
+//     enum Jump {
+//         case still
+//         case spin
+//         case aim(Aim)
+//     }
+//     enum Aim {
+//         case forward
+//         case up
+//         case down
+//         case diagonalUp
+//         case diagonalDown
+//     }
+
+//     func check(_ animation: PlayerAnimation) {
+//         switch animation {
+//         case .idle:
+//             break
+//         case .run(let mode):
+//             switch mode {
+//             case .normal:
+//                 break
+//             case .aim(let aim):
+//                 switch aim {
+//                 case .forward:
+//                     break
+//                 case .diagonalDown:
+//                     break
+//                 case .diagonalUp:
+//                     break
+//                 case .down:
+//                     break
+//                 case .up:
+//                     break
+//                 }
+//             }
+//         case .jump(let mode):
+//             switch mode {
+//             case .still:
+//                 break
+//             case .spin:
+//                 break
+//             case .aim(let aim):
+//                 switch aim {
+//                 case .forward:
+//                     break
+//                 case .diagonalDown:
+//                     break
+//                 case .diagonalUp:
+//                     break
+//                 case .down:
+//                     break
+//                 case .up:
+//                     break
+//                 }
+//             }
+//         }
+//     }
+// }

@@ -56,6 +56,9 @@ class Weapon: Node {
     @Export private(set) var bulletSpeed: Float = 640
     @Export private(set) var lifetime: Double = 1.5
 
+    // spawn position offset from firing point
+    @Export private(set) var bulletOffset: Float = 6.0
+
     var ammo: Ammo?
     var cooldown: Cooldown?
 
@@ -128,7 +131,7 @@ class MainWeapon: Weapon {
             scene?.spawnBullet { bullet in
 
                 let direction = delegate.aimDirection()
-                bullet.position = delegate.firingPoint()
+                bullet.position = delegate.firingPoint() + direction.sign() * bulletOffset
                 bullet.momentum = delegate.getMomentum()
 
                 if let sprite = spriteScene?.instantiate() as? Node2D {
@@ -242,7 +245,7 @@ class RocketLauncher: Weapon {
         scene?.spawnBullet { bullet in
 
             let direction = delegate.aimDirection()
-            bullet.position = delegate.firingPoint()
+            bullet.position = delegate.firingPoint() + direction.sign() * bulletOffset
             bullet.momentum = delegate.getMomentum()
 
             if let sprite = spriteScene?.instantiate() as? Node2D {
@@ -285,7 +288,7 @@ class GranadeLauncher: Weapon {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
             let direction = delegate.aimDirection()
-            bullet.position = delegate.firingPoint()
+            bullet.position = delegate.firingPoint() + direction.sign() * bulletOffset
             bullet.momentum = delegate.getMomentum()
 
             let tex = PlaceholderTexture2D()
@@ -326,7 +329,7 @@ class SmartBomb: Weapon {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
             let direction = delegate.aimDirection()
-            bullet.position = delegate.firingPoint()
+            bullet.position = delegate.firingPoint() + direction.sign() * bulletOffset
             bullet.momentum = delegate.getMomentum()
 
             let tex = PlaceholderTexture2D()
@@ -388,7 +391,7 @@ class Flamethrower: Weapon {
         guard let delegate else { return }
         scene?.spawnBullet { bullet in
             let direction = delegate.aimDirection()
-            bullet.position = delegate.firingPoint()
+            bullet.position = delegate.firingPoint() + direction.sign() * bulletOffset
             bullet.momentum = delegate.getMomentum()
             
             let sprite = FlameSprite()
