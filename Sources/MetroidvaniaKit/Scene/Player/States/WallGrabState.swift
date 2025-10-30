@@ -19,6 +19,22 @@ class WallGrabState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
+        player.isAiming = player.input.isActionPressed(.leftShoulder)
+
+        if !player.joy1.y.isZero {
+            player.aimY = player.joy1.sign().y
+        }
+
+        if player.isAiming || !player.joy1.y.isZero {
+            if player.aimY < 0.0 {
+                player.aimWallDown()
+            } else {
+                player.aimWallUp()
+            }
+        } else {
+            player.aimWallForward()
+        }
+
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = -player.getJumpspeed()
             player.velocity.x = player.getWallNormal().sign().x * player.data.movespeed //* 0.25
@@ -39,20 +55,14 @@ class WallGrabState: PlayerState {
             player.sprite?.play(name: "mini-wall")
             return
         }
-        if player.input.isActionPressed(.leftShoulder) || !player.joy1.y.isZero {
-            if !player.joy1.y.isZero {
-                player.isAimingDown = player.joy1.y < 0
-            }
-            if player.isAimingDown {
+        if player.isAiming || !player.joy1.y.isZero {
+            if player.aimY < 0.0 {
                 player.sprite?.play(name: "wall-aim-down")
-                player.aimWallDown()
             } else {
                 player.sprite?.play(name: "wall-aim-up")
-                player.aimWallUp()
             }
         } else {
             player.sprite?.play(name: "wall-aim")
-            player.aimWallForward()
         }
     }
 }

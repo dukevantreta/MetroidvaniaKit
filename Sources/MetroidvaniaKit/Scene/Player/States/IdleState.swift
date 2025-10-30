@@ -14,6 +14,28 @@ class IdleState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
+        if player.input.isActionJustPressed(.leftShoulder) {
+            player.aimY = 0.0
+        }
+        player.isAiming = player.input.isActionPressed(.leftShoulder)
+
+        if !player.joy1.y.isZero {
+            player.aimY = player.joy1.sign().y
+        }
+
+        if player.isAiming {
+            if player.aimY < 0.0 {
+                player.aimDiagonalDown()
+            } else {
+                player.aimDiagonalUp()
+            }
+        } else {
+            if player.joy1.y > 0 {
+                player.aimUp()
+            } else {
+                player.aimForward()
+            }
+        }
         
         if !player.joy1.x.isZero {
             return .run
@@ -41,31 +63,21 @@ class IdleState: PlayerState {
             return
         }
         
-        if player.input.isActionJustPressed(.leftShoulder) {
-            player.isAimingDown = false
-        }
         if player.input.isActionPressed(.leftShoulder) {
-            if !player.joy1.y.isZero {
-                player.isAimingDown = player.joy1.y < 0
-            }
-            if player.isAimingDown {
+            if player.aimY < 0.0 {
                 player.sprite?.play(name: "aim-diag-down")
-                player.aimDiagonalDown()
             } else {
                 player.sprite?.play(name: "aim-diag-up")
-                player.aimDiagonalUp()
             }
         } else {
             if player.joy1.y > 0 {
                 player.sprite?.play(name: "aim-up")
-                player.aimUp()
             } else {
                 if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
                     player.sprite?.play(name: "aim-idle")
                 } else {
                     player.sprite?.play(name: "idle-1")
                 }
-                player.aimForward()
             }
         }
     }

@@ -11,10 +11,7 @@ class JumpingState: PlayerState {
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
 
-    // var isJumpAimDown = false
-    // var isAimingUp = false
     var isForward = false
-    // var aimY: Float = 0.0
 
     func enter(_ player: Player) {
         jumpTimestamp = Time.getTicksMsec()
@@ -22,10 +19,8 @@ class JumpingState: PlayerState {
         canDoubleJump = true
         allowsDoubleJump = false
         hasShotDuringJump = false
-        // isAimingUp = false
         isForward = false
         jumpTime = 0.0
-        // player.aimY = 0.0
         player.sprite?.play(name: "jump-begin")
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
@@ -55,7 +50,7 @@ class JumpingState: PlayerState {
         }
         if !player.joy1.x.isZero {
             isForward = true
-            if player.joy1.y.isZero {
+            if player.joy1.y.isZero && !player.isAiming {
                 player.aimY = 0.0
             }
         }

@@ -16,6 +16,13 @@ class CrouchState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
+
+        if player.input.isActionPressed(.leftShoulder) {
+            player.aimCrouchUp()
+        } else {
+            player.aimCrouchForward()
+        }
+
         // Jump
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = -player.getJumpspeed()
@@ -46,12 +53,10 @@ class CrouchState: PlayerState {
         // Handle animations
         if player.input.isActionPressed(.leftShoulder) {
             player.sprite?.play(name: "crouch-aim-up")
-            player.aimCrouchUp()
         } else {
             if player.sprite?.animation != "stand-to-crouch" {
                 player.sprite?.play(name: "crouch-aim")
             }
-            player.aimCrouchForward()
         }
     }
 }
