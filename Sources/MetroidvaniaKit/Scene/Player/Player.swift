@@ -623,6 +623,9 @@ extension Player: MainWeaponDelegate {
     }
 
     func getMomentum() -> Vector2 {
-        getRealVelocity()
+        if velocity.x != 0.0 { // sanity check because real velocity persists in non-moving states
+            return Vector2(x: getRealVelocity().x, y: 0.0)
+        }
+        return .zero
     }
 }
