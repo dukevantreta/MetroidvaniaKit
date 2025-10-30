@@ -38,6 +38,7 @@ protocol WeaponDelegate: AnyObject {
     func canUse(_ upgrade: Upgrades) -> Bool
     func aimDirection() -> Vector2
     func firingPoint() -> Vector2
+    func getMomentum() -> Vector2
 }
 
 protocol MainWeaponDelegate: WeaponDelegate {
@@ -128,6 +129,7 @@ class MainWeapon: Weapon {
 
                 let direction = delegate.aimDirection()
                 bullet.position = delegate.firingPoint()
+                bullet.momentum = delegate.getMomentum()
 
                 if let sprite = spriteScene?.instantiate() as? Node2D {
                     let angle = Float.atan2(y: direction.y, x: direction.x)
@@ -241,6 +243,7 @@ class RocketLauncher: Weapon {
 
             let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
+            bullet.momentum = delegate.getMomentum()
 
             if let sprite = spriteScene?.instantiate() as? Node2D {
                 let angle = Float.atan2(y: direction.y, x: direction.x)
@@ -283,6 +286,7 @@ class GranadeLauncher: Weapon {
         scene?.spawnBullet { bullet in
             let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
+            bullet.momentum = delegate.getMomentum()
 
             let tex = PlaceholderTexture2D()
             tex.size = Vector2(x: 12, y: 12)
@@ -323,6 +327,7 @@ class SmartBomb: Weapon {
         scene?.spawnBullet { bullet in
             let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
+            bullet.momentum = delegate.getMomentum()
 
             let tex = PlaceholderTexture2D()
             tex.size = Vector2(x: 8, y: 8)
@@ -384,6 +389,7 @@ class Flamethrower: Weapon {
         scene?.spawnBullet { bullet in
             let direction = delegate.aimDirection()
             bullet.position = delegate.firingPoint()
+            bullet.momentum = delegate.getMomentum()
             
             let sprite = FlameSprite()
             bullet.setSprite(sprite)

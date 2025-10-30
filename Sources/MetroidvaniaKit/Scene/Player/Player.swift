@@ -263,6 +263,14 @@ final class Player: CharacterBody2D {
             }
         }
 
+        if let newState = states[currentState]?.processInput(self) {
+            if newState != currentState {
+                currentState = newState
+                states[currentState]?.enter(self)
+            }
+        }
+        states[currentState]?.processPhysics(self, dt: delta)
+
         if states[currentState]?.canFire == true {
             if canUse(.mines), isMorphed, let dataMiner {
                 tryFire(dataMiner, pressing: .actionLeft)
@@ -273,14 +281,6 @@ final class Player: CharacterBody2D {
                 tryFire(subweapon, pressing: .actionUp)
             }
         }
-
-        if let newState = states[currentState]?.processInput(self) {
-            if newState != currentState {
-                currentState = newState
-                states[currentState]?.enter(self)
-            }
-        }
-        states[currentState]?.processPhysics(self, dt: delta)
         
         if input.isActionJustPressed(.actionRight) {
             hookshot?.origin = shotOrigin
@@ -566,5 +566,9 @@ extension Player: MainWeaponDelegate {
     
     func firingPoint() -> Vector2 {
         globalPosition + shotOrigin + aimDirection().sign() * shotOffset
+    }
+
+    func getMomentum() -> Vector2 {
+        getRealVelocity()
     }
 }

@@ -15,6 +15,8 @@ class Bullet: Node2D {
 
     var destroyMask: LayerMask = .floor
 
+    var momentum: Vector2 = .zero
+
     var damage: Int {
         get { hitbox.damage }
         set { hitbox.damage = newValue }
@@ -112,8 +114,9 @@ class Bullet: Node2D {
     }
 
     override func _physicsProcess(delta: Double) {
+        position += momentum * delta
         ai?.update(self, dt: delta)
-
+        
         lifetime -= delta
         if lifetime <= 0 {
             destroyPosition = position

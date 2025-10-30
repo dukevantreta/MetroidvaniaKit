@@ -40,6 +40,8 @@ class WideCurveAI: NodeAI {
         return factor
     }
 
+    var lastFactor: Float = 0.0
+
     override func update(_ node: Node2D, dt: Double) {
         if referencePosition == .zero {
             firstRefPosition = node.position
@@ -49,10 +51,18 @@ class WideCurveAI: NodeAI {
         referencePosition.y += speed * direction.y * Float(dt)
 
         let distance = referencePosition - firstRefPosition
-        let factor = calculateAmplitude(for: distance)
+        let factor = Float(calculateAmplitude(for: distance))
 
-        let expand = direction.orthogonal() * amplitude * factor
-        node.position.x = referencePosition.x + expand.x
-        node.position.y = referencePosition.y + expand.y
+        let factorDelta = factor - lastFactor
+
+        let expand = direction.orthogonal() * amplitude * factorDelta
+        let delta = direction * speed * Float(dt)
+
+        node.position.x += speed * direction.x * Float(dt)
+        node.position.x += expand.x
+        node.position.y += speed * direction.y * Float(dt)
+        node.position.y += expand.y
+
+        lastFactor = factor
     }
 }
