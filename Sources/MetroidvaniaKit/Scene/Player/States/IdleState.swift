@@ -4,19 +4,10 @@ class IdleState: PlayerState {
 
     let canFire: Bool = true
 
-    var aimUpProtectionFlag = true // stupid ass solution, but works for now
-    
     func enter(_ player: Player) {
-        player.sprite?.play(name: "idle-1")
-        
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 36)
             player.hitbox?.position = Vector2(x: 0, y: -18)
-        }
-
-        // entering from crouch, toggle flag
-        if player.input.isActionJustPressed(.up) {
-            aimUpProtectionFlag = false
         }
     }
     
@@ -32,8 +23,7 @@ class IdleState: PlayerState {
             return .run
         }
         if player.joy1.y < 0 && !player.input.isActionPressed(.leftShoulder) && !player.isMorphed {
-            player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
-            player.sprite?.play(name: "stand-to-crouch")
+            player.play(.standToCrouch)
             return .crouch
         }
         if player.input.isActionJustPressed(.up) && player.isMorphed {
@@ -46,9 +36,6 @@ class IdleState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
-        if player.input.isActionJustReleased(.up) {
-            aimUpProtectionFlag = true
-        }
 
         player.updateHorizontalMovement(dt)
         if player.isAffectedByWater {
@@ -58,7 +45,11 @@ class IdleState: PlayerState {
 
         // Handle animations
         if player.isMorphed {
-            player.play(.miniIdle)
+            if Time.getTicksMsec() - player.lastActionTimestamp < Int(player.data.idleThresholdTime) * 1000 {
+                player.play(.miniIdleAlt)
+            } else {
+                player.play(.miniIdle)
+            }
             return
         }
 
@@ -71,13 +62,15 @@ class IdleState: PlayerState {
                 player.play(.idleAimDiagonalUp)
             }
         } else {
-            if player.joy1.y > 0 && aimUpProtectionFlag {
+            if player.joy1.y > 0 {
                 player.aimUp()
                 player.play(.idleAimUp)
             } else {
                 player.aimForward()
                 if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
                     player.play(.idleAim)
+                } else if Time.getTicksMsec() - player.lastActionTimestamp < Int(player.data.idleThresholdTime) * 1000 {
+                    player.play(.idleAlt)
                 } else {
                     player.play(.idle)
                 }

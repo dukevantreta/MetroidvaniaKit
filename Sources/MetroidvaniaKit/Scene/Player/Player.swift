@@ -128,6 +128,7 @@ final class Player: CharacterBody2D {
     private(set) var lowRay: Ray = (.zero, .zero)
     
     var lastShotTimestamp: UInt = 0
+    var lastActionTimestamp: UInt = 0
     
     var aimPriority: Vector2 = .zero
 
@@ -210,6 +211,7 @@ final class Player: CharacterBody2D {
         sprite.frameChanged.connect { [weak self] in
             self?.animationCheck()
         }
+        sprite.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
 
         setCollisionLayer(.player)
         addCollisionMask(.floor)
@@ -296,6 +298,11 @@ final class Player: CharacterBody2D {
             }
         }
         // log("AIM PRIORITY: \(aimPriority.x), \(aimPriority.y)")
+
+        // this check is bad, no-actions still trigger the time
+        if input.isActionPressed(.actionDown) || input.isActionPressed(.actionUp) || input.isActionPressed(.actionLeft) || input.isActionPressed(.actionRight) {
+            lastActionTimestamp = Time.getTicksMsec()
+        }
 
         // process state
         if let newState = states[currentState]?.processInput(self) {

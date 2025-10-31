@@ -4,11 +4,8 @@ class RunningState: PlayerState {
     
     let canFire: Bool = true
     
-    var lastActionTimestamp: UInt = 0
-
     func enter(_ player: Player) {
         player.overclockAccumulator = 0.0
-        lastActionTimestamp = Time.getTicksMsec()
 
         if !player.isAiming {
             player.aimPriority.y = 0.0
@@ -28,7 +25,6 @@ class RunningState: PlayerState {
         }
         // Jump
         if player.input.isActionJustPressed(.actionDown) {
-            lastActionTimestamp = Time.getTicksMsec()
             player.velocity.y = -player.getJumpspeed()
             return .jump
         }
@@ -80,11 +76,7 @@ class RunningState: PlayerState {
 
         // Handle animations
         if player.isMorphed {
-            if abs(player.getRealVelocity().x) > 0 {
-                player.play(.miniRun)
-            } else {
-                player.play(.miniIdleAlt)
-            }
+            player.play(.miniRun)
             return
         }
 

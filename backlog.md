@@ -4,7 +4,7 @@
 - Fine-tune hitbox sizes on state changes.
     - Investigate collider rendering issue (centered vs top-left?).
 - Reimplement beams as layers (like Super Metroid).
-- Exiting crouch shouldn't instantly aim up.
+- Jump while overclocking must lock firing any weapons.
 
 ### Camera
 - Manually clamp camera movement to room bounds.

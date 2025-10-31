@@ -32,7 +32,7 @@ class CrouchState: PlayerState {
         // Morph
         if player.input.isActionJustPressed(.down) && player.canUse(.morph) {
             player.morph()
-            return .run
+            return .idle
         }
         
         // Sanity check

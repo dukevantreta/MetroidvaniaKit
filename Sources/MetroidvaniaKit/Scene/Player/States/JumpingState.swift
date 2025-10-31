@@ -33,18 +33,18 @@ class JumpingState: PlayerState {
     func processInput(_ player: Player) -> Player.State? {
 
         if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.canUse(.wallGrab) {
-            let xNormal = Int(player.getWallNormal().sign().x)
-            if xNormal > 0 {
-                player.position.x =  player.position.x.rounded(.down)
-            } else if xNormal < 0 {
-                player.position.x =  player.position.x.rounded(.up)
-            }
+            // stick to wall before grabbing
+            player.position.x = player.position.x.rounded(player.getWallNormal().sign().x > 0 ? .down : .up)
             return .wallGrab
         }
         
         if player.isOnFloor() {
-            player.sprite?.play(name: "fall-land")
-            return .run
+            if abs(player.getRealVelocity().x) < 0.1 {
+                player.sprite?.play(name: "fall-land")
+                return .idle
+            } else {
+                return .run
+            }
         }
         if player.input.isActionJustPressed(.rightShoulder) {
             if player.hasShinesparkCharge && (!player.joy1.x.isZero || !player.joy1.y.isZero) {
@@ -61,8 +61,9 @@ class JumpingState: PlayerState {
                 player.unmorph() // need bounds check
             }
         } else {
-            if player.input.isActionJustPressed(.down) && player.aimPriority.y < 0 && canMorph {
+            if player.input.isActionJustPressed(.down) && player.aimPriority.y < 0 && player.canUse(.morph) && canMorph {
                 player.morph()
+                player.velocity.y = 0.0
             }
         }
 
@@ -118,7 +119,7 @@ class JumpingState: PlayerState {
         }
 
         if abs(player.getRealVelocity().x) > player.data.movespeed * 0.8 && !hasShotDuringJump {
-            player.play(.jumpSpin) // breaks aiming?
+            player.play(.jumpSpin) // breaks aiming? yes, first shot fires wrong
         } else {
             if player.aimPriority.y > 0.0 {
                 if player.aimPriority.x > 0.0 || player.isAiming {
