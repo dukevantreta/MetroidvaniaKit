@@ -9,6 +9,8 @@ class JumpingState: PlayerState {
     var jumpTime: Double = 0.0
     var canDoubleJump = false // consumable double jump flag
 
+    var canMorph = false // protection flag
+
     func enter(_ player: Player) {
         jumpTimestamp = Time.getTicksMsec()
         player.overclockAccumulator = 0.0
@@ -20,6 +22,7 @@ class JumpingState: PlayerState {
         if !player.isAiming {
             player.aimPriority.y = 0.0
         }
+        canMorph = false
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 36)
@@ -48,6 +51,19 @@ class JumpingState: PlayerState {
                 return .charge
             }
             return .dash
+        }
+
+        if player.input.isActionJustReleased(.down) {
+            canMorph = true // i hate this solution but whatever
+        }
+        if player.isMorphed {
+            if player.input.isActionJustPressed(.up) {
+                player.unmorph() // need bounds check
+            }
+        } else {
+            if player.input.isActionJustPressed(.down) && player.aimPriority.y < 0 && canMorph {
+                player.morph()
+            }
         }
 
         // Mid-air jump
@@ -118,7 +134,7 @@ class JumpingState: PlayerState {
                     player.play(.jumpAimDiagonalDown)
                 } else {
                     player.aimDown()
-                    player.play(.jumpAimUp)
+                    player.play(.jumpAimDown)
                 }
             } else {
                 player.aimForward()

@@ -21,15 +21,15 @@ class IdleState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
-        if !player.joy1.x.isZero {
-            return .run
+        if !player.isOnFloor() {
+            return .jump
         }
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = -player.getJumpspeed()
             return .jump
         }
-        if !player.isOnFloor() {
-            return .jump
+        if abs(player.getRealVelocity().x) > player.runThreshold {
+            return .run
         }
         if player.joy1.y < 0 && !player.input.isActionPressed(.leftShoulder) && !player.isMorphed {
             player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
@@ -50,6 +50,13 @@ class IdleState: PlayerState {
             aimUpProtectionFlag = true
         }
 
+        player.updateHorizontalMovement(dt)
+        if player.isAffectedByWater {
+            player.velocity *= 0.9
+        }
+        player.moveAndSlide()
+
+        // Handle animations
         if player.isMorphed {
             player.play(.miniIdle)
             return

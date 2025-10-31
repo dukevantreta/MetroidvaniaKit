@@ -61,6 +61,8 @@ final class Player: CharacterBody2D {
     @Node("data") let data: PlayerData!
     
     @BindNode var input: InputController
+
+    @Export var runThreshold: Float = 6.0
     
     @Export(.range, "0,4,") var weaponLevel: Int = 0 {
         didSet {
@@ -127,12 +129,9 @@ final class Player: CharacterBody2D {
     
     var lastShotTimestamp: UInt = 0
     
-    // private
-    // var aimPriorityY: Float = 0.0
     var aimPriority: Vector2 = .zero
 
-    var isAiming = false
-    // var isAimingDown = false
+    private(set) var isAiming = false
     
     var isInWater = false
 
@@ -306,8 +305,6 @@ final class Player: CharacterBody2D {
             }
         }
         states[currentState]?.processPhysics(self, dt: delta)
-
-        // animationCheck()
 
         if states[currentState]?.canFire == true {
             if canUse(.mines), isMorphed, let dataMiner {
