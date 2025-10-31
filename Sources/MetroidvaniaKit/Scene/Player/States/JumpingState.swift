@@ -11,7 +11,7 @@ class JumpingState: PlayerState {
     var canDoubleJump = false // consumable double jump flag
     var allowsDoubleJump = false // protection flag to prevent triggering double jump during the first frame
 
-    var isForward = false
+    // var isForward = false
 
     func enter(_ player: Player) {
         jumpTimestamp = Time.getTicksMsec()
@@ -19,9 +19,14 @@ class JumpingState: PlayerState {
         canDoubleJump = true
         allowsDoubleJump = false
         hasShotDuringJump = false
-        isForward = false
+        // isForward = false
+        player.aimPriority.x = 0.0
         jumpTime = 0.0
         player.sprite?.play(name: "jump-begin")
+
+        if !player.isAiming {
+            player.aimPriority.y = 0.0
+        }
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 36)
@@ -30,55 +35,10 @@ class JumpingState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
-        if player.input.isActionJustPressed(.leftShoulder) {
-            player.aimY = 0.0
-        }
-        if player.input.isActionJustReleased(.leftShoulder) {
-            player.aimY = 0.0
-        }
-        player.isAiming = player.input.isActionPressed(.leftShoulder)
 
-        if Int64(player.lastShotTimestamp) - Int64(jumpTimestamp) > 0 {
-            hasShotDuringJump = true
-        }
+        
 
-        if !player.joy1.y.isZero { // toggle
-            player.aimY = player.joy1.sign().y
-            if player.joy1.x.isZero {
-                isForward = false
-            }
-        }
-        if !player.joy1.x.isZero {
-            isForward = true
-            if player.joy1.y.isZero && !player.isAiming {
-                player.aimY = 0.0
-            }
-        }
-
-
-        if player.isAiming {
-            if player.aimY < 0.0 {
-                player.aimDiagonalDown()
-            } else {
-                player.aimDiagonalUp()
-            }
-        } else {
-            if player.aimY > 0.0 {
-                if isForward {
-                    player.aimDiagonalUp()
-                } else {
-                    player.aimUp()
-                }
-            } else if player.aimY < 0.0 {
-                if isForward {
-                    player.aimDiagonalDown()
-                } else {
-                    player.aimDown()
-                }
-            } else {
-                player.aimForward()
-            }
-        }
+        
 
         if player.raycastForWall() && Int(player.getWallNormal().sign().x) == -Int(player.joy1.x) && player.canUse(.wallGrab) {
             let xNormal = Int(player.getWallNormal().sign().x)
@@ -104,6 +64,9 @@ class JumpingState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
+        if player.lastShotTimestamp > jumpTimestamp {
+            hasShotDuringJump = true
+        }
 
         // needs to be cached here, if done in processInput it can lead to a broken jump state
         let isJumpPressed = player.input.isActionPressed(.actionDown)
@@ -144,116 +107,63 @@ class JumpingState: PlayerState {
 
         jumpTime += dt // Update timer AFTER motion
         
+
         // Handle animations
         if player.isMorphed {
             if abs(player.getRealVelocity().x) > player.data.movespeed * 0.5 {
-                player.sprite?.play(name: "mini-jump-spin")
+                player.play(.miniJumpSpin)
             } else {
-                player.sprite?.play(name: "mini-jump")
+                player.play(.miniJump)
             }
             return
         }
 
+        if player.aimPriority.y > 0.0 {
+            if player.aimPriority.x > 0.0 || player.isAiming {
+                player.aimDiagonalUp()
+            } else {
+                player.aimUp()
+            }
+        } else if player.aimPriority.y < 0.0 {
+            if player.aimPriority.x > 0.0 || player.isAiming {
+                player.aimDiagonalDown()
+            } else {
+                player.aimDown()
+            }
+        } else {
+            player.aimForward()
+        }
+
         if abs(player.getRealVelocity().x) > player.data.movespeed * 0.8 && !hasShotDuringJump {
-            player.sprite?.play(name: "jump-spin") // breaks aiming
+            player.play(.jumpSpin) // breaks aiming?
         } else {
             if player.isAiming {
-                if player.aimY < 0.0 {
-                    player.sprite?.play(name: "jump-aim-diag-down")
+                if player.aimPriority.y < 0.0 {
+                    player.play(.jumpAimDiagonalDown)
                 } else {
-                    player.sprite?.play(name: "jump-aim-diag-up")
+                    player.play(.jumpAimDiagonalUp)
                 }
             } else {
-                if player.aimY < 0.0 {
-                    if isForward {
-                        player.sprite?.play(name: "jump-aim-diag-down")
+                if player.aimPriority.y < 0.0 {
+                    if player.aimPriority.x > 0.0 {
+                        player.play(.jumpAimDiagonalDown)
                     } else {
-                        player.sprite?.play(name: "jump-aim-down")
+                        player.play(.jumpAimDown)
                     }
-                } else if player.aimY > 0.0 {
-                    if isForward {
-                        player.sprite?.play(name: "jump-aim-diag-up")
+                } else if player.aimPriority.y > 0.0 {
+                    if player.aimPriority.x > 0.0 {
+                        player.play(.jumpAimDiagonalUp)
                     } else {
-                        player.sprite?.play(name: "jump-aim-up")
+                        player.play(.jumpAimUp)
                     }
                 } else {
                     if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
-                        player.sprite?.play(name: "jump-aim")
+                        player.play(.jumpAim)
                     } else {
-                        player.sprite?.play(name: "jump-still")
+                        player.play(.jumpStill)
                     }
                 }
             }
         }
     }
 }
-
-// enum PlayerAnimation {
-
-//     case idle
-//     case run(mode: Run)
-//     case jump(mode: Jump)
-    
-//     enum Run {
-//         case normal
-//         case aim(Aim)
-//     }
-    
-//     enum Jump {
-//         case still
-//         case spin
-//         case aim(Aim)
-//     }
-//     enum Aim {
-//         case forward
-//         case up
-//         case down
-//         case diagonalUp
-//         case diagonalDown
-//     }
-
-//     func check(_ animation: PlayerAnimation) {
-//         switch animation {
-//         case .idle:
-//             break
-//         case .run(let mode):
-//             switch mode {
-//             case .normal:
-//                 break
-//             case .aim(let aim):
-//                 switch aim {
-//                 case .forward:
-//                     break
-//                 case .diagonalDown:
-//                     break
-//                 case .diagonalUp:
-//                     break
-//                 case .down:
-//                     break
-//                 case .up:
-//                     break
-//                 }
-//             }
-//         case .jump(let mode):
-//             switch mode {
-//             case .still:
-//                 break
-//             case .spin:
-//                 break
-//             case .aim(let aim):
-//                 switch aim {
-//                 case .forward:
-//                     break
-//                 case .diagonalDown:
-//                     break
-//                 case .diagonalUp:
-//                     break
-//                 case .down:
-//                     break
-//                 case .up:
-//                     break
-//                 }
-//             }
-//         }
-//     }
-// }

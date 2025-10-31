@@ -5,54 +5,23 @@ class RunningState: PlayerState {
     let canFire: Bool = true
     
     var lastActionTimestamp: UInt = 0
-    
+
     func enter(_ player: Player) {
         player.overclockAccumulator = 0.0
         lastActionTimestamp = Time.getTicksMsec()
 
-        if !player.input.isActionPressed(.leftShoulder) {
-            player.aimY = 0.0
+        if !player.isAiming {
+            player.aimPriority.y = 0.0
         }
         
         if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
             hitboxRect.size = Vector2(x: 14, y: 36)
             player.hitbox?.position = Vector2(x: 0, y: -18)
         }
+
     }
     
     func processInput(_ player: Player) -> Player.State? {
-        if player.input.isActionJustPressed(.leftShoulder) {
-            player.aimY = 0.0
-        }
-        if player.input.isActionJustReleased(.leftShoulder) {
-            player.aimY = 0.0
-        }
-        player.isAiming = player.input.isActionPressed(.leftShoulder)
-        if !player.joy1.y.isZero {
-            player.aimY = player.joy1.sign().y
-        }
-
-        if player.isAiming {
-            if player.aimY < 0.0 {
-                player.aimDiagonalDown()
-            } else {
-                player.aimDiagonalUp()
-            }
-        } else {
-            if player.joy1.y != 0 {
-                if player.joy1.x != 0 {
-                    if player.joy1.y > 0 {
-                        player.aimDiagonalUp()
-                    } else if player.joy1.y < 0 {
-                        player.aimDiagonalDown()
-                    }
-                } else {
-                    player.aimUp()
-                }
-            } else {
-                player.aimForward()
-            }
-        }
 
         if !player.isOnFloor() {
             return .jump
@@ -69,6 +38,7 @@ class RunningState: PlayerState {
                 return .crouch
             }
         }
+
         if player.joy1.x.isZero && !player.isMorphed {
             if player.joy1.y < 0 && player.isOverclocking {
                 player.sprite?.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
@@ -84,20 +54,22 @@ class RunningState: PlayerState {
             }
         }
         
-        if Time.getTicksMsec() - lastActionTimestamp > player.idleAnimationThreshold {
-            return .idle
-        }
         if player.input.isActionJustPressed(.rightShoulder) {
             if player.hasShinesparkCharge && (!player.joy1.x.isZero || !player.joy1.y.isZero) {
                 return .charge
             }
             return .dash
         }
+
+        if abs(player.getRealVelocity().x) < 0.1 {
+            return .idle
+        }
         
         return nil
     }
     
     func processPhysics(_ player: Player, dt: Double) {
+
         player.updateHorizontalMovement(dt)
 
         if player.isAffectedByWater {
@@ -105,51 +77,32 @@ class RunningState: PlayerState {
         }
         
         player.moveAndSlide()
-        
+
+        // Handle animations
         if player.isMorphed {
             if abs(player.getRealVelocity().x) > 0 {
-                player.sprite?.play(name: "mini-run")
+                player.play(.miniRun)
             } else {
-                player.sprite?.play(name: "mini-idle-2")
+                player.play(.miniIdleAlt)
             }
             return
         }
-         
-        // Handle animations
-        if abs(player.getRealVelocity().x) > 0 {
-            if player.isAiming || !player.joy1.y.isZero {
-                if player.aimY < 0.0 {
-                    player.sprite?.play(name: "run-aim-down")
-                } else {
-                    player.sprite?.play(name: "run-aim-up")
-                }
+
+        if player.isAiming || !player.joy1.y.isZero {
+            if player.aimPriority.y < 0.0 {
+                player.aimDiagonalDown()
+                player.play(.runAimDiagonalDown)
             } else {
-                if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
-                    player.sprite?.play(name: "run-aim")
-                } else {
-                    player.sprite?.play(name: "run")
-                }
+                player.aimDiagonalUp()
+                player.play(.runAimDiagonalUp)
             }
         } else {
-            if player.isAiming {
-                if player.aimY < 0.0 {
-                    player.sprite?.play(name: "aim-diag-down")
-                } else {
-                    player.sprite?.play(name: "aim-diag-up")
-                }
+            player.aimForward()
+            if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
+                player.play(.runAim)
             } else {
-                if player.joy1.y > 0 {
-                    player.sprite?.play(name: "aim-up")
-                } else {
-                    if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
-                        player.sprite?.play(name: "aim-idle")
-                    } else {
-                        player.sprite?.play(name: "idle-3")
-                    }
-                }
+                player.play(.run)
             }
         }
-        
-        
     }
 }

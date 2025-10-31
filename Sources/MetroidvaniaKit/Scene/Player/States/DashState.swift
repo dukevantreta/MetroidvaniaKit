@@ -13,9 +13,9 @@ class DashState: PlayerState {
         xZero = player.position.x
         player.velocity.y = 0.0
         if player.isMorphed {
-            player.sprite?.play(name: "mini-dash")
+            player.play(.miniDash)
         } else {
-            player.sprite?.play(name: "dash")
+            player.play(.dash)
         }
     }
     

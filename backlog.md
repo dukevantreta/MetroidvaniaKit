@@ -1,11 +1,10 @@
 # Backlog
 
 ### Player
-- Increase distance between wall grab raycasts to more than 2 tiles (avoids step-grab).
-- Add a 3rd raycast in the middle.
-- Fine-tune collider sizes on state changes, adjust sprites & animations.
+- Fine-tune hitbox sizes on state changes.
     - Investigate collider rendering issue (centered vs top-left?).
 - Reimplement beams as layers (like Super Metroid).
+- Exiting crouch shouldn't instantly aim up.
 
 ### Camera
 - Manually clamp camera movement to room bounds.

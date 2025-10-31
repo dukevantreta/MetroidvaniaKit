@@ -25,6 +25,7 @@ enum WeaponType: Int {
     case plasma
 }
 
+// Order of execution: inputs -> state changes -> physics -> aiming -> animations -> shooting
 @Godot
 final class Player: CharacterBody2D {
     
@@ -117,8 +118,7 @@ final class Player: CharacterBody2D {
     var subweapon: Weapon?
 
     
-    // private
-    var aimY: Float = 0.0
+    
 
     private(set) var shotOrigin: Vector2 = .zero
     private(set) var shotDirection: Vector2 = .zero
@@ -130,8 +130,12 @@ final class Player: CharacterBody2D {
     
     var lastShotTimestamp: UInt = 0
     
+    // private
+    // var aimPriorityY: Float = 0.0
+    var aimPriority: Vector2 = .zero
+
     var isAiming = false
-    var isAimingDown = false
+    // var isAimingDown = false
     
     var isInWater = false
 
@@ -275,6 +279,29 @@ final class Player: CharacterBody2D {
             }
         }
 
+        // take aim
+        isAiming = input.isActionPressed(.leftShoulder)
+        if input.isActionJustPressed(.leftShoulder) {
+            aimPriority.y = 1.0
+        } else if input.isActionJustReleased(.leftShoulder) {
+            aimPriority.y = 0.0
+        }
+
+        if !joy1.y.isZero { // toggle
+            aimPriority.y = joy1.sign().y
+            if joy1.x.isZero {
+                aimPriority.x = 0.0
+            }
+        }
+        if !joy1.x.isZero {
+            aimPriority.x = 1.0
+            if joy1.y.isZero && !isAiming {
+                aimPriority.y = 0.0
+            }
+        }
+        // log("AIM PRIORITY: \(aimPriority.x), \(aimPriority.y)")
+
+        // process state
         if let newState = states[currentState]?.processInput(self) {
             if newState != currentState {
                 currentState = newState
@@ -302,6 +329,10 @@ final class Player: CharacterBody2D {
             hookshot?.direction = shotDirection
             hookshot?.activate()
         }
+    }
+
+    func play(_ animation: PlayerAnimation) {
+        sprite?.play(name: animation.rawValue)
     }
 
     func morph() {

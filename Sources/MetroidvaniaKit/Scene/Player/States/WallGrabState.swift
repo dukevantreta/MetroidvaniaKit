@@ -19,21 +19,7 @@ class WallGrabState: PlayerState {
     }
     
     func processInput(_ player: Player) -> Player.State? {
-        player.isAiming = player.input.isActionPressed(.leftShoulder)
-
-        if !player.joy1.y.isZero {
-            player.aimY = player.joy1.sign().y
-        }
-
-        if player.isAiming || !player.joy1.y.isZero {
-            if player.aimY < 0.0 {
-                player.aimWallDown()
-            } else {
-                player.aimWallUp()
-            }
-        } else {
-            player.aimWallForward()
-        }
+        // no cancel diagonal on L press or release
 
         if player.input.isActionJustPressed(.actionDown) {
             player.velocity.y = -player.getJumpspeed()
@@ -52,17 +38,28 @@ class WallGrabState: PlayerState {
         player.sprite?.flipH = player.lookDirection < 0
         
         if player.isMorphed {
-            player.sprite?.play(name: "mini-wall")
+            player.play(.miniWall)
             return
         }
+
         if player.isAiming || !player.joy1.y.isZero {
-            if player.aimY < 0.0 {
-                player.sprite?.play(name: "wall-aim-down")
+            if player.aimPriority.y < 0.0 {
+                player.aimWallDown()
             } else {
-                player.sprite?.play(name: "wall-aim-up")
+                player.aimWallUp()
             }
         } else {
-            player.sprite?.play(name: "wall-aim")
+            player.aimWallForward()
+        }
+
+        if player.isAiming || !player.joy1.y.isZero {
+            if player.aimPriority.y < 0.0 {
+                player.play(.wallAimDown)
+            } else {
+                player.play(.wallAimUp)
+            }
+        } else {
+            player.play(.wallAim)
         }
     }
 }
