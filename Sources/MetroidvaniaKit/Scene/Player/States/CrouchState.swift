@@ -44,8 +44,6 @@ class CrouchState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
-        
-        // Handle animations
         if player.isAiming {
             player.aimPriority.y = 1.0
             player.aimCrouchUp()

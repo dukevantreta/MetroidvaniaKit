@@ -117,9 +117,6 @@ final class Player: CharacterBody2D {
     
     var subweapon: Weapon?
 
-    
-    
-
     private(set) var shotOrigin: Vector2 = .zero
     private(set) var shotDirection: Vector2 = .zero
     private(set) var shotAnimOffset: Vector2 = .zero

@@ -45,20 +45,13 @@ class WallGrabState: PlayerState {
         if player.isAiming || !player.joy1.y.isZero {
             if player.aimPriority.y < 0.0 {
                 player.aimWallDown()
-            } else {
-                player.aimWallUp()
-            }
-        } else {
-            player.aimWallForward()
-        }
-
-        if player.isAiming || !player.joy1.y.isZero {
-            if player.aimPriority.y < 0.0 {
                 player.play(.wallAimDown)
             } else {
+                player.aimWallUp()
                 player.play(.wallAimUp)
             }
         } else {
+            player.aimWallForward()
             player.play(.wallAim)
         }
     }
