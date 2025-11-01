@@ -18,13 +18,6 @@ enum SubweaponType {
     case flamethrower
 }
 
-@PickerNameProvider
-enum WeaponType: Int {
-    case normal
-    case wave
-    case plasma
-}
-
 // Order of execution: inputs -> state changes -> physics -> aiming -> animations -> shooting
 @Godot
 final class Player: CharacterBody2D {
@@ -40,14 +33,11 @@ final class Player: CharacterBody2D {
         case hook
     }
     
-    @Node("CollisionShape2D") weak var collisionShape: CollisionShape2D?
-    @Node("PlayerHitbox/CollisionShape2D") weak var hitbox: CollisionShape2D?
     @Node("AnimatedSprite2D") weak var sprite: AnimatedSprite2D?
+    @Node("CollisionShape2D") weak var collisionShape: CollisionShape2D?
+    @Node("Hitbox2D") var hitbox: Hitbox2D?
     
     @Node("Weapons/MainWeapon") var mainWeapon: Weapon?
-    @Node("Weapons/PowerBeam") var powerBeam: Weapon?
-    @Node("Weapons/WaveBeam") var waveBeam: Weapon?
-    @Node("Weapons/PlasmaBeam") var plasmaBeam: Weapon?
     @Node("Weapons/RocketLauncher") var rocketLauncher: Weapon?
     @Node("Weapons/GranadeLauncher") var granadeLauncher: Weapon?
     @Node("Weapons/SmartBomb") var smartBomb: Weapon?
@@ -55,29 +45,16 @@ final class Player: CharacterBody2D {
     @Node("Weapons/DataMiner") var dataMiner: Weapon?
     
     @Node("Hookshot") var hookshot: Hookshot?
+
     @Node("Health") var hp: Health?
     @Node("Ammo") var ammo: Ammo?
 
     @Node("data") let data: PlayerData!
-    
-    @BindNode var input: InputController
+    @Node("input") let input: InputController
 
-    @Export var runThreshold: Float = 6.0
-    
-    @Export(.range, "0,4,") var weaponLevel: Int = 0 {
-        didSet {
-            switchWeapons(weaponLevel)
-        }
-    }
-    
-    // @Export private(set) var shotOffset: Float = 6.0
-    @Export(.enum) var weaponType: WeaponType = .normal
+    @Export private(set) var runThreshold: Float = 6.0
 
-    @Export var damageSpeed: Float = 500
-    
-    @Export var idleAnimationThreshold: Int = 10000
-    
-    @Export var lastShotAnimationThreshold: Int = 3000
+    @Export private(set) var damageSpeed: Float = 500
     
     @Export var dashDistance: Int = 48
     @Export var dashSpeed: Float = 240
@@ -99,7 +76,7 @@ final class Player: CharacterBody2D {
         }
     }
     
-    let states: [State: PlayerState] = [
+    private let states: [State: PlayerState] = [
         .idle: IdleState(),
         .run: RunningState(),
         .jump: JumpingState(),
@@ -109,39 +86,46 @@ final class Player: CharacterBody2D {
         .charge: ShinesparkState(),
         .hook: HookState()
     ]
-    var currentState: State = .idle
+    private(set) var currentState: State = .idle
 
-    var joy1: Vector2 = .zero
+    private let weaponCooldown = Cooldown()
+    private var subweapon: Weapon?
 
-    var weaponCooldown = Cooldown()
-    
-    var weapon: Weapon?
-    
-    var subweapon: Weapon?
+    private(set) var joy1: Vector2 = .zero
+    private(set) var joy2: Vector2 = .zero
 
+    var aimPriority: Vector2 = .zero
     private(set) var shotOrigin: Vector2 = .zero
     private(set) var shotDirection: Vector2 = .zero
-    private(set) var shotAnimOffset: Vector2 = .zero
+    private(set) var shotOffset: Vector2 = .zero
 
-    private(set) var highRay: Ray = (.zero, .zero)
-    private(set) var midRay: Ray = (.zero, .zero)
-    private(set) var lowRay: Ray = (.zero, .zero)
+    private let hitTimer = GameTimer()
+    private let invFramesTimer = GameTimer()
     
-    var lastShotTimestamp: UInt = 0
-    var lastActionTimestamp: UInt = 0
-    
-    var aimPriority: Vector2 = .zero
+    private(set) var timeSinceLastAction: Double = 9999
+    private(set) var timeSinceLastShot: Double = 69420
+
+    var hasActedRecently: Bool {
+        timeSinceLastAction < data.idleThresholdTime
+    }
+
+    var hasShotRecently: Bool {
+        timeSinceLastShot < data.lastShotThresholdTime
+    }
 
     private(set) var isAiming = false
     
-    var isInWater = false
+    private(set) var isInWater = false
+    private var lastFrameInWater = false
 
     private(set) var isMorphed = false
+
+    private var isInvincible = false
     
     var isAffectedByWater: Bool {
         isInWater && !canUse(.waterMovement)
     }
-    
+
     var overclockAccumulator: Double = 0.0
 
     var isOverclocking = false {
@@ -160,6 +144,10 @@ final class Player: CharacterBody2D {
             self.modulate = hasShinesparkCharge ? Color.blue : Color.white
         }
     }
+
+    private(set) var highRay: Ray = (.zero, .zero)
+    private(set) var midRay: Ray = (.zero, .zero)
+    private(set) var lowRay: Ray = (.zero, .zero)
     
     var wallJumpTimestamp: UInt = 0 // Using a timestamp here allows cheating
     
@@ -206,28 +194,58 @@ final class Player: CharacterBody2D {
 
         guard let sprite else { return }
         sprite.animationChanged.connect { [weak self] in
-            self?.animationCheck()
+            self?.updateAimOffset()
         }
         sprite.frameChanged.connect { [weak self] in
-            self?.animationCheck()
+            self?.updateAimOffset()
         }
         sprite.spriteFrames?.setAnimationLoop(anim: "stand-to-crouch", loop: false)
 
         setCollisionLayer(.player)
         addCollisionMask(.floor)
-        mainWeapon?.ammo = ammo
-        mainWeapon?.cooldown = weaponCooldown
+        hitbox?.setCollisionLayer(.player)
+        hitbox?.collisionMask = 0 //
+        hitbox?.addCollisionMask(.water)
+        hitbox?.collisionMask |= 0b1000_0000_0000_0000
+
+        hitbox?.onHit = { [weak self] damage in
+            self?.takeHit(damage)
+        }
+        hitbox?.areaEntered.connect { [weak self] other in
+            guard let self, let other else { return }
+            if other.collisionLayer == 0b1000_0000_0000_0000 {
+                self.enterLowGravity()
+            }
+        }
+        hitbox?.areaExited.connect { [weak self] other in
+            guard let self, let other else { return }
+            if other.collisionLayer == 0b1000_0000_0000_0000 {
+                self.exitLowGravity()
+            }
+        }
+
+        hitTimer.isRepeating = false
+        invFramesTimer.isRepeating = true
+
+        hitTimer.onTimeout = { [weak self] in
+            self?.hitTimeout()
+        }
+        invFramesTimer.onTimeout = { [weak self] in
+            guard let sprite = self?.sprite else { return }
+            sprite.visible = !sprite.visible
+        }
+
         [
-            powerBeam,
-            waveBeam,
-            plasmaBeam,
+            mainWeapon,
+            dataMiner,
             rocketLauncher,
             granadeLauncher,
             smartBomb,
             flamethrower,
-        ].compactMap {$0}.forEach { $0.ammo = ammo; $0.cooldown = weaponCooldown } 
-        dataMiner?.ammo = ammo
-        dataMiner?.cooldown = weaponCooldown
+        ].compactMap {$0}.forEach { 
+            $0.ammo = ammo
+            $0.cooldown = weaponCooldown 
+        } 
 
         // ammo?.restore(ammo?.maxValue ?? 0)
         let maxAmmo = data.maxAmmo
@@ -238,7 +256,7 @@ final class Player: CharacterBody2D {
         hp?.maxValue = maxHp
         hp?.heal(maxHp)
 
-        switchWeapons(weaponLevel)
+        // mainWeapon = phaser
         switchSubweapon(.rocket) // check for weapon flags
         hookshot?.didHit.connect { [weak self] in
             self?.hookHit()
@@ -251,19 +269,41 @@ final class Player: CharacterBody2D {
     }
     
     override func _physicsProcess(delta: Double) {
+        // update all time-based stuff
+        timeSinceLastAction += delta
+        timeSinceLastShot += delta
         weaponCooldown.update(delta)
+        hitTimer.update(delta)
+        invFramesTimer.update(delta)
 
         joy1 = Vector2(x: input.getHorizontalAxis(), y: input.getVerticalAxis()).sign()
-        let joy2 = Vector2(x: input.getSecondaryHorizontalAxis(), y: input.getSecondaryVerticalAxis())
-        
-        let faceDirX = velocity.sign().x
-        if faceDirX != 0 && faceDirX != lookDirection {
-            lookDirection = faceDirX
+        joy2 = Vector2(x: input.getSecondaryHorizontalAxis(), y: input.getSecondaryVerticalAxis())
+
+        takeAim()
+
+        // this check is bad, no-actions still trigger the time
+        if input.isActionPressed(.actionDown) || input.isActionPressed(.actionUp) || input.isActionPressed(.actionLeft) || input.isActionPressed(.actionRight) {
+            timeSinceLastAction = 0.0
+        }
+
+        // process state
+        if let newState = states[currentState]?.processInput(self) {
+            if newState != currentState {
+                currentState = newState
+                states[currentState]?.enter(self)
+            }
+        }
+        states[currentState]?.processPhysics(self, dt: delta)
+
+        checkForWater()
+        updateWaterWalkStatus()
+
+        let faceDirection = velocity.sign().x
+        if faceDirection != 0 && faceDirection != lookDirection {
+            lookDirection = faceDirection
             sprite?.flipH = lookDirection < 0
         }
 
-        updateWaterWalkStatus()
-        
         if abs(joy2.x) > 0.5 || abs(joy2.y) > 0.5 {
             let angle = joy2.angle()
             if abs(angle) <= .pi / 4 { // right
@@ -277,47 +317,11 @@ final class Player: CharacterBody2D {
             }
         }
 
-        // take aim
-        isAiming = input.isActionPressed(.leftShoulder)
-        if input.isActionJustPressed(.leftShoulder) {
-            aimPriority.y = 1.0
-        } else if input.isActionJustReleased(.leftShoulder) {
-            aimPriority.y = 0.0
-        }
-
-        if !joy1.y.isZero { // toggle
-            aimPriority.y = joy1.sign().y
-            if joy1.x.isZero {
-                aimPriority.x = 0.0
-            }
-        }
-        if !joy1.x.isZero {
-            aimPriority.x = 1.0
-            if joy1.y.isZero && !isAiming {
-                aimPriority.y = 0.0
-            }
-        }
-        // log("AIM PRIORITY: \(aimPriority.x), \(aimPriority.y)")
-
-        // this check is bad, no-actions still trigger the time
-        if input.isActionPressed(.actionDown) || input.isActionPressed(.actionUp) || input.isActionPressed(.actionLeft) || input.isActionPressed(.actionRight) {
-            lastActionTimestamp = Time.getTicksMsec()
-        }
-
-        // process state
-        if let newState = states[currentState]?.processInput(self) {
-            if newState != currentState {
-                currentState = newState
-                states[currentState]?.enter(self)
-            }
-        }
-        states[currentState]?.processPhysics(self, dt: delta)
-
         if states[currentState]?.canFire == true {
             if canUse(.mines), isMorphed, let dataMiner {
                 tryFire(dataMiner, pressing: .actionLeft)
-            } else if let weapon {
-                tryFire(weapon, pressing: .actionLeft)
+            } else if let mainWeapon {
+                tryFire(mainWeapon, pressing: .actionLeft)
             }
             if let subweapon {
                 tryFire(subweapon, pressing: .actionUp)
@@ -339,10 +343,10 @@ final class Player: CharacterBody2D {
     func morph() {
         isMorphed = true
         self.size = Vector2(from: data.bodySizeMorphed)
-        if let hitboxRect = hitbox?.shape as? RectangleShape2D {
-            hitboxRect.size = Vector2(x: 14, y: 14)
-            hitbox?.position = Vector2(x: 0, y: -7)
-        }
+        // if let hitboxRect = pHitbox?.shape as? RectangleShape2D {
+        //     hitboxRect.size = Vector2(x: 14, y: 14)
+        //     pHitbox?.position = Vector2(x: 0, y: -7)
+        // }
     }
 
     func unmorph() {
@@ -361,6 +365,14 @@ final class Player: CharacterBody2D {
         data.ammoExpansions += 1
         ammo?.maxValue = data.maxAmmo
         ammo?.restore(data.ammoPerExpansion)
+    }
+
+    func restoreHealth(_ amount: Int) {
+        hp?.heal(amount)
+    }
+
+    func restoreAmmo(_ amount: Int) {
+        ammo?.restore(amount)
     }
     
     func hookHitHook() {
@@ -383,10 +395,35 @@ final class Player: CharacterBody2D {
         velocity.y = direction.y * 500
         states[currentState]?.enter(self)
     }
+
+    func takeHit(_ damage: Damage) {
+        if damage.value.contains(.mines) {
+            if isMorphed == true {
+                velocity.y = Float(-(getJumpspeed() ?? 0.0))
+            }
+            return
+        }
+
+        guard !isInvincible else { return }
+        isInvincible = true
+        
+        let xDirection: Float = (self.globalPosition - damage.origin).x < 0.0 ? -1.0 : 1.0
+        
+        takeDamage(damage.amount, xDirection: xDirection)
+        
+        invFramesTimer.start(time: 0.05)
+        hitTimer.start(time: 1.0)
+    }
     
     func takeDamage(_ amount: Int, xDirection: Float) {
         velocity.x = xDirection * damageSpeed * (isOnFloor() ? 1.0 : 0.7)
         hp?.damage(amount)
+    }
+
+    func hitTimeout() {
+        invFramesTimer.stop()
+        sprite?.visible = true
+        isInvincible = false
     }
     
     func enterWater() {
@@ -405,17 +442,43 @@ final class Player: CharacterBody2D {
         // jumpDuration = 0.5
     }
 
-    func layBomb() {
-        // dataMiner?.fire(from: getParent()!, origin: self.position + Vector2(x: 0, y: -6), direction: .zero)
-    }
-
     // MARK: MOVEMENT FUNCTIONS
 
     func updateWaterWalkStatus() {
-        if velocity.x != 0.0 && !isInWater && canUse(.waterWalking) {
+        if abs(getRealVelocity().x) > data.waterWalkingMinSpeed && !isInWater && canUse(.waterWalking) {
             addCollisionMask(.water)
         } else {
             removeCollisionMask(.water)
+        }
+    }
+
+    func checkForWater() {
+        guard let hitbox = hitbox else { return }
+        for body in hitbox.getOverlappingBodies() {
+            if let tilemap = body as? TileMapLayer, let tileset = tilemap.tileSet {
+                var queryPosition = Vector2(x: position.x, y: position.y - 1)
+                queryPosition -= tilemap.globalPosition
+                let mapCoordinates = tilemap.localToMap(localPosition: queryPosition)
+                if let tileData = tilemap.getCellTileData(coords: mapCoordinates) {
+                    var tileCollisionLayer: UInt32 = 0
+                    for physicsLayerIdx in 0..<tileset.getPhysicsLayersCount() { // ugly workaround to get tile's collision layer
+                        if tileData.getCollisionPolygonsCount(layerId: physicsLayerIdx) > 0 {
+                            tileCollisionLayer |= tileset.getPhysicsLayerCollisionLayer(layerIndex: physicsLayerIdx)
+                        }
+                    }
+                    if LayerMask(rawValue: tileCollisionLayer).contains(.water) {
+                        if !lastFrameInWater {
+                            lastFrameInWater = true
+                            enterWater()
+                        }
+                        return
+                    }
+                }
+            }
+        }
+        if lastFrameInWater {
+            lastFrameInWater = false
+            exitWater()
         }
     }
 
@@ -521,16 +584,6 @@ final class Player: CharacterBody2D {
     
     // MARK: WEAPON FUNCTIONS
     
-    func switchWeapons(_ level: Int) {
-        // switch level {
-        // case 0: weapon = nil
-        // case 1: weapon = powerBeam
-        // case 2: weapon = waveBeam
-        // default: weapon = plasmaBeam
-        // }
-        weapon = mainWeapon
-    }
-    
     func switchSubweapon(_ type: SubweaponType) {
         switch type {
         case .none: subweapon = nil
@@ -543,97 +596,105 @@ final class Player: CharacterBody2D {
 
     func tryFire(_ weapon: Weapon, pressing action: InputAction) {
         if weapon.trigger(isPressed: input.isActionPressed(action)) {
-            lastShotTimestamp = Time.getTicksMsec()
+            timeSinceLastShot = 0.0
         }
     }
     
     // MARK: AIMING FUNCTIONS
+
+    func takeAim() {
+        isAiming = input.isActionPressed(.leftShoulder)
+        if input.isActionJustPressed(.leftShoulder) {
+            aimPriority.y = 1.0
+        } else if input.isActionJustReleased(.leftShoulder) {
+            aimPriority.y = 0.0
+        }
+        if !joy1.y.isZero { // toggle y
+            aimPriority.y = joy1.sign().y
+            if joy1.x.isZero {
+                aimPriority.x = 0.0
+            }
+        }
+        if !joy1.x.isZero { // toggle x
+            aimPriority.x = 1.0
+            if joy1.y.isZero && !isAiming {
+                aimPriority.y = 0.0
+            }
+        }
+    }
     
     func aimForward() {
-        shotOrigin = Vector2(x: 14 * lookDirection, y: -27)
+        shotOrigin = Vector2(x: 14, y: -27)
         shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
     
     func aimDiagonalUp() {
-        shotOrigin = Vector2(x: 10 * lookDirection, y: -36)
+        shotOrigin = Vector2(x: 10, y: -36)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
     
     func aimDiagonalDown() {
-        shotOrigin = Vector2(x: 11 * lookDirection, y: -18)
+        shotOrigin = Vector2(x: 11, y: -18)
         shotDirection = Vector2(x: lookDirection, y: 1).normalized()
     }
     
     func aimUp() {
-        shotOrigin = Vector2(x: 2 * lookDirection, y: -40)
+        shotOrigin = Vector2(x: 2, y: -40)
         shotDirection = Vector2(x: 0, y: -1).normalized()
     }
     
     func aimDown() {
-        shotOrigin = Vector2(x: 1 * lookDirection, y: -12)
+        shotOrigin = Vector2(x: 1, y: -12)
         shotDirection = Vector2(x: 0, y: 1).normalized()
     }
     
     func aimWallForward() {
-        shotOrigin = Vector2(x: 23 * lookDirection, y: -23)
+        shotOrigin = Vector2(x: 23, y: -23)
         shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
 
     func aimWallUp() {
-        shotOrigin = Vector2(x: 19 * lookDirection, y: -32)
+        shotOrigin = Vector2(x: 19, y: -32)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
     
     func aimWallDown() {
-        shotOrigin = Vector2(x: 19 * lookDirection, y: -14)
+        shotOrigin = Vector2(x: 19, y: -14)
         shotDirection = Vector2(x: lookDirection, y: 1).normalized()
     }
     
     func aimCrouchForward() {
-        shotOrigin = Vector2(x: 14 * lookDirection, y: -14)
+        shotOrigin = Vector2(x: 14, y: -14)
         shotDirection = Vector2(x: lookDirection, y: 0).normalized()
     }
     
     func aimCrouchUp() {
-        shotOrigin = Vector2(x: 10 * lookDirection, y: -23)
+        shotOrigin = Vector2(x: 10, y: -23)
         shotDirection = Vector2(x: lookDirection, y: -1).normalized()
     }
 
-    func animationCheck() {
-        guard let sprite else { shotAnimOffset = .zero; return }
-        if sprite.animation == "run-aim" {
+    func updateAimOffset() {
+        guard let sprite else { shotOffset = .zero; return }
+        let animationName = String(sprite.animation)
+        if animationName.hasPrefix("run-aim") {
             let offset: Float = switch sprite.frame {
                 case 0, 2, 5, 7: 1.0
                 case 3, 8: 2.0
                 case 4, 9: 3.0
                 default: 0.0
             }
-            shotAnimOffset = Vector2(x: 0.0, y: offset)
-        } else if sprite.animation == "run-aim-up" {
-            let offX: Float = 1.0
-            let offset: Float = switch sprite.frame {
-                case 0, 2, 5, 7: 1.0
-                case 3, 8: 2.0
-                case 4, 9: 3.0
-                default: 0.0
+            shotOffset = Vector2(x: 0.0, y: offset)
+            if animationName.hasSuffix("up") {
+                shotOffset.x = 1.0
             }
-            shotAnimOffset = Vector2(x: offX, y: offset)
-        } else if sprite.animation == "run-aim-down" {
-            let offset: Float = switch sprite.frame {
-                case 0, 2, 5, 7: 1.0
-                case 3, 8: 2.0
-                case 4, 9: 3.0
-                default: 0.0
-            }
-            shotAnimOffset = Vector2(x: 0.0, y: offset)
         } else if sprite.animation == "jump-aim" {
-            shotAnimOffset = Vector2(x: 0.0, y: 1.0)
+            shotOffset = Vector2(x: 0.0, y: 1.0)
         } else if sprite.animation == "jump-aim-diag-up" {
-            shotAnimOffset = Vector2(x: 1.0, y: 1.0)
+            shotOffset = Vector2(x: 1.0, y: 1.0)
         } else if sprite.animation == "jump-aim-diag-down" {
-            shotAnimOffset = Vector2(x: 0.0, y: 1.0)
+            shotOffset = Vector2(x: 0.0, y: 1.0)
         } else {
-            shotAnimOffset = .zero
+            shotOffset = .zero
         }
     }
 }
@@ -649,9 +710,9 @@ extension Player: MainWeaponDelegate {
     }
     
     func firingPoint() -> Vector2 {
-        var animOffset = shotAnimOffset
-        animOffset.x *= lookDirection
-        return globalPosition + shotOrigin + animOffset
+        var localOffset = shotOrigin + shotOffset
+        localOffset.x *= lookDirection
+        return globalPosition + localOffset
     }
 
     func getMomentum() -> Vector2 {

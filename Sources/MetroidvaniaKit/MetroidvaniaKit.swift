@@ -40,7 +40,6 @@ func setupScene (level: GDExtension.InitializationLevel) {
             Player.self,
             PlayerData.self,
             TriggerArea2D.self,
-            PlayerHitbox.self,
             HookHitbox.self,
             Projectile.self,
             Bullet.self,

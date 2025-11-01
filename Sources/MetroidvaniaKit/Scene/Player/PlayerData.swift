@@ -37,6 +37,7 @@ final class PlayerData: Node {
     @Export private(set) var deceleration: Float = 80.0
     @Export private(set) var airDampFactor: Float = 0.4
     @Export private(set) var overclockFactor: Float = 2.0
+    @Export private(set) var waterWalkingMinSpeed: Float = 80.0
 
     // Linear height is up to where gravity is ignored if the player holds the jump button.
     // Parabolic height / duration refers to the interval of the jump where gravity is actually applied.

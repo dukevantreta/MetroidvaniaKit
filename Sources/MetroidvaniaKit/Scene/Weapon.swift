@@ -82,7 +82,7 @@ class Weapon: Node {
                 return false // play fail sfx
             }
         }
-        cooldown.time = cooldownTime
+        cooldown.duration = cooldownTime
         cooldown.use()
         fire()
         return true
@@ -381,7 +381,7 @@ class Flamethrower: Weapon {
             }
             ammoCounter = 0.5
         }
-        cooldown.time = cooldownTime
+        cooldown.duration = cooldownTime
         cooldown.use()
         fire()
         return true

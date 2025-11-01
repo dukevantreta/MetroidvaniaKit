@@ -5,6 +5,10 @@
     - Investigate collider rendering issue (centered vs top-left?).
 - Reimplement beams as layers (like Super Metroid).
 - Jump while overclocking must lock firing any weapons.
+- Refine animations timings.
+    - Keep frame index on switch between run & aim.
+    - Add / fix jump begin, fall land, etc: transition anims.
+- Make playing aiming animations consistent with 'has weapons' checks and last shot threshold.
 
 ### Camera
 - Manually clamp camera movement to room bounds.
@@ -23,9 +27,6 @@
 ### Bugs
 - Fix item pick locking next pause screen.
     - Pause storage is breaking room transitions.
-- Holding jump right after falling a ledge makes it ignores gravity (falling != jumping). 
-- Bullet colliders don't rotate w/ the sprite.
-- Slopes can cancel overclock (by reducing speed) when it is beginning.
 
 ### Unknowns
 - Evaluate the need of obsevability on cooldowns, to add callbacks for rendering UI indicators.

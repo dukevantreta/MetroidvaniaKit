@@ -38,10 +38,10 @@ class DropCollectible: Area2D {
         }
         addChild(node: blinkTimer)
 
-        areaEntered.connect { [weak self] otherArea in
-            guard let self, let otherArea else { return }
-            if let hitbox = otherArea as? PlayerHitbox {
-                self.collect(hitbox)
+        areaEntered.connect { [weak self] other in
+            guard let self, let other else { return }
+            if let player = other.getParent() as? Player {
+                self.collect(player)
             }
         }
     }
@@ -56,12 +56,12 @@ class DropCollectible: Area2D {
         }
     }
     
-    func collect(_ playerHitbox: PlayerHitbox) {
+    func collect(_ player: Player) {
         switch self.type {
         case .health, .healthBig:
-            playerHitbox.restoreHealth(amount)
+            player.restoreHealth(amount)
         case .ammo:
-            playerHitbox.restoreAmmo(amount)
+            player.restoreAmmo(amount)
         }
         self.queueFree()
     }

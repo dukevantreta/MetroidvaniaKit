@@ -11,10 +11,10 @@ class RunningState: PlayerState {
             player.aimPriority.y = 0.0
         }
         
-        if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
-            hitboxRect.size = Vector2(x: 14, y: 36)
-            player.hitbox?.position = Vector2(x: 0, y: -18)
-        }
+        // if let hitboxRect = player.pHitbox?.shape as? RectangleShape2D {
+        //     hitboxRect.size = Vector2(x: 14, y: 36)
+        //     player.pHitbox?.position = Vector2(x: 0, y: -18)
+        // }
 
     }
     
@@ -90,7 +90,7 @@ class RunningState: PlayerState {
             }
         } else {
             player.aimForward()
-            if Time.getTicksMsec() - player.lastShotTimestamp < player.lastShotAnimationThreshold {
+            if player.hasShotRecently {
                 player.play(.runAim)
             } else {
                 player.play(.run)

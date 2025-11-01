@@ -24,10 +24,10 @@ class JumpingState: PlayerState {
         }
         canMorph = false
         
-        if let hitboxRect = player.hitbox?.shape as? RectangleShape2D {
-            hitboxRect.size = Vector2(x: 14, y: 36)
-            player.hitbox?.position = Vector2(x: 0, y: -18)
-        }
+        // if let hitboxRect = player.pHitbox?.shape as? RectangleShape2D {
+        //     hitboxRect.size = Vector2(x: 14, y: 36)
+        //     player.pHitbox?.position = Vector2(x: 0, y: -18)
+        // }
     }
     
     func processInput(_ player: Player) -> Player.State? {
@@ -80,8 +80,6 @@ class JumpingState: PlayerState {
     }
     
     func processPhysics(_ player: Player, dt: Double) {
-        let hasShotDuringJump = player.lastShotTimestamp > jumpTimestamp
-
         // needs to be cached here, if done in processInput it can lead to a broken jump state
         let isJumpPressed = player.input.isActionPressed(.actionDown)
         let isJumpJustReleased = player.input.isActionJustReleased(.actionDown)
@@ -118,6 +116,8 @@ class JumpingState: PlayerState {
             return
         }
 
+        let hasShotDuringJump = player.timeSinceLastShot < jumpTime
+
         if abs(player.getRealVelocity().x) > player.data.movespeed * 0.8 && !hasShotDuringJump {
             player.play(.jumpSpin) // breaks aiming? yes, first shot fires wrong
         } else {
@@ -139,7 +139,7 @@ class JumpingState: PlayerState {
                 }
             } else {
                 player.aimForward()
-                if Time.getTicksMsec() - player.lastShotTimestamp < 3000 {
+                if player.hasShotRecently {
                     player.play(.jumpAim)
                 } else {
                     player.play(.jumpStill)

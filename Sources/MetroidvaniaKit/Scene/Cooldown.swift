@@ -1,6 +1,6 @@
 final class Cooldown {
 
-    var time: Double
+    var duration: Double
 
     private(set) var timeLeft: Double = 0.0
 
@@ -9,7 +9,7 @@ final class Cooldown {
     }
 
     init(time: Double = 0.0) {
-        self.time = time
+        duration = time
     }
 
     func reset() {
@@ -23,7 +23,7 @@ final class Cooldown {
     @discardableResult
     func use() -> Bool {
         guard isReady else { return false }
-        timeLeft = time
+        timeLeft = duration
         return true
     }
 }
